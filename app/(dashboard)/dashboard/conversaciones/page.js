@@ -1,171 +1,155 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api';
 
 export default function ConversacionesPage() {
+  const [contactos, setContactos] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
-  const [messageText, setMessageText] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
-  // Mock data - conversaciones
-  const conversations = [
-    {
-      id: 1,
-      clientName: 'Carlos Pérez',
-      lastMessage: 'Quiero portarme a Bitel, tengo Movistar',
-      timestamp: '5 min',
-      unread: 2,
-      status: 'nuevo',
-      phone: '+51 987 654 321',
-      operator: 'Movistar',
-    },
-    {
-      id: 2,
-      clientName: 'María López',
-      lastMessage: 'Me interesa el plan de 45 soles',
-      timestamp: '15 min',
-      unread: 1,
-      status: 'interesado',
-      phone: '+51 987 654 322',
-      operator: 'Claro',
-    },
-    {
-      id: 3,
-      clientName: 'Juan Torres',
-      lastMessage: 'Perfecto, procedo con la portabilidad',
-      timestamp: '1 hora',
-      unread: 0,
-      status: 'ganado',
-      phone: '+51 987 654 323',
-      operator: 'Entel',
-    },
-    {
-      id: 4,
-      clientName: 'Ana Gutiérrez',
-      lastMessage: 'Cuánto cuesta portarme?',
-      timestamp: '2 horas',
-      unread: 1,
-      status: 'nuevo',
-      phone: '+51 987 654 324',
-      operator: 'Movistar',
-    },
-    {
-      id: 5,
-      clientName: 'Pedro Ramírez',
-      lastMessage: 'Necesito más información sobre los planes',
-      timestamp: '3 horas',
-      unread: 0,
-      status: 'contactado',
-      phone: '+51 987 654 325',
-      operator: 'Claro',
-    },
-  ];
+  // Cargar datos desde la API
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Cargar contactos desde el endpoint /crm/contactos
+        // Devuelve: { data: [{ celular: "51901248887" }, ...] }
+        const response = await apiClient.get('/crm/contactos');
+        
+        // Extraer el array de contactos
+        const contactosArray = response.data || response || [];
+        
+        console.log('Contactos cargados:', contactosArray);
+        
+        // Almacenar respuesta directa en estado contactos
+        setContactos(contactosArray);
+        
+      } catch (err) {
+        console.error('Error al cargar conversaciones:', err);
+        setError('No se pudo cargar los contactos');
+        setContactos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadConversations();
+  }, []);
 
-  // Mock data - mensajes del chat seleccionado
-  const mockMessages = {
-    1: [
-      { id: 1, type: 'client', text: 'Hola, buenos días', timestamp: '10:30 AM' },
-      { id: 2, type: 'ai', text: '¡Hola! Bienvenido a Bitel. ¿En qué puedo ayudarte hoy?', timestamp: '10:30 AM' },
-      { id: 3, type: 'client', text: 'Quiero portarme a Bitel, tengo Movistar', timestamp: '10:31 AM' },
-      { id: 4, type: 'ai', text: '¡Excelente decisión! La portabilidad es rápida y sin costo. ¿De qué operador vienes?', timestamp: '10:31 AM' },
-      { id: 5, type: 'client', text: 'De Movistar', timestamp: '10:32 AM' },
-      { id: 6, type: 'ai', text: 'Perfecto. Tenemos planes desde S/45 mensuales con muchos beneficios. Un asesor se pondrá en contacto contigo en breve.', timestamp: '10:32 AM' },
-    ],
-    2: [
-      { id: 1, type: 'client', text: 'Hola, quisiera información', timestamp: '9:15 AM' },
-      { id: 2, type: 'ai', text: 'Hola, con gusto te ayudo. ¿Qué información necesitas?', timestamp: '9:15 AM' },
-      { id: 3, type: 'client', text: 'Me interesa el plan de 45 soles', timestamp: '9:16 AM' },
-      { id: 4, type: 'vendor', text: 'Hola María! El plan de S/45 incluye 50GB + redes sociales ilimitadas. ¿Te gustaría proceder con la portabilidad?', timestamp: '9:20 AM' },
-    ],
+  // Cargar mensajes del chat seleccionado
+  const handleSelectChat = async (contacto) => {
+    setSelectedChat(contacto);
+    setLoadingMessages(true);
+    setChatMessages([]);
+    
+    try {
+      // Cargar mensajes del endpoint /crm/chats/{celular}
+      const response = await apiClient.get(`/crm/chats/${contacto.celular}`);
+      const messagesData = response.data || response || [];
+      
+      // Transformar mensajes a formato de chat
+      const messages = messagesData.map(msg => [
+        {
+          id: msg.id || Math.random(),
+          type: 'client',
+          text: msg.question,
+          timestamp: new Date(msg.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        },
+        {
+          id: (msg.id || Math.random()) + '_response',
+          type: 'ai',
+          text: msg.respuesta_api?.answer || 'Sin respuesta',
+          timestamp: new Date(msg.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        }
+      ]).flat();
+      
+      setChatMessages(messages);
+      console.log('Mensajes cargados:', messages);
+    } catch (err) {
+      console.error('Error al cargar mensajes:', err);
+      setChatMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
   };
 
-  const statusConfig = {
-    nuevo: { label: 'Nuevo', color: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
-    contactado: { label: 'Contactado', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-    interesado: { label: 'Interesado', color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' },
-    ganado: { label: 'Ganado', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-    perdido: { label: 'Perdido', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-  };
-
-  const filteredConversations = filterStatus === 'all'
-    ? conversations
-    : conversations.filter(c => c.status === filterStatus);
-
-  const handleSendMessage = () => {
-    if (!messageText.trim()) return;
-    // Aquí iría la lógica para enviar el mensaje al backend
-    console.log('Enviando mensaje:', messageText);
-    setMessageText('');
-  };
-
-  const handleDeriveToBackoffice = () => {
-    // Lógica para derivar a backoffice
-    console.log('Derivando conversación a backoffice');
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando conversaciones...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
-        <p className="text-gray-600 mt-1">Gestiona tus conversaciones con clientes</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
+            <p className="text-gray-600 mt-1">Gestiona tus conversaciones con clientes</p>
+          </div>
+          <div className="bg-primary-50 px-4 py-3 rounded-lg border-2 border-primary-200">
+            <p className="text-xs text-primary-600 font-semibold uppercase tracking-wide">Total de Contactos</p>
+            <p className="text-3xl font-bold text-primary-700">{contactos.length}</p>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100%-5rem)] flex">
         {/* Left Panel - Lista de Conversaciones */}
         <div className="w-80 border-r border-gray-200 flex flex-col">
-          {/* Filtros */}
-          <div className="p-4 border-b border-gray-200">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-            >
-              <option value="all">Todas las conversaciones</option>
-              <option value="nuevo">Nuevas</option>
-              <option value="contactado">Contactadas</option>
-              <option value="interesado">Interesados</option>
-              <option value="ganado">Ganadas</option>
-            </select>
-          </div>
-
           {/* Lista de Conversaciones */}
           <div className="flex-1 overflow-y-auto">
-            {filteredConversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => setSelectedChat(conv)}
-                className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
-                  selectedChat?.id === conv.id
-                    ? 'bg-primary-50 border-l-4 border-l-primary-600'
-                    : 'hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                      {conv.clientName.charAt(0)}
+            {contactos.length > 0 ? (
+              contactos.map((contacto) => (
+                <div
+                  key={contacto.celular}
+                  onClick={() => handleSelectChat(contacto)}
+                  className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
+                    selectedChat?.celular === (contacto.celular)
+                      ? 'bg-primary-50 border-l-4 border-l-primary-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                        {(contacto.celular || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900">{contacto.celular}</h3>
+                        <p className="text-xs text-gray-500">{contacto.celular || ''}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900">{conv.clientName}</h3>
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${statusConfig[conv.status].color}`}>
-                        {statusConfig[conv.status].label}
+                    <span className="text-xs text-gray-500">{contacto.timestamp || 'hace poco'}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 truncate">{'Sin mensajes'}</p>
+                  {contacto.unread > 0 && (
+                    <div className="mt-2">
+                      <span className="inline-block px-2 py-0.5 bg-danger-500 text-white text-xs font-semibold rounded-full">
+                        {contacto.unread} nuevo{contacto.unread > 1 ? 's' : ''}
                       </span>
                     </div>
-                  </div>
-                  <span className="text-xs text-gray-500">{conv.timestamp}</span>
+                  )}
                 </div>
-                <p className="text-sm text-gray-600 truncate">{conv.lastMessage}</p>
-                {conv.unread > 0 && (
-                  <div className="mt-2">
-                    <span className="inline-block px-2 py-0.5 bg-danger-500 text-white text-xs font-semibold rounded-full">
-                      {conv.unread} nuevo{conv.unread > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                )}
+              ))
+            ) : (
+              <div className="p-4 text-center text-gray-500">
+                <p className="text-sm">No hay contactos disponibles</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -176,94 +160,70 @@ export default function ConversacionesPage() {
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {selectedChat.clientName.charAt(0)}
+                  {selectedChat.celular.charAt(0)}
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{selectedChat.clientName}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{selectedChat.celular}</h2>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span>{selectedChat.phone}</span>
+                    <span>{selectedChat.celular}</span>
                     <span>•</span>
-                    <span>Operador: {selectedChat.operator}</span>
+                    <span>Contacto</span>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <select className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                  <option value="nuevo">Nuevo</option>
-                  <option value="contactado">Contactado</option>
-                  <option value="interesado">Interesado</option>
-                  <option value="ganado">Ganado</option>
-                  <option value="perdido">Perdido</option>
-                </select>
-                <button
-                  onClick={handleDeriveToBackoffice}
-                  className="px-4 py-1.5 bg-warning-500 text-white rounded-lg hover:bg-warning-600 text-sm font-medium"
-                >
-                  Derivar a BO
-                </button>
               </div>
             </div>
 
             {/* Mensajes */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {(mockMessages[selectedChat.id] || []).map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.type === 'vendor' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-md ${message.type === 'vendor' ? 'order-2' : 'order-1'}`}>
-                    <div
-                      className={`rounded-lg px-4 py-2 ${
-                        message.type === 'ai'
-                          ? 'bg-purple-100 text-purple-900'
-                          : message.type === 'vendor'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-white text-gray-900 border border-gray-200'
-                      }`}
-                    >
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+              {loadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-600">Cargando mensajes...</p>
+                  </div>
+                </div>
+              ) : chatMessages.length > 0 ? (
+                chatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.type === 'ai' ? 'justify-start' : 'justify-end'} mb-2`}
+                  >
+                    <div className={`flex flex-col ${message.type === 'ai' ? 'items-start' : 'items-end'} max-w-xs lg:max-w-md`}>
+                      {/* Badge IA Bot - solo para mensajes de IA */}
                       {message.type === 'ai' && (
-                        <div className="flex items-center space-x-1 mb-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center space-x-1 mb-1 px-3">
+                          <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                           </svg>
-                          <span className="text-xs font-semibold">AI Bot</span>
+                          <span className="text-xs font-semibold text-purple-700">AI Bot</span>
                         </div>
                       )}
-                      <p className="text-sm">{message.text}</p>
-                      <span className={`text-xs mt-1 block ${message.type === 'vendor' ? 'text-primary-100' : 'text-gray-500'}`}>
+                      
+                      {/* Mensaje */}
+                      <div
+                        className={`px-4 py-2 rounded-2xl break-words ${
+                          message.type === 'ai'
+                            ? 'bg-gray-200 text-gray-900 rounded-bl-none'
+                            : 'bg-primary-600 text-white rounded-br-none'
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed">{message.text}</p>
+                      </div>
+                      
+                      {/* Timestamp */}
+                      <span className={`text-xs text-gray-500 mt-1 ${message.type === 'ai' ? 'text-left' : 'text-right'}`}>
                         {message.timestamp}
                       </span>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center text-gray-500">
+                    <p className="text-sm">No hay mensajes en este chat</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Input de Mensaje */}
-            <div className="p-4 border-t border-gray-200 bg-white">
-              <div className="flex items-end space-x-2">
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="Escribe tu mensaje..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                  rows="3"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors h-[76px]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </button>
-              </div>
+              )}
             </div>
           </div>
         ) : (
