@@ -48,13 +48,6 @@ export default function HomePage() {
               Iniciar Sesión
             </Link>
 
-            <Link
-              href="/register"
-              className="block w-full px-6 py-3.5 bg-gray-100 text-gray-800 font-semibold rounded-lg hover:bg-gray-200 active:bg-gray-300 transition-all duration-200"
-            >
-              Registrarse
-            </Link>
-
             {/* Acceso directo sin autenticación */}
             <Link
               href="/dashboard"

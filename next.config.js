@@ -4,7 +4,7 @@ const nextConfig = {
 
   // Configuración de imágenes
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'ai-you.io'],
     formats: ['image/avif', 'image/webp'],
   },
 

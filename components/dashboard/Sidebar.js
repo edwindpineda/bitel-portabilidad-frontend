@@ -119,20 +119,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
-          <div className="flex items-center space-x-3 px-3 py-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-              B
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Bitel CRM</p>
-              <p className="text-xs text-gray-500">Portabilidad v1.0</p>
-            </div>
-          </div>
-        </div>
-      )}
     </aside>
   );
 }
