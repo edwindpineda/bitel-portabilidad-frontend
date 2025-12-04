@@ -1,29 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Navbar() {
-  const router = useRouter();
+  const { data: session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [user, setUser] = useState({
-    username: 'Juan Vendedor',
-    rol_nombre: 'Asesor',
-    email: 'juan@bitel.com',
-    avatar: null,
-  });
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
+  const user = {
+    username: session?.user?.username || 'Usuario',
+    rol_nombre: session?.user?.rol_nombre || 'Sin rol',
+    email: session?.user?.email || '',
   };
 
-  useEffect(() => {
-    setUser(JSON.parse(localStorage.getItem("user")));
-  }, [])
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/login' });
+  };
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">

@@ -1,42 +1,31 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import apiClient from '@/lib/api';
 
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        username: { label: 'Usuario', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         try {
-          // Llamar a tu API backend para validar credenciales
-          const response = await fetch('https://portabilidad-bitel.ai-you.io/api/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: credentials?.email,
-              password: credentials?.password,
-            }),
+          const data = await apiClient.post('/crm/login', {
+            username: credentials?.username,
+            password: credentials?.password,
           });
 
-          if (!response.ok) {
-            throw new Error('Credenciales inválidas');
-          }
-
-          const user = await response.json();
-
-          // Si todo es correcto, retorna el usuario
-          if (user && user.token) {
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              token: user.token,
+          if (data && data.token) {
+            const user = {
+              id: data.user.id,
+              username: data.user.username,
+              email: data.user.email,
+              token: data.token,
+              rol_nombre: data.user.rol_nombre,
             };
+            return user;
           }
 
           return null;
@@ -55,6 +44,9 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.username = user.username;
+        token.email = user.email;
+        token.rol_nombre = user.rol_nombre;
         token.accessToken = user.token;
       }
       return token;
@@ -62,6 +54,9 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
+        session.user.username = token.username;
+        session.user.email = token.email;
+        session.user.rol_nombre = token.rol_nombre;
         session.accessToken = token.accessToken;
       }
       return session;

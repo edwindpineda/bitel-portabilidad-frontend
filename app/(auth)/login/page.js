@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,16 +36,16 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await apiClient.post("/crm/login", {
-        "username": formData.username,
-        "password": formData.password
+      const result = await signIn('credentials', {
+        username: formData.username,
+        password: formData.password,
+        redirect: false,
       });
-;
-      console.log(response)
 
-      // Guardar token y datos del usuario
-      localStorage.setItem('token', response?.token);
-      localStorage.setItem('user', JSON.stringify(response?.user));
+      if (result?.error) {
+        setError('Credenciales inválidas. Verifica tu usuario y contraseña.');
+        return;
+      }
 
       // Redirigir al dashboard
       router.push('/dashboard');
