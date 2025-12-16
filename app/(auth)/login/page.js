@@ -166,15 +166,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              ¿No tienes una cuenta?{' '}
-              <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
-                Regístrate aquí
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>

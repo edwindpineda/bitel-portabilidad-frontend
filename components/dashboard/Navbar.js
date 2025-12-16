@@ -1,21 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 
-export default function Navbar() {
-  const { data: session } = useSession();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+const USER_STORAGE_KEY = 'crm_user_data';
 
-  const user = {
-    username: session?.user?.username || 'Usuario',
-    rol_nombre: session?.user?.rol_nombre || 'Sin rol',
-    email: session?.user?.email || '',
-  };
+export default function Navbar() {
+  const { data: session, status } = useSession();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [user, setUser] = useState({
+    username: 'Usuario',
+    rol_nombre: 'Sin rol',
+    email: '',
+  });
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const userData = {
+        username: session.user.username || session.user.name || 'Usuario',
+        rol_nombre: session.user.rol_nombre || 'Sin rol',
+        email: session.user.email || '',
+      };
+      setUser(userData);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+    } else if (status === 'loading') {
+      const stored = localStorage.getItem(USER_STORAGE_KEY);
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch (e) {
+          console.error('Error parsing stored user data');
+        }
+      }
+    }
+  }, [session, status]);
 
   const handleLogout = () => {
+    localStorage.removeItem(USER_STORAGE_KEY);
     signOut({ callbackUrl: '/login' });
   };
 
@@ -39,47 +61,6 @@ export default function Navbar() {
 
       {/* Right Section */}
       <div className="flex items-center space-x-4 ml-6">
-        {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-danger-500 ring-2 ring-white"></span>
-          </button>
-
-          {/* Notifications Dropdown */}
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              <div className="px-4 py-2 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-900">Notificaciones</h3>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">Nueva conversación asignada</p>
-                  <p className="text-xs text-gray-500 mt-1">Carlos Pérez - Hace 5 minutos</p>
-                </div>
-                <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">Cliente respondió</p>
-                  <p className="text-xs text-gray-500 mt-1">María López - Hace 15 minutos</p>
-                </div>
-                <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer">
-                  <p className="text-sm font-medium text-gray-900">Venta cerrada</p>
-                  <p className="text-xs text-gray-500 mt-1">Juan Torres - Hace 1 hora</p>
-                </div>
-              </div>
-              <div className="px-4 py-2 border-t border-gray-200">
-                <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                  Ver todas las notificaciones
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* User Menu */}
         <div className="relative">
           <button
@@ -105,7 +86,7 @@ export default function Navbar() {
                 <p className="text-sm font-medium text-gray-900">{user.username}</p>
                 <p className="text-xs text-gray-500">{user.email}</p>
               </div>
-              <Link href="/dashboard/perfil" className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+              <Link href="/perfil" className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>

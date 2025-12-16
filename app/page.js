@@ -39,41 +39,20 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Botones de acción */}
-          <div className="space-y-3">
+          {/* Botón de acción */}
+          <div>
             <Link
               href="/login"
               className="block w-full px-6 py-3.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               Iniciar Sesión
             </Link>
-
-            {/* Acceso directo sin autenticación */}
-            <Link
-              href="/dashboard"
-              className="block w-full px-6 py-3.5 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-lg hover:from-success-600 hover:to-success-700 active:from-success-700 active:to-success-800 transition-all duration-200 shadow-md hover:shadow-lg border-2 border-success-400"
-            >
-              🚀 Acceso Directo al CRM
-            </Link>
-            <p className="text-xs text-gray-500 italic">
-              (Saltear verificación - Modo desarrollo)
-            </p>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-500">
-              ¿Necesitas ayuda?{' '}
-              <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">
-                Contáctanos
-              </a>
-            </p>
           </div>
         </div>
 
         {/* Copyright */}
         <p className="text-center text-sm text-gray-600 mt-6">
-          © 2024 Bitel CRM. Todos los derechos reservados.
+          © 2025 AIYOU CRM. Todos los derechos reservados.
         </p>
       </div>
     </div>
