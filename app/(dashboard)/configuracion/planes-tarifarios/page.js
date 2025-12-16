@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient, API_BASE_URL } from '@/lib/api';
 import Link from 'next/link';
+
+// Helper para construir URL completa de imagen
+const getImageUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `${API_BASE_URL}${url}`;
+};
 
 export default function PlanesTarifariosPage() {
   const [planes, setPlanes] = useState([]);
@@ -18,6 +25,8 @@ export default function PlanesTarifariosPage() {
     principal: 1,
     imagen_url: ''
   });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -38,17 +47,33 @@ export default function PlanesTarifariosPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const dataToSend = {
-        ...formData,
-        precio_regular: parseFloat(formData.precio_regular),
-        precio_promocional: formData.precio_promocional ? parseFloat(formData.precio_promocional) : null,
-        principal: formData.principal ? 1 : 0
-      };
+      // Crear FormData para enviar archivo
+      const submitData = new FormData();
+      submitData.append('nombre', formData.nombre);
+      submitData.append('precio_regular', parseFloat(formData.precio_regular));
+      if (formData.precio_promocional) {
+        submitData.append('precio_promocional', parseFloat(formData.precio_promocional));
+      }
+      if (formData.descripcion) {
+        submitData.append('descripcion', formData.descripcion);
+      }
+      submitData.append('principal', formData.principal ? 1 : 0);
+
+      // Si hay archivo seleccionado, agregarlo
+      if (selectedFile) {
+        submitData.append('imagen', selectedFile);
+      } else if (formData.imagen_url) {
+        submitData.append('imagen_url', formData.imagen_url);
+      }
 
       if (editingPlan) {
-        await apiClient.put(`/crm/planes-tarifarios/${editingPlan.id}`, dataToSend);
+        await apiClient.put(`/crm/planes-tarifarios/${editingPlan.id}`, submitData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       } else {
-        await apiClient.post('/crm/planes-tarifarios', dataToSend);
+        await apiClient.post('/crm/planes-tarifarios', submitData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       }
       setShowModal(false);
       setEditingPlan(null);
@@ -70,6 +95,8 @@ export default function PlanesTarifariosPage() {
       principal: plan.principal ? 1 : 0,
       imagen_url: plan.imagen_url || ''
     });
+    setSelectedFile(null);
+    setFilePreview(null);
     setShowModal(true);
   };
 
@@ -93,6 +120,20 @@ export default function PlanesTarifariosPage() {
       principal: 1,
       imagen_url: ''
     });
+    setSelectedFile(null);
+    setFilePreview(null);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const openNewModal = () => {
@@ -139,10 +180,10 @@ export default function PlanesTarifariosPage() {
             {plan.imagen_url ? (
               <div
                 className="w-full h-40 bg-gray-100 cursor-pointer relative group"
-                onClick={() => setImagePreview({ url: plan.imagen_url, nombre: plan.nombre })}
+                onClick={() => setImagePreview({ url: getImageUrl(plan.imagen_url), nombre: plan.nombre })}
               >
                 <img
-                  src={plan.imagen_url}
+                  src={getImageUrl(plan.imagen_url)}
                   alt={plan.nombre}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -289,14 +330,52 @@ export default function PlanesTarifariosPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">URL de Imagen</label>
-                <input
-                  type="text"
-                  value={formData.imagen_url}
-                  onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="https://..."
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Imagen del Plan</label>
+
+                {/* Preview de imagen */}
+                {(filePreview || (editingPlan && formData.imagen_url)) && (
+                  <div className="mb-3 relative">
+                    <img
+                      src={filePreview || getImageUrl(formData.imagen_url)}
+                      alt="Preview"
+                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setFilePreview(null);
+                        setFormData({ ...formData, imagen_url: '' });
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Input de archivo */}
+                <div className="flex items-center space-x-2">
+                  <label className="flex-1 cursor-pointer">
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center justify-center space-x-2">
+                      <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm text-gray-600">
+                        {selectedFile ? selectedFile.name : 'Examinar...'}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Formatos: JPG, PNG, GIF, WEBP. Máx: 5MB</p>
               </div>
               <div className="flex items-center space-x-2">
                 <input

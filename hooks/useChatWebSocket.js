@@ -72,6 +72,14 @@ const useChatWebSocket = (contactoId, onNuevoMensaje, onMensajeEnviado) => {
         console.log(`WebSocket estado: ${estados[readyState]}`)
     }, [readyState])
 
+    // Suscribirse al contacto cuando cambia (y la conexión está abierta)
+    useEffect(() => {
+        if (readyState === ReadyState.OPEN && contactoId) {
+            sendMessage(JSON.stringify({ action: 'subscribe', id_contacto: contactoId }))
+            console.log('WebSocket: subscribe enviado para contacto', contactoId)
+        }
+    }, [contactoId, readyState, sendMessage])
+
     useEffect(() => {
         if (lastMessage) {
             try {
