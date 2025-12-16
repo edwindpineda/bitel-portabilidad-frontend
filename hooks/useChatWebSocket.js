@@ -1,10 +1,27 @@
 import useWebSocket, { ReadyState } from 'react-use-websocket'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 const useChatWebSocket = (contactoId, onNuevoMensaje, onMensajeEnviado) => {
     const [enviando, setEnviando] = useState(false)
     const [wsError, setWsError] = useState(null)
     const [reconnectCount, setReconnectCount] = useState(0)
+
+    // Refs para mantener siempre las versiones más recientes de los callbacks
+    const onNuevoMensajeRef = useRef(onNuevoMensaje)
+    const onMensajeEnviadoRef = useRef(onMensajeEnviado)
+    const contactoIdRef = useRef(contactoId)
+
+    useEffect(() => {
+        onNuevoMensajeRef.current = onNuevoMensaje
+    }, [onNuevoMensaje])
+
+    useEffect(() => {
+        onMensajeEnviadoRef.current = onMensajeEnviado
+    }, [onMensajeEnviado])
+
+    useEffect(() => {
+        contactoIdRef.current = contactoId
+    }, [contactoId])
 
     // Usar variable de entorno o localhost en desarrollo
     // LOCAL: 'ws://localhost:8080'
@@ -29,10 +46,11 @@ const useChatWebSocket = (contactoId, onNuevoMensaje, onMensajeEnviado) => {
             event.target.send(JSON.stringify({ action: 'verificar_conexion' }))
             console.log('WebSocket: verificar_conexion enviado')
 
-            // Si hay contacto, suscribirse
-            if (contactoId) {
-                event.target.send(JSON.stringify({ action: 'subscribe', id_contacto: contactoId }))
-                console.log('WebSocket: subscribe enviado para contacto', contactoId)
+            // Si hay contacto, suscribirse (usar ref para valor actualizado)
+            const currentContactoId = contactoIdRef.current
+            if (currentContactoId) {
+                event.target.send(JSON.stringify({ action: 'subscribe', id_contacto: currentContactoId }))
+                console.log('WebSocket: subscribe enviado para contacto', currentContactoId)
             }
         },
         onClose: (event) => {
@@ -84,21 +102,24 @@ const useChatWebSocket = (contactoId, onNuevoMensaje, onMensajeEnviado) => {
         if (lastMessage) {
             try {
                 const data = JSON.parse(lastMessage.data)
+                console.log('WebSocket mensaje recibido:', data)
+                console.log('WebSocket mensaje type:', data.type, '| keys:', Object.keys(data))
 
                 // Mensaje entrante de otro usuario
                 if (data.type === 'nuevo_mensaje' && data.data) {
-                    onNuevoMensaje?.(data.data)
+                    console.log('WebSocket: nuevo_mensaje detectado, llamando callback')
+                    onNuevoMensajeRef.current?.(data.data)
                 }
 
                 // Confirmación de mensaje enviado exitosamente
                 if (data.type === 'mensaje_enviado' && data.success) {
-                    onMensajeEnviado?.(data)
+                    onMensajeEnviadoRef.current?.(data)
                 }
             } catch (error) {
                 console.error('Error al parsear mensaje WebSocket:', error)
             }
         }
-    }, [lastMessage, onNuevoMensaje, onMensajeEnviado])
+    }, [lastMessage])
 
     const enviarMensaje = useCallback(async (contenido, telefono) => {
         if (!contenido.trim()) return false

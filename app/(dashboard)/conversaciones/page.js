@@ -65,10 +65,18 @@ export default function ConversacionesPage() {
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
+  // Ref para mantener siempre el valor actualizado de selectedChat
+  const selectedChatRef = useRef(selectedChat);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
   // Callback para manejar nuevos mensajes entrantes por WebSocket
   const handleNuevoMensaje = useCallback((mensaje) => {
+    const currentSelectedChat = selectedChatRef.current;
+
     // Solo agregar si es del chat seleccionado
-    if (selectedChat && mensaje.id_contacto === selectedChat.id) {
+    if (currentSelectedChat && mensaje.id_contacto === currentSelectedChat.id) {
       const newMsg = {
         id: mensaje.id || Date.now(),
         type: mensaje.direccion === 'in' ? 'client' : 'ai',
@@ -80,14 +88,14 @@ export default function ConversacionesPage() {
     }
 
     // Actualizar contador de no leidos en la lista
-    if (!selectedChat || mensaje.id_contacto !== selectedChat.id) {
+    if (!currentSelectedChat || mensaje.id_contacto !== currentSelectedChat.id) {
       setContactos(prev => prev.map(c =>
         c.id === mensaje.id_contacto
           ? { ...c, mensajes_no_leidos: (c.mensajes_no_leidos || 0) + 1 }
           : c
       ));
     }
-  }, [selectedChat]);
+  }, []);
 
   // Callback para confirmar mensaje enviado
   const handleMensajeEnviado = useCallback((data) => {
