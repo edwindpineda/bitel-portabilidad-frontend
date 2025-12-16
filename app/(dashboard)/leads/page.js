@@ -51,6 +51,11 @@ export default function LeadsPage() {
   const [selectedEstado, setSelectedEstado] = useState('');
   const [selectedTipificacion, setSelectedTipificacion] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedLeads, setSelectedLeads] = useState([]);
+  const [showAsesorModal, setShowAsesorModal] = useState(false);
+  const [asesores, setAsesores] = useState([]);
+  const [assigningAsesor, setAssigningAsesor] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -176,6 +181,63 @@ export default function LeadsPage() {
     setCurrentPage(1);
   };
 
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      setSelectedLeads([]);
+    }
+    setSelectionMode(!selectionMode);
+  };
+
+  const toggleLeadSelection = (leadId) => {
+    setSelectedLeads(prev =>
+      prev.includes(leadId)
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeads.length === paginatedLeads.length) {
+      setSelectedLeads([]);
+    } else {
+      setSelectedLeads(paginatedLeads.map(lead => lead.id));
+    }
+  };
+
+  const handleOpenAsesorModal = async () => {
+    try {
+      const response = await apiClient.get('/crm/leads/asesores');
+      setAsesores(response.data || []);
+      setShowAsesorModal(true);
+    } catch (error) {
+      console.error('Error al cargar asesores:', error);
+      alert('Error al cargar la lista de asesores');
+    }
+  };
+
+  const handleAssignAsesor = async (asesorId) => {
+    if (selectedLeads.length === 0) return;
+
+    try {
+      setAssigningAsesor(true);
+      await apiClient.post('/crm/leads/bulk-assign', {
+        lead_ids: selectedLeads,
+        id_asesor: asesorId
+      });
+
+      alert(`${selectedLeads.length} leads asignados correctamente`);
+      setShowAsesorModal(false);
+      setSelectedLeads([]);
+      setSelectionMode(false);
+      loadData();
+    } catch (error) {
+      console.error('Error al asignar asesor:', error);
+      alert('Error al asignar asesor');
+    } finally {
+      setAssigningAsesor(false);
+    }
+  };
+
   // Resetear página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
@@ -194,6 +256,7 @@ export default function LeadsPage() {
       'Proveedor': lead.proveedor_nombre || '',
       'Plan': lead.plan_nombre || '',
       'Tipificacion': lead.tipificacion_nombre || '',
+      'Asesor': lead.asesor_nombre || '',
       'Fecha Registro': lead.created_at ? new Date(lead.created_at).toLocaleDateString('es-PE', {
         day: '2-digit',
         month: '2-digit',
@@ -217,6 +280,7 @@ export default function LeadsPage() {
       { wch: 15 },  // Proveedor
       { wch: 20 },  // Plan
       { wch: 20 },  // Tipificacion
+      { wch: 20 },  // Asesor
       { wch: 20 },  // Fecha Registro
     ];
     ws['!cols'] = colWidths;
@@ -253,16 +317,43 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
           <p className="text-gray-600 mt-1">Gestiona los prospectos del sistema</p>
         </div>
-        <button
-          onClick={handleExportExcel}
-          disabled={filteredLeads.length === 0}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span>Exportar Excel</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {selectionMode && selectedLeads.length > 0 ? (
+            <button
+              onClick={handleOpenAsesorModal}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Aceptar asignacion ({selectedLeads.length})</span>
+            </button>
+          ) : (
+            <button
+              onClick={toggleSelectionMode}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                selectionMode
+                  ? 'bg-gray-500 text-white hover:bg-gray-600'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span>{selectionMode ? 'Cancelar' : 'Asignar Asesor'}</span>
+            </button>
+          )}
+          <button
+            onClick={handleExportExcel}
+            disabled={filteredLeads.length === 0}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Exportar Excel</span>
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -420,6 +511,16 @@ export default function LeadsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                {selectionMode && (
+                  <th className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={paginatedLeads.length > 0 && selectedLeads.length === paginatedLeads.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
@@ -428,12 +529,23 @@ export default function LeadsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipificacion</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asesor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {paginatedLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
+                <tr key={lead.id} className={`hover:bg-gray-50 ${selectedLeads.includes(lead.id) ? 'bg-blue-50' : ''}`}>
+                  {selectionMode && (
+                    <td className="px-4 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedLeads.includes(lead.id)}
+                        onChange={() => toggleLeadSelection(lead.id)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     #{lead.id}
                   </td>
@@ -481,6 +593,9 @@ export default function LeadsPage() {
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {lead.asesor_nombre || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(lead.created_at)}
@@ -573,6 +688,64 @@ export default function LeadsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Selección de Asesor */}
+      {showAsesorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Seleccionar Asesor
+              </h3>
+              <button
+                onClick={() => setShowAsesorModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Selecciona un asesor para asignar a los {selectedLeads.length} leads seleccionados:
+              </p>
+              {asesores.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">No hay asesores disponibles</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {asesores.map((asesor) => (
+                    <button
+                      key={asesor.id}
+                      onClick={() => handleAssignAsesor(asesor.id)}
+                      disabled={assigningAsesor}
+                      className="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">{asesor.username}</p>
+                        <p className="text-sm text-gray-500">{asesor.email}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end p-4 border-t">
+              <button
+                onClick={() => setShowAsesorModal(false)}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

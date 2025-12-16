@@ -38,8 +38,22 @@ export default function ConversacionesPage() {
   const [searchTimeout, setSearchTimeout] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Estados y tipificaciones para filtros
+  const [estados, setEstados] = useState([]);
+  const [tipificaciones, setTipificaciones] = useState([]);
+  const [selectedEstado, setSelectedEstado] = useState('');
+  const [selectedTipificacion, setSelectedTipificacion] = useState('');
+
+  // Construir query params para filtros
+  const buildFilterParams = (estadoId, tipificacionId) => {
+    const params = new URLSearchParams();
+    if (estadoId) params.append('id_estado', estadoId);
+    if (tipificacionId) params.append('id_tipificacion', tipificacionId);
+    return params.toString() ? `?${params.toString()}` : '';
+  };
+
   // Cargar datos desde la API
-  const loadConversations = async (currentOffset = 0, append = false) => {
+  const loadConversations = async (currentOffset = 0, append = false, estadoId = selectedEstado, tipificacionId = selectedTipificacion) => {
     try {
       if (append) {
         setLoadingMore(true);
@@ -48,7 +62,8 @@ export default function ConversacionesPage() {
       }
       setError(null);
 
-      const response = await apiClient.get(`/crm/contactos/${currentOffset}`);
+      const filterParams = buildFilterParams(estadoId, tipificacionId);
+      const response = await apiClient.get(`/crm/contactos/${currentOffset}${filterParams}`);
 
       const contactosArray = response.data || [];
       const total = response.total || 0;
@@ -76,7 +91,47 @@ export default function ConversacionesPage() {
     }
   };
 
+  // Cargar estados y tipificaciones (sin usar apiClient para evitar logout en 401)
+  const loadFiltersData = async () => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3020/api';
+
+    // Obtener el token de la sesión
+    let token = null;
+    try {
+      const { getSession } = await import('next-auth/react');
+      const session = await getSession();
+      token = session?.accessToken;
+    } catch (err) {
+      console.error('Error al obtener sesión:', err);
+    }
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    // Cargar estados
+    try {
+      const response = await fetch(`${API_URL}/crm/estados`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setEstados(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error al cargar estados:', err);
+    }
+
+    // Cargar tipificaciones
+    try {
+      const response = await fetch(`${API_URL}/crm/tipificaciones`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setTipificaciones(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error al cargar tipificaciones:', err);
+    }
+  };
+
   useEffect(() => {
+    loadFiltersData();
     loadConversations(0);
   }, []);
 
@@ -92,7 +147,7 @@ export default function ConversacionesPage() {
   };
 
   // Buscar contactos
-  const searchContacts = async (query, currentOffset = 0, append = false) => {
+  const searchContacts = async (query, currentOffset = 0, append = false, estadoId = selectedEstado, tipificacionId = selectedTipificacion) => {
     try {
       if (append) {
         setLoadingMore(true);
@@ -101,7 +156,11 @@ export default function ConversacionesPage() {
       }
       setError(null);
 
-      const response = await apiClient.get(`/crm/contactos/buscar/${encodeURIComponent(query)}?offset=${currentOffset}`);
+      let url = `/crm/contactos/buscar/${encodeURIComponent(query)}?offset=${currentOffset}`;
+      if (estadoId) url += `&id_estado=${estadoId}`;
+      if (tipificacionId) url += `&id_tipificacion=${tipificacionId}`;
+
+      const response = await apiClient.get(url);
 
       const contactosArray = response.data || [];
       const total = response.total || 0;
@@ -160,6 +219,37 @@ export default function ConversacionesPage() {
     loadConversations(0);
   };
 
+  // Manejar cambio de filtros
+  const handleFilterChange = (filterType, value) => {
+    setOffset(0);
+    const newEstado = filterType === 'estado' ? value : selectedEstado;
+    const newTipificacion = filterType === 'tipificacion' ? value : selectedTipificacion;
+
+    if (filterType === 'estado') {
+      setSelectedEstado(value);
+    } else {
+      setSelectedTipificacion(value);
+    }
+
+    if (searchQuery.trim()) {
+      searchContacts(searchQuery.trim(), 0, false, newEstado, newTipificacion);
+    } else {
+      loadConversations(0, false, newEstado, newTipificacion);
+    }
+  };
+
+  // Limpiar todos los filtros
+  const clearFilters = () => {
+    setSelectedEstado('');
+    setSelectedTipificacion('');
+    setSearchQuery('');
+    setOffset(0);
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    loadConversations(0, false, '', '');
+  };
+
   // Cargar mensajes del chat seleccionado desde tabla mensaje
   const handleSelectChat = async (contacto) => {
     setSelectedChat(contacto);
@@ -212,9 +302,9 @@ export default function ConversacionesPage() {
             <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
             <p className="text-gray-600 mt-1">Gestiona tus conversaciones con clientes</p>
           </div>
-          <div className="bg-primary-50 px-4 py-3 rounded-lg border-2 border-primary-200">
-            <p className="text-xs text-primary-600 font-semibold uppercase tracking-wide">Total de Contactos</p>
-            <p className="text-3xl font-bold text-primary-700">{totalContactos}</p>
+          <div className="bg-primary-50 px-4 py-2 rounded-lg border border-primary-200 flex items-center gap-2">
+            <span className="text-sm text-primary-600 font-medium">Total:</span>
+            <span className="text-xl font-bold text-primary-700">{totalContactos}</span>
           </div>
         </div>
       </div>
@@ -262,6 +352,47 @@ export default function ConversacionesPage() {
               <p className="text-xs text-gray-500 mt-2">
                 {totalContactos} resultado{totalContactos !== 1 ? 's' : ''} para "{searchQuery}"
               </p>
+            )}
+
+            {/* Filtros de Estado y Tipificacion */}
+            <div className="flex flex-col gap-2 mt-3">
+              <select
+                value={selectedEstado}
+                onChange={(e) => handleFilterChange('estado', e.target.value)}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
+              >
+                <option value="">Estado: Todos</option>
+                {estados.map((estado) => (
+                  <option key={estado.id} value={estado.id}>
+                    {estado.nombre}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedTipificacion}
+                onChange={(e) => handleFilterChange('tipificacion', e.target.value)}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
+              >
+                <option value="">Tipificacion: Todas</option>
+                {tipificaciones.map((tipificacion) => (
+                  <option key={tipificacion.id} value={tipificacion.id}>
+                    {tipificacion.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Boton limpiar filtros */}
+            {(selectedEstado || selectedTipificacion || searchQuery) && (
+              <button
+                onClick={clearFilters}
+                className="w-full mt-2 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Limpiar filtros
+              </button>
             )}
           </div>
           {/* Lista de Conversaciones */}
