@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,6 +47,12 @@ export default function LoginPage() {
         return;
       }
 
+      // Obtener la sesión para guardar id_empresa en localStorage
+      const session = await getSession();
+      if (session?.user?.id_empresa) {
+        localStorage.setItem('id_empresa', session.user.id_empresa.toString());
+      }
+
       // Redirigir al dashboard
       router.push('/dashboard');
 
@@ -73,7 +79,7 @@ export default function LoginPage() {
             Volver al inicio
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Iniciar Sesión</h1>
-          <p className="text-gray-600 mt-2">Ingresa a tu cuenta del CRM Bitel</p>
+          <p className="text-gray-600 mt-2">Ingresa a tu cuenta de <span className="font-semibold bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">AI-YOU</span></p>
         </div>
 
         {/* Card de Login */}

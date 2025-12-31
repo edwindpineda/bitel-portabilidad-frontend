@@ -5,8 +5,8 @@ import Providers from './Providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'CRM Bitel - Portabilidad',
-  description: 'Sistema de gestión de leads y ventas de portabilidad Bitel',
+  title: 'AI-YOU - CRM Inteligente',
+  description: 'Sistema inteligente de gestión de leads y ventas con IA',
 };
 
 export default function RootLayout({ children }) {

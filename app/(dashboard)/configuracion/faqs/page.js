@@ -140,7 +140,7 @@ export default function FaqsPage() {
             <span className="text-gray-900">Preguntas Frecuentes</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Preguntas Frecuentes</h1>
-          <p className="text-gray-600 mt-1">Gestiona las FAQs de portabilidad Bitel</p>
+          <p className="text-gray-600 mt-1">Gestiona las preguntas frecuentes del sistema</p>
         </div>
         <button
           onClick={openNewModal}

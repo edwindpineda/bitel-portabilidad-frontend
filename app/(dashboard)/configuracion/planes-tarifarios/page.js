@@ -162,7 +162,7 @@ export default function PlanesTarifariosPage() {
             <span className="text-gray-900">Planes Tarifarios</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Planes Tarifarios</h1>
-          <p className="text-gray-600 mt-1">Gestiona los planes y precios de Bitel</p>
+          <p className="text-gray-600 mt-1">Gestiona los planes y precios disponibles</p>
         </div>
         <button
           onClick={openNewModal}

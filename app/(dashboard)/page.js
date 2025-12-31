@@ -1,7 +1,7 @@
 'use client';
 
 export default function DashboardPage() {
-  // Mock data - Métricas de portabilidad Bitel
+  // Mock data - Métricas del CRM
   const stats = [
     {
       name: 'Conversaciones Asignadas',
@@ -66,7 +66,7 @@ export default function DashboardPage() {
   ];
 
   const recentConversations = [
-    { id: 1, name: 'Carlos Pérez', status: 'nuevo', time: '5 min', message: 'Quiero portarme a Bitel' },
+    { id: 1, name: 'Carlos Pérez', status: 'nuevo', time: '5 min', message: 'Quiero información sobre portabilidad' },
     { id: 2, name: 'María López', status: 'interesado', time: '15 min', message: 'Me interesa el plan de 45 soles' },
     { id: 3, name: 'Juan Torres', status: 'contactado', time: '1 hora', message: 'Tengo Claro actualmente' },
     { id: 4, name: 'Ana Gutiérrez', status: 'nuevo', time: '2 horas', message: 'Cuánto cuesta portarme?' },
@@ -85,7 +85,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard de Portabilidad</h1>
-          <p className="text-gray-600 mt-1">Seguimiento de conversaciones y ventas de portabilidad Bitel</p>
+          <p className="text-gray-600 mt-1">Seguimiento de conversaciones y ventas</p>
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">Última actualización</p>
