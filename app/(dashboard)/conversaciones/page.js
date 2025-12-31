@@ -61,6 +61,9 @@ export default function ConversacionesPage() {
   const [perfilamientoData, setPerfilamientoData] = useState([]);
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
 
+  // Estado para mostrar/ocultar filtros desplegables
+  const [showFilters, setShowFilters] = useState(false);
+
   // Ref para el contenedor de mensajes y el final de mensajes
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -641,58 +644,92 @@ export default function ConversacionesPage() {
               </p>
             )}
 
-            {/* Filtros de Estado y Tipificacion */}
-            <div className="flex flex-col gap-2 mt-3">
-              <select
-                value={selectedEstado}
-                onChange={(e) => handleFilterChange('estado', e.target.value)}
-                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
-              >
-                <option value="">Estado: Todos</option>
-                {estados.map((estado) => (
-                  <option key={estado.id} value={estado.id}>
-                    {estado.nombre}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedTipificacion}
-                onChange={(e) => handleFilterChange('tipificacion', e.target.value)}
-                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
-              >
-                <option value="">Tipificacion: Todas</option>
-                {tipificaciones.map((tipificacion) => (
-                  <option key={tipificacion.id} value={tipificacion.id}>
-                    {tipificacion.nombre}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedTipificacionAsesor}
-                onChange={(e) => handleFilterChange('tipificacionAsesor', e.target.value)}
-                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
-              >
-                <option value="">Tipif. Asesor: Todas</option>
-                {tipificaciones.map((tipificacion) => (
-                  <option key={tipificacion.id} value={tipificacion.id}>
-                    {tipificacion.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Boton limpiar filtros */}
-            {(selectedEstado || selectedTipificacion || selectedTipificacionAsesor || searchQuery) && (
+            {/* Boton de Filtros Desplegable */}
+            <div className="mt-2">
               <button
-                onClick={clearFilters}
-                className="w-full mt-2 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center gap-1"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                  (selectedEstado || selectedTipificacion || selectedTipificacionAsesor)
+                    ? 'bg-primary-50 text-primary-700 border border-primary-200'
+                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                }`}
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  <span>Filtros</span>
+                  {(selectedEstado || selectedTipificacion || selectedTipificacionAsesor) && (
+                    <span className="px-1.5 py-0.5 bg-primary-600 text-white text-xs rounded-full">
+                      {[selectedEstado, selectedTipificacion, selectedTipificacionAsesor].filter(Boolean).length}
+                    </span>
+                  )}
+                </div>
+                <svg
+                  className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
-                Limpiar filtros
               </button>
-            )}
+
+              {/* Panel de Filtros Desplegable */}
+              {showFilters && (
+                <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                  <select
+                    value={selectedEstado}
+                    onChange={(e) => handleFilterChange('estado', e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
+                  >
+                    <option value="">Estado: Todos</option>
+                    {estados.map((estado) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedTipificacion}
+                    onChange={(e) => handleFilterChange('tipificacion', e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
+                  >
+                    <option value="">Tipificacion: Todas</option>
+                    {tipificaciones.map((tipificacion) => (
+                      <option key={tipificacion.id} value={tipificacion.id}>
+                        {tipificacion.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedTipificacionAsesor}
+                    onChange={(e) => handleFilterChange('tipificacionAsesor', e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
+                  >
+                    <option value="">Tipif. Asesor: Todas</option>
+                    {tipificaciones.map((tipificacion) => (
+                      <option key={tipificacion.id} value={tipificacion.id}>
+                        {tipificacion.nombre}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Boton limpiar filtros dentro del panel */}
+                  {(selectedEstado || selectedTipificacion || selectedTipificacionAsesor) && (
+                    <button
+                      onClick={clearFilters}
+                      className="w-full px-2 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-1 border border-red-200"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Limpiar filtros
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           {/* Lista de Conversaciones */}
           <div className="flex-1 overflow-y-auto">

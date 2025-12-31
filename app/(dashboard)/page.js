@@ -17,7 +17,7 @@ export default function DashboardPage() {
       color: 'primary',
     },
     {
-      name: 'Portabilidades Cerradas',
+      name: 'Ventas Cerradas',
       value: '68',
       subtitle: 'Ya compraron plan',
       change: '+8 esta semana',
@@ -84,7 +84,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard de Portabilidad</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Seguimiento de conversaciones y ventas</p>
         </div>
         <div className="text-right">
@@ -126,7 +126,7 @@ export default function DashboardPage() {
 
       {/* Pipeline Visual */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline de Portabilidad</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline de Ventas</h2>
         <div className="grid grid-cols-4 gap-4">
           {pipeline.map((stage) => (
             <div key={stage.status} className="text-center">
@@ -168,7 +168,7 @@ export default function DashboardPage() {
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Conversaciones Recientes</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Clientes que preguntaron por portabilidad hoy</p>
+              <p className="text-xs text-gray-500 mt-0.5">Clientes que preguntaron hoy</p>
             </div>
             <a href="/conversaciones" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
               Ver todas
@@ -209,7 +209,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-center">
               <p className="text-4xl font-bold text-success-900">8</p>
-              <p className="text-sm text-success-700 mt-1">Portabilidades cerradas</p>
+              <p className="text-sm text-success-700 mt-1">Ventas cerradas</p>
               <p className="text-xs text-success-600 mt-2">+8 vs semana pasada</p>
             </div>
           </div>

@@ -64,7 +64,7 @@ export default function DashboardPage() {
       color: 'primary',
     },
     {
-      name: 'Interesados en Portabilidad',
+      name: 'Interesados',
       value: stats.interesados?.toLocaleString() || '0',
       subtitle: 'Line1 + Line2',
       icon: (
@@ -103,7 +103,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard de Portabilidad</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Seguimiento de prospectos y tasa de conversión</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -237,7 +237,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-center">
               <p className="text-4xl font-bold text-success-900">{stats?.interesados?.toLocaleString() || 0}</p>
-              <p className="text-sm text-success-700 mt-1">Prospectos interesados en portabilidad</p>
+              <p className="text-sm text-success-700 mt-1">Prospectos interesados</p>
               <p className="text-xs text-success-600 mt-2">Estados: Line1 + Line2</p>
             </div>
           </div>

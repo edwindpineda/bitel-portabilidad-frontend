@@ -46,11 +46,29 @@ export default function LoginPage() {
       }
 
       const session = await getSession();
-      if (session?.user?.id_empresa) {
+
+      console.log('=== LOGIN REDIRECT DEBUG ===');
+      console.log('Session after login:', session);
+      console.log('id_rol:', session?.user?.id_rol);
+      console.log('id_empresa:', session?.user?.id_empresa);
+      console.log('============================');
+
+      // Guardar id_empresa en localStorage
+      if (session?.user?.id_empresa !== undefined) {
         localStorage.setItem('id_empresa', session.user.id_empresa.toString());
       }
 
-      router.push('/dashboard');
+      // Super Admin (id_rol=1 y id_empresa=0) va a /administracion
+      const isSuperAdmin = session?.user?.id_rol === 1 &&
+        (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0' || !session?.user?.id_empresa);
+
+      console.log('isSuperAdmin:', isSuperAdmin);
+
+      if (isSuperAdmin) {
+        router.push('/administracion');
+      } else {
+        router.push('/dashboard');
+      }
 
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
@@ -79,7 +97,7 @@ export default function LoginPage() {
             style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
           >
             <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
           </div>
 
@@ -140,7 +158,7 @@ export default function LoginPage() {
               style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
             >
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">AI-YOU</h1>

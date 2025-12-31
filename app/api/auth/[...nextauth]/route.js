@@ -17,6 +17,12 @@ const handler = NextAuth({
             password: credentials?.password,
           });
 
+          console.log('=== NEXTAUTH LOGIN DEBUG ===');
+          console.log('data.user:', data?.user);
+          console.log('id_empresa from API:', data?.user?.id_empresa);
+          console.log('id_rol from API:', data?.user?.id_rol);
+          console.log('============================');
+
           if (data && data.token) {
             const user = {
               id: data.user.id,
@@ -25,9 +31,10 @@ const handler = NextAuth({
               token: data.token,
               rol_nombre: data.user.rol_nombre,
               id_rol: data.user.id_rol,
-              id_empresa: data.user.id_empresa || 1,
+              id_empresa: data.user.id_empresa !== undefined ? data.user.id_empresa : 1,
               modulos: data.modulos || [],
             };
+            console.log('User object created:', user);
             return user;
           }
 
