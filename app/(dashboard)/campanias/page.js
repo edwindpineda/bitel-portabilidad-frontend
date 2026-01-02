@@ -262,12 +262,7 @@ export default function CampaniasPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <Link href="/configuracion" className="hover:text-primary-600">Configuracion</Link>
-            <span>/</span>
-            <span className="text-gray-900">Campañas</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Campañas de Llamadas</h1>
+<h1 className="text-2xl font-bold text-gray-900">Campañas de Llamadas</h1>
           <p className="text-gray-600 mt-1">Gestiona las campañas y sus bases de números</p>
         </div>
         <button

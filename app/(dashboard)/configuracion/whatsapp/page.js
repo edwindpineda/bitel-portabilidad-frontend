@@ -1,23 +1,27 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
-const WHATSAPP_API_URL = 'https://bitel-baileys.xylure.easypanel.host/session/bitel/qr';
-const WHATSAPP_DISCONNECT_URL = 'https://bitel-baileys.xylure.easypanel.host/session/bitel/disconnect';
+const WHATSAPP_BASE_URL = 'https://bitel-baileys.xylure.easypanel.host/session';
 const WHATSAPP_TOKEN = 'f39a8c1d7b264fb19ce2a1d0b7441e98c4f7ba3ef1cd9a0e5d2c8f03b7a5e961';
 
 export default function WhatsAppPage() {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [sessionData, setSessionData] = useState(null);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
 
+  // Obtener el id_empresa del usuario logueado
+  const empresaId = session?.user?.id_empresa || 1;
+
   const fetchQRCode = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch(WHATSAPP_API_URL, {
+      const response = await fetch(`${WHATSAPP_BASE_URL}/${empresaId}/qr`, {
         headers: {
           'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
         },
@@ -35,7 +39,7 @@ export default function WhatsAppPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [empresaId]);
 
   useEffect(() => {
     fetchQRCode();
@@ -65,7 +69,7 @@ export default function WhatsAppPage() {
       setDisconnecting(true);
       setError(null);
 
-      const response = await fetch(WHATSAPP_DISCONNECT_URL, {
+      const response = await fetch(`${WHATSAPP_BASE_URL}/${empresaId}/disconnect`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
@@ -173,7 +177,7 @@ export default function WhatsAppPage() {
               <div className="mt-6 p-4 bg-gray-50 rounded-lg text-left">
                 <h3 className="font-medium text-gray-900 mb-2">Informacion de la sesion:</h3>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li><span className="font-medium">Session ID:</span> {sessionData?.sessionId || 'bitel'}</li>
+                  <li><span className="font-medium">Session ID:</span> {sessionData?.sessionId || empresaId}</li>
                   <li><span className="font-medium">Estado:</span> Conectado</li>
                   {sessionData?.message && <li><span className="font-medium">Mensaje:</span> {sessionData.message}</li>}
                 </ul>
@@ -252,7 +256,7 @@ export default function WhatsAppPage() {
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Informacion tecnica:</h3>
           <div className="text-xs text-gray-500 space-y-1">
-            <p><span className="font-medium">Session ID:</span> {sessionData?.sessionId || 'bitel'}</p>
+            <p><span className="font-medium">Session ID:</span> {sessionData?.sessionId || empresaId}</p>
             <p><span className="font-medium">Estado:</span> {sessionData?.connected ? 'Conectado' : 'Esperando conexion'}</p>
             <p><span className="font-medium">Auto-refresh:</span> {autoRefresh ? 'Activado (10s)' : 'Desactivado'}</p>
           </div>

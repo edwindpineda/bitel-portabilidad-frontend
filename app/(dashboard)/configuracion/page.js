@@ -28,28 +28,6 @@ export default function ConfiguracionPage() {
       color: 'bg-amber-500',
     },
     {
-      title: 'Roles',
-      description: 'Gestionar roles y permisos',
-      href: '/configuracion/roles',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      ),
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Módulos',
-      description: 'Gestionar módulos del sistema',
-      href: '/configuracion/modulos',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-        </svg>
-      ),
-      color: 'bg-purple-500',
-    },
-    {
       title: 'Sucursales',
       description: 'Gestionar sucursales',
       href: '/configuracion/sucursales',
@@ -76,9 +54,9 @@ export default function ConfiguracionPage() {
   // Grupo 2: Gestión de Mensajes WhatsApp
   const gestionWhatsApp = [
     {
-      title: 'Planes Tarifarios',
-      description: 'Gestionar planes y precios',
-      href: '/configuracion/planes-tarifarios',
+      title: 'Catálogo',
+      description: 'Gestionar catálogo de planes y precios',
+      href: '/configuracion/catalogo',
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -109,17 +87,6 @@ export default function ConfiguracionPage() {
       color: 'bg-rose-500',
     },
     {
-      title: 'Estados',
-      description: 'Configurar colores de estados',
-      href: '/configuracion/estados',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-        </svg>
-      ),
-      color: 'bg-teal-500',
-    },
-    {
       title: 'WhatsApp',
       description: 'Escanear QR y conectar WhatsApp',
       href: '/configuracion/whatsapp',
@@ -129,6 +96,17 @@ export default function ConfiguracionPage() {
         </svg>
       ),
       color: 'bg-green-600',
+    },
+    {
+      title: 'Prompt del Bot',
+      description: 'Configurar prompt del asistente',
+      href: '/configuracion/prompt-bot',
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      color: 'bg-teal-600',
     },
     {
       title: 'Preguntas Perfilamiento',
@@ -199,17 +177,6 @@ export default function ConfiguracionPage() {
         </svg>
       ),
       color: 'bg-fuchsia-600',
-    },
-    {
-      title: 'Campañas',
-      description: 'Gestionar campañas de llamadas y ejecuciones',
-      href: '/configuracion/campanias',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-        </svg>
-      ),
-      color: 'bg-red-600',
     },
   ];
 

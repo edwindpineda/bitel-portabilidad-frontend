@@ -11,7 +11,7 @@ const getImageUrl = (url) => {
   return `${API_BASE_URL}${url}`;
 };
 
-export default function PlanesTarifariosPage() {
+export default function CatalogoPage() {
   const [planes, setPlanes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -36,7 +36,7 @@ export default function PlanesTarifariosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/crm/planes-tarifarios');
+      const response = await apiClient.get('/crm/catalogo');
       const planesValidos = response?.data.filter((plan) => plan.estado_registro == 1);
       setPlanes(planesValidos || []);
     } catch (error) {
@@ -69,11 +69,11 @@ export default function PlanesTarifariosPage() {
       }
 
       if (editingPlan) {
-        await apiClient.put(`/crm/planes-tarifarios/${editingPlan.id}`, submitData, {
+        await apiClient.put(`/crm/catalogo/${editingPlan.id}`, submitData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       } else {
-        await apiClient.post('/crm/planes-tarifarios', submitData, {
+        await apiClient.post('/crm/catalogo', submitData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       }
@@ -103,9 +103,9 @@ export default function PlanesTarifariosPage() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('¿Está seguro de eliminar este plan tarifario?')) {
+    if (confirm('¿Está seguro de eliminar este item del catálogo?')) {
       try {
-        await apiClient.delete(`/crm/planes-tarifarios/${id}`);
+        await apiClient.delete(`/crm/catalogo/${id}`);
         loadData();
       } catch (error) {
         console.error('Error al eliminar plan:', error);
@@ -159,10 +159,10 @@ export default function PlanesTarifariosPage() {
           <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
             <Link href="/configuracion" className="hover:text-primary-600">Configuración</Link>
             <span>/</span>
-            <span className="text-gray-900">Planes Tarifarios</span>
+            <span className="text-gray-900">Catálogo</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Planes Tarifarios</h1>
-          <p className="text-gray-600 mt-1">Gestiona los planes y precios disponibles</p>
+          <h1 className="text-2xl font-bold text-gray-900">Catálogo</h1>
+          <p className="text-gray-600 mt-1">Gestiona el catálogo de planes y precios disponibles</p>
         </div>
         <button
           onClick={openNewModal}
@@ -171,7 +171,7 @@ export default function PlanesTarifariosPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span>Nuevo Plan</span>
+          <span>Nuevo Item</span>
         </button>
       </div>
 
@@ -250,7 +250,7 @@ export default function PlanesTarifariosPage() {
 
       {planes.length === 0 && (
         <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-gray-200">
-          No hay planes tarifarios registrados
+          No hay items en el catálogo
         </div>
       )}
 
@@ -286,7 +286,7 @@ export default function PlanesTarifariosPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingPlan ? 'Editar Plan Tarifario' : 'Nuevo Plan Tarifario'}
+              {editingPlan ? 'Editar Item' : 'Nuevo Item'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

@@ -310,7 +310,7 @@ export default function BasesNumerosPage() {
                   required
                 >
                   <option value="">Seleccionar formato</option>
-                  {formatos.filter(f => f.es_activo).map((formato) => (
+                  {formatos.map((formato) => (
                     <option key={formato.id} value={formato.id}>{formato.nombre}</option>
                   ))}
                 </select>
@@ -545,9 +545,13 @@ export default function BasesNumerosPage() {
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-500">
                       {detalle.json_adicional ? (
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {Object.keys(typeof detalle.json_adicional === 'string' ? JSON.parse(detalle.json_adicional) : detalle.json_adicional).length} campos
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(typeof detalle.json_adicional === 'string' ? JSON.parse(detalle.json_adicional) : detalle.json_adicional).map(([key, value]) => (
+                            <span key={key} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                              <strong>{key}:</strong> {value || '-'}
+                            </span>
+                          ))}
+                        </div>
                       ) : '-'}
                     </td>
                     <td className="px-4 py-2 text-right">

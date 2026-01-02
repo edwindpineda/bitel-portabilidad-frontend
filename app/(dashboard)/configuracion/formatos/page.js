@@ -38,8 +38,7 @@ export default function FormatosPage() {
 
   const [formData, setFormData] = useState({
     nombre: '',
-    descripcion: '',
-    es_activo: 1
+    descripcion: ''
   });
 
   const [campoFormData, setCampoFormData] = useState({
@@ -92,8 +91,7 @@ export default function FormatosPage() {
     setEditingFormato(formato);
     setFormData({
       nombre: formato.nombre || '',
-      descripcion: formato.descripcion || '',
-      es_activo: formato.es_activo ? 1 : 0
+      descripcion: formato.descripcion || ''
     });
     setShowModal(true);
   };
@@ -112,8 +110,7 @@ export default function FormatosPage() {
   const resetForm = () => {
     setFormData({
       nombre: '',
-      descripcion: '',
-      es_activo: 1
+      descripcion: ''
     });
   };
 
@@ -329,7 +326,6 @@ export default function FormatosPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripcion</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campos</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
             </tr>
           </thead>
@@ -352,11 +348,6 @@ export default function FormatosPage() {
                     </svg>
                     {formato.total_campos || 0} campos
                   </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${formato.es_activo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {formato.es_activo ? 'Activo' : 'Inactivo'}
-                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
@@ -417,16 +408,6 @@ export default function FormatosPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   rows={3}
                 />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="es_activo"
-                  checked={formData.es_activo}
-                  onChange={(e) => setFormData({ ...formData, es_activo: e.target.checked ? 1 : 0 })}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="es_activo" className="text-sm text-gray-700">Formato activo</label>
               </div>
               <div className="flex justify-end space-x-3 pt-4">
                 <button
