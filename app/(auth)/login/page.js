@@ -58,14 +58,20 @@ export default function LoginPage() {
         localStorage.setItem('id_empresa', session.user.id_empresa.toString());
       }
 
-      // Super Admin (id_rol=1 y id_empresa=0) va a /administracion
+      // Super Admin (id_rol=1 y id_empresa=0 explícitamente) va a /administracion
       const isSuperAdmin = session?.user?.id_rol === 1 &&
-        (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0' || !session?.user?.id_empresa);
+        (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0');
+
+      // Empresa de Encuestas (id_empresa=3) va a /encuestas
+      const isEncuestasEmpresa = session?.user?.id_empresa === 3 || session?.user?.id_empresa === '3';
 
       console.log('isSuperAdmin:', isSuperAdmin);
+      console.log('isEncuestasEmpresa:', isEncuestasEmpresa);
 
       if (isSuperAdmin) {
         router.push('/administracion');
+      } else if (isEncuestasEmpresa) {
+        router.push('/encuestas');
       } else {
         router.push('/dashboard');
       }

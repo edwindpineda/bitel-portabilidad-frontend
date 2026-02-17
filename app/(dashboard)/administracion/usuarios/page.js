@@ -117,8 +117,8 @@ export default function UsuariosAdminPage() {
 
   // Filtrar usuarios: solo activos + busqueda + filtro por empresa
   const filteredUsuarios = usuarios.filter(usuario => {
-    // Solo usuarios activos
-    if (usuario.estado_registro !== 1) return false;
+    // Solo usuarios activos (comparar como string y numero)
+    if (usuario.estado_registro != 1) return false;
 
     // Filtro por busqueda de texto
     if (searchTerm && !usuario.username?.toLowerCase().includes(searchTerm.toLowerCase())) {

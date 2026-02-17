@@ -2,15 +2,28 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Validar que la sesión tenga id_empresa
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      // Si la sesión no tiene id_empresa definido (no es 0 ni un número válido), redirigir a login
+      const idEmpresa = session.user.id_empresa;
+      if (idEmpresa === undefined || idEmpresa === null || idEmpresa === '') {
+        console.error('Sesión inválida: id_empresa no encontrado, redirigiendo a login');
+        signOut({ callbackUrl: '/login' });
+      }
+    }
+  }, [session, status]);
 
   // Cargar conteo de mensajes no leidos
   useEffect(() => {
@@ -110,8 +123,20 @@ export default function Sidebar() {
     },
   ];
 
-  // Verificar si es Super Admin (id_rol=1 y id_empresa=0)
-  const isSuperAdmin = session?.user?.id_rol === 1 && (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0' || !session?.user?.id_empresa);
+  // Menú exclusivo para id_empresa = 3 (Encuestas)
+  const encuestasMenuItem = {
+    name: 'Encuestas',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+    path: '/encuestas',
+    badge: null,
+  };
+
+  // Verificar si es Super Admin (id_rol=1 y id_empresa=0 explícitamente)
+  const isSuperAdmin = session?.user?.id_rol === 1 && (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0');
 
   // Debug logs
   console.log('=== SIDEBAR DEBUG ===');
@@ -122,6 +147,12 @@ export default function Sidebar() {
   console.log('isSuperAdmin:', isSuperAdmin);
   console.log('=====================');
 
+  // Verificar si es empresa con acceso a Encuestas (id_empresa = 3)
+  const isEncuestasEmpresa = session?.user?.id_empresa === 3 || session?.user?.id_empresa === '3';
+
+  // Menú exclusivo para empresa de Encuestas (id_empresa = 3)
+  const encuestasMenuItems = [encuestasMenuItem];
+
   // Filtrar menu items basado en los módulos del usuario
   const filteredMenuItems = useMemo(() => {
     if (!session?.user) return menuItems;
@@ -129,6 +160,11 @@ export default function Sidebar() {
     // Si es Super Admin (id_rol=1 y id_empresa=0), solo mostrar Administración
     if (isSuperAdmin) {
       return superAdminMenuItems;
+    }
+
+    // Si es empresa de Encuestas (id_empresa = 3), solo mostrar Encuestas
+    if (isEncuestasEmpresa) {
+      return encuestasMenuItems;
     }
 
     // Si es administrador de empresa (rol 1 con id_empresa > 0), mostrar todo
@@ -141,7 +177,7 @@ export default function Sidebar() {
     const allowedRoutes = userModulos.map(m => m.ruta);
 
     return menuItems.filter(item => allowedRoutes.includes(item.path));
-  }, [session?.user, menuItems, isSuperAdmin, superAdminMenuItems]);
+  }, [session?.user, menuItems, isSuperAdmin, superAdminMenuItems, isEncuestasEmpresa, encuestasMenuItems]);
 
   return (
     <aside
