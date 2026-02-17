@@ -38,7 +38,9 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem(USER_STORAGE_KEY);
-    signOut({ callbackUrl: '/login' });
+    // Usar window.location.origin para obtener la URL base dinamicamente
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    signOut({ callbackUrl: `${baseUrl}/login` });
   };
 
   return (
