@@ -112,6 +112,21 @@ export default function EncuestasListPage() {
     return { text: limpiarCodigo(autoriza), color: 'text-gray-500' };
   };
 
+  const getEstadoLlamadaLabel = (estado) => {
+    switch (estado) {
+      case 0:
+        return { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' };
+      case 1:
+        return { label: 'Ejecutando', color: 'bg-blue-100 text-blue-800' };
+      case 2:
+        return { label: 'Buzon', color: 'bg-orange-100 text-orange-800' };
+      case 3:
+        return { label: 'Completado', color: 'bg-green-100 text-green-800' };
+      default:
+        return { label: '-', color: 'bg-gray-100 text-gray-800' };
+    }
+  };
+
   // Exportar a Excel/CSV
   const exportToExcel = (exportAll = true) => {
     const dataToExport = exportAll ? encuestas : filteredEncuestas;
@@ -124,6 +139,7 @@ export default function EncuestasListPage() {
     // Cabeceras
     const headers = [
       'ID',
+      'Estado Llamada',
       'Nombre Contacto',
       'Participacion',
       'Piensa Votar',
@@ -137,9 +153,21 @@ export default function EncuestasListPage() {
       'Notas Adicionales'
     ];
 
+    // Helper para estado llamada
+    const getEstadoTexto = (estado) => {
+      switch (estado) {
+        case 0: return 'Pendiente';
+        case 1: return 'Ejecutando';
+        case 2: return 'Buzon';
+        case 3: return 'Completado';
+        default: return '-';
+      }
+    };
+
     // Filas de datos
     const rows = dataToExport.map(e => [
       e.id,
+      getEstadoTexto(e.estado_llamada),
       e.nombre_contacto || '',
       e.participacion || '',
       e.p1_piensa_votar || '',
@@ -268,6 +296,7 @@ export default function EncuestasListPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado Llamada</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participacion</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Piensa Votar</th>
@@ -284,7 +313,7 @@ export default function EncuestasListPage() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="13" className="px-6 py-12 text-center text-gray-500">
                     <div className="flex justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                     </div>
@@ -292,7 +321,7 @@ export default function EncuestasListPage() {
                 </tr>
               ) : paginatedEncuestas.length === 0 ? (
                 <tr>
-                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="13" className="px-6 py-12 text-center text-gray-500">
                     <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                     </svg>
@@ -306,6 +335,16 @@ export default function EncuestasListPage() {
                   return (
                     <tr key={encuesta.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{encuesta.id}</td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {(() => {
+                          const estado = getEstadoLlamadaLabel(encuesta.estado_llamada);
+                          return (
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${estado.color}`}>
+                              {estado.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{encuesta.nombre_contacto || '-'}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${participacion.color}`}>

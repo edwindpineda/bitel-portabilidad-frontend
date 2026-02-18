@@ -38,9 +38,10 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem(USER_STORAGE_KEY);
-    // Usar window.location.origin para obtener la URL base dinamicamente
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    signOut({ callbackUrl: `${baseUrl}/login` });
+    // Usar redirect: false y hacer el redirect manual para evitar problemas con NEXTAUTH_URL
+    signOut({ redirect: false }).then(() => {
+      window.location.href = '/login';
+    });
   };
 
   return (

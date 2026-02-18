@@ -20,8 +20,9 @@ export default function Sidebar() {
       const idEmpresa = session.user.id_empresa;
       if (idEmpresa === undefined || idEmpresa === null || idEmpresa === '') {
         console.error('Sesión inválida: id_empresa no encontrado, redirigiendo a login');
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        signOut({ callbackUrl: `${baseUrl}/login` });
+        signOut({ redirect: false }).then(() => {
+          window.location.href = '/login';
+        });
       }
     }
   }, [session, status]);

@@ -320,6 +320,15 @@ export default function PersonasPage() {
         </div>
         <div className="flex space-x-3">
           <button
+            onClick={() => { fetchPersonas(); fetchStats(); }}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Actualizar</span>
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
@@ -342,22 +351,38 @@ export default function PersonasPage() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-2xl font-bold text-gray-900">{formatNumber(stats.total)}</div>
             <div className="text-sm text-gray-500">Total Personas</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-blue-600">{formatNumber(stats.activos)}</div>
-            <div className="text-sm text-gray-500">Activos</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-2xl font-bold text-yellow-600">{formatNumber(stats.pendientes)}</div>
             <div className="text-sm text-gray-500">Pendientes</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-2xl font-bold text-blue-600">{formatNumber(stats.ejecutados)}</div>
+            <div className="text-sm text-gray-500">Ejecutados</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-2xl font-bold text-orange-600">{formatNumber(stats.buzon)}</div>
+            <div className="text-sm text-gray-500">Buzon</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-2xl font-bold text-green-600">{formatNumber(stats.completados)}</div>
             <div className="text-sm text-gray-500">Completados</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-2xl font-bold text-indigo-600">
+              {stats.total > 0 ? ((stats.ejecutados / stats.total) * 100).toFixed(1) : 0}%
+            </div>
+            <div className="text-sm text-gray-500">% Ejec/Total</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.ejecutados > 0 ? ((stats.completados / stats.ejecutados) * 100).toFixed(1) : 0}%
+            </div>
+            <div className="text-sm text-gray-500">% Comp/Ejec</div>
           </div>
         </div>
       )}
