@@ -14,30 +14,50 @@ export default function EncuestasPage() {
   const [statsPersonas, setStatsPersonas] = useState(null);
   const [statsEncuestas, setStatsEncuestas] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [prioridadFilter, setPrioridadFilter] = useState('todos');
+
+  const fetchStats = async (prioridad = prioridadFilter) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (prioridad && prioridad !== 'todos') {
+        params.append('prioridad', prioridad);
+      }
+      const statsUrl = params.toString() ? `/crm/tools/encuesta/personas/stats?${params.toString()}` : '/crm/tools/encuesta/personas/stats';
+
+      const [personasRes, encuestasRes] = await Promise.all([
+        apiClient.get(statsUrl),
+        apiClient.get('/crm/tools/encuesta')
+      ]);
+      setStatsPersonas(personasRes.data || null);
+
+      const encuestas = encuestasRes.data?.encuestas || [];
+      const rechazaron = encuestas.filter(e => {
+        const p = String(e.participacion || '').toLowerCase();
+        return p.includes('rechaz') || p.includes('no');
+      }).length;
+
+      setStatsEncuestas({
+        total: encuestas.length,
+        aceptaron: encuestas.filter(e => String(e.participacion || '').toLowerCase().includes('acept')).length,
+        rechazaron,
+        intencionWilder: encuestas.filter(e => String(e.p2_intencion_voto || '').startsWith('1:')).length,
+        otroCandidato: encuestas.filter(e => String(e.p2_intencion_voto || '').startsWith('2:')).length
+      });
+    } catch (error) {
+      console.error('Error al cargar estadisticas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [personasRes, encuestasRes] = await Promise.all([
-          apiClient.get('/crm/tools/encuesta/personas/stats'),
-          apiClient.get('/crm/tools/encuesta')
-        ]);
-        setStatsPersonas(personasRes.data || null);
-
-        const encuestas = encuestasRes.data?.encuestas || [];
-        setStatsEncuestas({
-          total: encuestas.length,
-          aceptaron: encuestas.filter(e => String(e.participacion || '').toLowerCase().includes('acept')).length,
-          intencionWilder: encuestas.filter(e => String(e.p2_intencion_voto || '').startsWith('1:')).length
-        });
-      } catch (error) {
-        console.error('Error al cargar estadisticas:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    fetchStats(prioridadFilter);
+  }, [prioridadFilter]);
 
   const menuEncuestas = [
     {
@@ -113,30 +133,82 @@ export default function EncuestasPage() {
 
       {/* Indicadores */}
       {!loading && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-gray-900">{formatNumber(statsPersonas?.total)}</div>
-            <div className="text-xs text-gray-500">Total Personas</div>
+        <div className="space-y-4 mb-6">
+          {/* Filtro de prioridad */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-700">Indicadores de Personas</h3>
+            <select
+              value={prioridadFilter}
+              onChange={(e) => setPrioridadFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las prioridades</option>
+              <option value="0">Sin prioridad</option>
+              <option value="1">Prioridad 1</option>
+              <option value="2">Prioridad 2</option>
+              <option value="3">Prioridad 3</option>
+            </select>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-yellow-600">{formatNumber(statsPersonas?.pendientes)}</div>
-            <div className="text-xs text-gray-500">Pendientes</div>
+
+          {/* Stats Personas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-gray-900">{formatNumber(statsPersonas?.total)}</div>
+              <div className="text-xs text-gray-500">Total Personas</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-yellow-600">{formatNumber(statsPersonas?.pendientes)}</div>
+              <div className="text-xs text-gray-500">Pendientes</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-blue-600">{formatNumber(statsPersonas?.ejecutados)}</div>
+              <div className="text-xs text-gray-500">Ejecutados</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-orange-600">{formatNumber(statsPersonas?.buzon)}</div>
+              <div className="text-xs text-gray-500">Buzon</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-green-600">{formatNumber(statsPersonas?.completados)}</div>
+              <div className="text-xs text-gray-500">Completados</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-indigo-600">
+                {statsPersonas?.total > 0 ? ((statsPersonas?.ejecutados / statsPersonas?.total) * 100).toFixed(1) : 0}%
+              </div>
+              <div className="text-xs text-gray-500">% Ejec/Total</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-purple-600">
+                {statsPersonas?.ejecutados > 0 ? ((statsPersonas?.completados / statsPersonas?.ejecutados) * 100).toFixed(1) : 0}%
+              </div>
+              <div className="text-xs text-gray-500">% Comp/Ejec</div>
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-green-600">{formatNumber(statsPersonas?.completados)}</div>
-            <div className="text-xs text-gray-500">Completados</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-emerald-600">{formatNumber(statsEncuestas?.total)}</div>
-            <div className="text-xs text-gray-500">Total Encuestas</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-green-600">{formatNumber(statsEncuestas?.aceptaron)}</div>
-            <div className="text-xs text-gray-500">Aceptaron</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-blue-600">{formatNumber(statsEncuestas?.intencionWilder)}</div>
-            <div className="text-xs text-gray-500">Intencion Wilder</div>
+
+          {/* Stats Encuestas */}
+          <h3 className="text-lg font-semibold text-gray-700 mt-4">Indicadores de Encuestas</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-emerald-600">{formatNumber(statsEncuestas?.total)}</div>
+              <div className="text-xs text-gray-500">Total Encuestas</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-green-600">{formatNumber(statsEncuestas?.aceptaron)}</div>
+              <div className="text-xs text-gray-500">Aceptaron</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-red-600">{formatNumber(statsEncuestas?.rechazaron)}</div>
+              <div className="text-xs text-gray-500">Rechazaron</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-blue-600">{formatNumber(statsEncuestas?.intencionWilder)}</div>
+              <div className="text-xs text-gray-500">Intencion Wilder</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-gray-600">{formatNumber(statsEncuestas?.otroCandidato)}</div>
+              <div className="text-xs text-gray-500">Otro Candidato</div>
+            </div>
           </div>
         </div>
       )}

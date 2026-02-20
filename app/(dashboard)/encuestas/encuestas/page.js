@@ -35,9 +35,13 @@ export default function EncuestasListPage() {
   const [encuestas, setEncuestas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [participacionFilter, setParticipacionFilter] = useState('todos');
+  const [intencionVotoFilter, setIntencionVotoFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [showNotasModal, setShowNotasModal] = useState(false);
   const [notasSeleccionadas, setNotasSeleccionadas] = useState({ nombre: '', notas: '' });
+  const [showObservacionesModal, setShowObservacionesModal] = useState(false);
+  const [observacionesSeleccionadas, setObservacionesSeleccionadas] = useState({ nombre: '', observaciones: '' });
   const itemsPerPage = 50;
 
   const fetchEncuestas = async () => {
@@ -57,20 +61,43 @@ export default function EncuestasListPage() {
     fetchEncuestas();
   }, []);
 
-  const filteredEncuestas = encuestas.filter(e =>
-    (e.nombre_contacto?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (e.whatsapp_contacto?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredEncuestas = encuestas.filter(e => {
+    // Filtro de búsqueda
+    const matchSearch = (e.nombre_contacto?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (e.whatsapp_contacto?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+    // Filtro de participación
+    let matchParticipacion = true;
+    if (participacionFilter !== 'todos') {
+      const participacion = String(e.participacion || '').toLowerCase();
+      if (participacionFilter === 'acepto') {
+        matchParticipacion = participacion.includes('acept');
+      } else if (participacionFilter === 'rechazo') {
+        matchParticipacion = participacion.includes('rechaz') || participacion.includes('no');
+      } else if (participacionFilter === 'sin_respuesta') {
+        matchParticipacion = !participacion.includes('acept') && !participacion.includes('rechaz') && !participacion.includes('no');
+      }
+    }
+
+    // Filtro de intención de voto
+    let matchIntencionVoto = true;
+    if (intencionVotoFilter !== 'todos') {
+      const intencion = String(e.p2_intencion_voto || '');
+      matchIntencionVoto = intencion.startsWith(intencionVotoFilter + ':');
+    }
+
+    return matchSearch && matchParticipacion && matchIntencionVoto;
+  });
 
   // Paginacion
   const totalPages = Math.ceil(filteredEncuestas.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedEncuestas = filteredEncuestas.slice(startIndex, startIndex + itemsPerPage);
 
-  // Reset page when search changes
+  // Reset page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, participacionFilter, intencionVotoFilter]);
 
   const getParticipacionLabel = (participacion) => {
     const valor = String(participacion || '').toLowerCase();
@@ -138,7 +165,7 @@ export default function EncuestasListPage() {
 
     // Cabeceras
     const headers = [
-      'ID',
+      '#',
       'Estado Llamada',
       'Nombre Contacto',
       'Participacion',
@@ -165,8 +192,8 @@ export default function EncuestasListPage() {
     };
 
     // Filas de datos
-    const rows = dataToExport.map(e => [
-      e.id,
+    const rows = dataToExport.map((e, index) => [
+      index + 1,
       getEstadoTexto(e.estado_llamada),
       e.nombre_contacto || '',
       e.participacion || '',
@@ -288,6 +315,27 @@ export default function EncuestasListPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
+            <select
+              value={participacionFilter}
+              onChange={(e) => setParticipacionFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las participaciones</option>
+              <option value="acepto">Acepto</option>
+              <option value="rechazo">Rechazo</option>
+              <option value="sin_respuesta">Sin respuesta</option>
+            </select>
+            <select
+              value={intencionVotoFilter}
+              onChange={(e) => setIntencionVotoFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las intenciones</option>
+              <option value="1">Wilder Escobar</option>
+              <option value="2">Otro candidato</option>
+              <option value="3">Voto en blanco</option>
+              <option value="4">No sabe</option>
+            </select>
           </div>
         </div>
 
@@ -295,7 +343,7 @@ export default function EncuestasListPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">#</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado Llamada</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participacion</th>
@@ -330,11 +378,12 @@ export default function EncuestasListPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedEncuestas.map((encuesta) => {
+                paginatedEncuestas.map((encuesta, index) => {
                   const participacion = getParticipacionLabel(encuesta.participacion);
+                  const correlativo = startIndex + index + 1;
                   return (
                     <tr key={encuesta.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{encuesta.id}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-400">{formatNumber(correlativo)}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         {(() => {
                           const estado = getEstadoLlamadaLabel(encuesta.estado_llamada);
@@ -353,7 +402,20 @@ export default function EncuestasListPage() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{getVotoLabel(encuesta.p1_piensa_votar)}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{limpiarCodigo(encuesta.p2_intencion_voto)}</td>
-                      <td className="px-4 py-4 text-sm text-gray-500 max-w-[150px] truncate" title={encuesta.p2_observaciones || ''}>{encuesta.p2_observaciones || '-'}</td>
+                      <td className="px-4 py-4 text-sm text-gray-500 max-w-[150px]">
+                        {encuesta.p2_observaciones ? (
+                          <button
+                            onClick={() => {
+                              setObservacionesSeleccionadas({ nombre: encuesta.nombre_contacto || 'Sin nombre', observaciones: encuesta.p2_observaciones });
+                              setShowObservacionesModal(true);
+                            }}
+                            className="text-left truncate block w-full text-blue-600 hover:text-blue-800 hover:underline"
+                            title="Click para ver completo"
+                          >
+                            {encuesta.p2_observaciones}
+                          </button>
+                        ) : '-'}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{limpiarCodigo(encuesta.p3a_sabe_como_votar)}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{limpiarCodigo(encuesta.p3a_refuerzo_pedagogico)}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{limpiarCodigo(encuesta.p3b_conoce_candidato)}</td>
@@ -414,6 +476,39 @@ export default function EncuestasListPage() {
           )}
         </div>
       </div>
+
+      {/* Modal de Observaciones */}
+      {showObservacionesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Observaciones</h3>
+              <button
+                onClick={() => setShowObservacionesModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-500 mb-2">Contacto: <span className="font-medium text-gray-900">{observacionesSeleccionadas.nombre}</span></p>
+              <div className="bg-gray-50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                <p className="text-gray-700 whitespace-pre-wrap">{observacionesSeleccionadas.observaciones}</p>
+              </div>
+            </div>
+            <div className="flex justify-end p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowObservacionesModal(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Notas */}
       {showNotasModal && (

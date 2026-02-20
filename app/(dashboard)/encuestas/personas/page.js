@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -37,6 +38,7 @@ const formatTelefono = (telefono) => {
 };
 
 export default function PersonasPage() {
+  const { data: session } = useSession();
   const [personas, setPersonas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -46,13 +48,17 @@ export default function PersonasPage() {
   const [progressInfo, setProgressInfo] = useState({ total: 0, procesados: 0, nuevos: 0, omitidos: 0, mensaje: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('todos');
+  const [prioridadFilter, setPrioridadFilter] = useState('todos');
   const [stats, setStats] = useState(null);
+  const [statsPrioridadFilter, setStatsPrioridadFilter] = useState('todos');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPersona, setNewPersona] = useState({ telefono: '', nombre: '', apellido: '', departamento: '', municipio: '', referente: '' });
   const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 0 });
   const itemsPerPage = 50;
   const fileInputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Descargar plantilla Excel
   const downloadTemplate = (format) => {
@@ -79,12 +85,26 @@ export default function PersonasPage() {
     toast.success(`Plantilla ${format.toUpperCase()} descargada`);
   };
 
-  // Cargar personas
-  const fetchPersonas = async () => {
+  // Cargar personas con paginación del servidor
+  const fetchPersonas = async (page = currentPage, estado = estadoFilter, search = searchTerm, prioridad = prioridadFilter) => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/crm/tools/encuesta/personas');
+      const params = new URLSearchParams();
+      params.append('page', page);
+      params.append('limit', itemsPerPage);
+      if (estado && estado !== 'todos') {
+        params.append('estado', estado);
+      }
+      if (prioridad && prioridad !== 'todos') {
+        params.append('prioridad', prioridad);
+      }
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+
+      const response = await apiClient.get(`/crm/tools/encuesta/personas?${params.toString()}`);
       setPersonas(response.data || []);
+      setPagination(response.pagination || { page: 1, limit: itemsPerPage, total: 0, totalPages: 0 });
     } catch (error) {
       console.error('Error al cargar personas:', error);
       toast.error('Error al cargar personas');
@@ -94,9 +114,14 @@ export default function PersonasPage() {
   };
 
   // Cargar estadisticas
-  const fetchStats = async () => {
+  const fetchStats = async (prioridad = statsPrioridadFilter) => {
     try {
-      const response = await apiClient.get('/crm/tools/encuesta/personas/stats');
+      const params = new URLSearchParams();
+      if (prioridad && prioridad !== 'todos') {
+        params.append('prioridad', prioridad);
+      }
+      const url = params.toString() ? `/crm/tools/encuesta/personas/stats?${params.toString()}` : '/crm/tools/encuesta/personas/stats';
+      const response = await apiClient.get(url);
       setStats(response.data || null);
     } catch (error) {
       console.error('Error al cargar estadisticas:', error);
@@ -104,9 +129,42 @@ export default function PersonasPage() {
   };
 
   useEffect(() => {
-    fetchPersonas();
+    fetchPersonas(1, estadoFilter, searchTerm, prioridadFilter);
     fetchStats();
   }, []);
+
+  // Recargar cuando cambia el filtro de estado o prioridad
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchPersonas(1, estadoFilter, searchTerm, prioridadFilter);
+  }, [estadoFilter, prioridadFilter]);
+
+  // Recargar estadisticas cuando cambia el filtro de prioridad de stats
+  useEffect(() => {
+    fetchStats(statsPrioridadFilter);
+  }, [statsPrioridadFilter]);
+
+  // Recargar cuando cambia la búsqueda (con debounce)
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchPersonas(1, estadoFilter, searchTerm, prioridadFilter);
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm]);
+
+  // Recargar cuando cambia la página
+  useEffect(() => {
+    fetchPersonas(currentPage, estadoFilter, searchTerm, prioridadFilter);
+  }, [currentPage]);
 
   // Subir archivo con SSE para progreso en tiempo real
   const handleFileUpload = async (e) => {
@@ -137,7 +195,10 @@ export default function PersonasPage() {
       const response = await fetch(`${API_URL}/crm/tools/encuesta/personas/upload`, {
         method: 'POST',
         body: formData,
-        signal: controller.signal
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${session?.accessToken}`
+        }
       });
 
       clearTimeout(timeoutId);
@@ -270,26 +331,8 @@ export default function PersonasPage() {
     }
   };
 
-  // Filtrar personas
-  const filteredPersonas = personas.filter(p => {
-    const matchesSearch = (p.nombre?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (p.telefono?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-
-    const matchesEstado = estadoFilter === 'todos' ||
-      String(p.estado_llamada) === estadoFilter;
-
-    return matchesSearch && matchesEstado;
-  });
-
-  // Paginacion
-  const totalPages = Math.ceil(filteredPersonas.length / itemsPerPage);
+  // Calcular índice inicial para correlativo
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPersonas = filteredPersonas.slice(startIndex, startIndex + itemsPerPage);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, estadoFilter]);
 
   const getEstadoLabel = (estado) => {
     switch (estado) {
@@ -351,7 +394,22 @@ export default function PersonasPage() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-700">Indicadores</h3>
+            <select
+              value={statsPrioridadFilter}
+              onChange={(e) => setStatsPrioridadFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las prioridades</option>
+              <option value="0">Sin prioridad</option>
+              <option value="1">Prioridad 1</option>
+              <option value="2">Prioridad 2</option>
+              <option value="3">Prioridad 3</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-2xl font-bold text-gray-900">{formatNumber(stats.total)}</div>
             <div className="text-sm text-gray-500">Total Personas</div>
@@ -384,6 +442,7 @@ export default function PersonasPage() {
             </div>
             <div className="text-sm text-gray-500">% Comp/Ejec</div>
           </div>
+          </div>
         </div>
       )}
 
@@ -410,6 +469,17 @@ export default function PersonasPage() {
               <option value="1">Ejecutando</option>
               <option value="2">Buzon</option>
               <option value="3">Completado</option>
+            </select>
+            <select
+              value={prioridadFilter}
+              onChange={(e) => setPrioridadFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las prioridades</option>
+              <option value="0">Sin prioridad</option>
+              <option value="1">Prioridad 1</option>
+              <option value="2">Prioridad 2</option>
+              <option value="3">Prioridad 3</option>
             </select>
             <button
               onClick={() => fetchPersonas()}
@@ -445,7 +515,7 @@ export default function PersonasPage() {
                     </div>
                   </td>
                 </tr>
-              ) : paginatedPersonas.length === 0 ? (
+              ) : personas.length === 0 ? (
                 <tr>
                   <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
                     <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -456,7 +526,7 @@ export default function PersonasPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedPersonas.map((persona, index) => {
+                personas.map((persona, index) => {
                   const estado = getEstadoLabel(persona.estado_llamada);
                   const correlativo = startIndex + index + 1;
                   return (
@@ -493,9 +563,9 @@ export default function PersonasPage() {
         {/* Paginacion */}
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            Mostrando {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredPersonas.length)} de {filteredPersonas.length} personas
+            Mostrando {startIndex + 1} - {Math.min(startIndex + itemsPerPage, pagination.total)} de {formatNumber(pagination.total)} personas
           </p>
-          {totalPages > 1 && (
+          {pagination.totalPages > 1 && (
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -505,11 +575,11 @@ export default function PersonasPage() {
                 Anterior
               </button>
               <span className="text-sm text-gray-600">
-                Pagina {currentPage} de {totalPages}
+                Pagina {formatNumber(currentPage)} de {formatNumber(pagination.totalPages)}
               </span>
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
+                disabled={currentPage === pagination.totalPages}
                 className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Siguiente
