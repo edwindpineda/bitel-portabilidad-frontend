@@ -37,6 +37,7 @@ export default function EncuestasListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [participacionFilter, setParticipacionFilter] = useState('todos');
   const [intencionVotoFilter, setIntencionVotoFilter] = useState('todos');
+  const [prioridadFilter, setPrioridadFilter] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [showNotasModal, setShowNotasModal] = useState(false);
   const [notasSeleccionadas, setNotasSeleccionadas] = useState({ nombre: '', notas: '' });
@@ -44,10 +45,15 @@ export default function EncuestasListPage() {
   const [observacionesSeleccionadas, setObservacionesSeleccionadas] = useState({ nombre: '', observaciones: '' });
   const itemsPerPage = 50;
 
-  const fetchEncuestas = async () => {
+  const fetchEncuestas = async (prioridad = prioridadFilter) => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/crm/tools/encuesta');
+      const params = new URLSearchParams();
+      if (prioridad && prioridad !== 'todos') {
+        params.append('prioridad', prioridad);
+      }
+      const url = params.toString() ? `/crm/tools/encuesta?${params.toString()}` : '/crm/tools/encuesta';
+      const response = await apiClient.get(url);
       setEncuestas(response.data?.encuestas || []);
     } catch (error) {
       console.error('Error al cargar encuestas:', error);
@@ -60,6 +66,10 @@ export default function EncuestasListPage() {
   useEffect(() => {
     fetchEncuestas();
   }, []);
+
+  useEffect(() => {
+    fetchEncuestas(prioridadFilter);
+  }, [prioridadFilter]);
 
   const filteredEncuestas = encuestas.filter(e => {
     // Filtro de búsqueda
@@ -97,7 +107,7 @@ export default function EncuestasListPage() {
   // Reset page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, participacionFilter, intencionVotoFilter]);
+  }, [searchTerm, participacionFilter, intencionVotoFilter, prioridadFilter]);
 
   const getParticipacionLabel = (participacion) => {
     const valor = String(participacion || '').toLowerCase();
@@ -335,6 +345,17 @@ export default function EncuestasListPage() {
               <option value="2">Otro candidato</option>
               <option value="3">Voto en blanco</option>
               <option value="4">No sabe</option>
+            </select>
+            <select
+              value={prioridadFilter}
+              onChange={(e) => setPrioridadFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las prioridades</option>
+              <option value="0">Sin prioridad</option>
+              <option value="1">Prioridad 1</option>
+              <option value="2">Prioridad 2</option>
+              <option value="3">Prioridad 3</option>
             </select>
           </div>
         </div>

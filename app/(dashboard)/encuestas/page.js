@@ -25,9 +25,10 @@ export default function EncuestasPage() {
       }
       const statsUrl = params.toString() ? `/crm/tools/encuesta/personas/stats?${params.toString()}` : '/crm/tools/encuesta/personas/stats';
 
+      const encuestasUrl = params.toString() ? `/crm/tools/encuesta?${params.toString()}` : '/crm/tools/encuesta';
       const [personasRes, encuestasRes] = await Promise.all([
         apiClient.get(statsUrl),
-        apiClient.get('/crm/tools/encuesta')
+        apiClient.get(encuestasUrl)
       ]);
       setStatsPersonas(personasRes.data || null);
 
