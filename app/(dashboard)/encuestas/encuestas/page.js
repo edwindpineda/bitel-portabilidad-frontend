@@ -287,30 +287,43 @@ export default function EncuestasListPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-gray-900">{formatNumber(encuestas.length)}</div>
-          <div className="text-sm text-gray-500">Total Encuestas</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-green-600">
-            {formatNumber(encuestas.filter(e => String(e.participacion || '').toLowerCase().includes('acept')).length)}
+      {(() => {
+        const totalEncuestas = encuestas.length;
+        const aceptaron = encuestas.filter(e => String(e.participacion || '').toLowerCase().includes('acept')).length;
+        const rechazaron = encuestas.filter(e => String(e.participacion || '').toLowerCase().includes('rechaz')).length;
+        const intencionWilder = encuestas.filter(e => String(e.p2_intencion_voto || '').startsWith('1:')).length;
+        const pctWilderTotal = totalEncuestas > 0 ? ((intencionWilder / totalEncuestas) * 100).toFixed(1) : 0;
+        const pctWilderAceptaron = aceptaron > 0 ? ((intencionWilder / aceptaron) * 100).toFixed(1) : 0;
+
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-gray-900">{formatNumber(totalEncuestas)}</div>
+              <div className="text-sm text-gray-500">Total Encuestas</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-green-600">{formatNumber(aceptaron)}</div>
+              <div className="text-sm text-gray-500">Aceptaron</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-red-600">{formatNumber(rechazaron)}</div>
+              <div className="text-sm text-gray-500">Rechazaron</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-blue-600">{formatNumber(intencionWilder)}</div>
+              <div className="text-sm text-gray-500">Intencion Wilder</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-purple-600">{pctWilderTotal}%</div>
+              <div className="text-sm text-gray-500">% Wilder/Total</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="text-2xl font-bold text-emerald-600">{pctWilderAceptaron}%</div>
+              <div className="text-sm text-gray-500">% Wilder/Aceptaron</div>
+            </div>
           </div>
-          <div className="text-sm text-gray-500">Aceptaron</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-red-600">
-            {formatNumber(encuestas.filter(e => String(e.participacion || '').toLowerCase().includes('rechaz')).length)}
-          </div>
-          <div className="text-sm text-gray-500">Rechazaron</div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="text-2xl font-bold text-blue-600">
-            {formatNumber(encuestas.filter(e => String(e.p2_intencion_voto || '').startsWith('1:')).length)}
-          </div>
-          <div className="text-sm text-gray-500">Intencion Wilder</div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Tabla de encuestas */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">

@@ -88,55 +88,60 @@ const PieChart = ({ data, title, colors }) => {
 export default function ReportesPage() {
   const [encuestas, setEncuestas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [departamentos, setDepartamentos] = useState([]);
-  const [municipios, setMunicipios] = useState([]);
-  const [filtros, setFiltros] = useState({ departamento: '', municipio: '' });
+  const [filtros, setFiltros] = useState({ departamento: '', municipio: '', prioridad: 'todos', participacion: 'todos' });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [encuestasRes, departamentosRes] = await Promise.all([
-          apiClient.get('/crm/tools/encuesta'),
-          apiClient.get('/crm/tools/encuesta/departamentos')
-        ]);
-        setEncuestas(encuestasRes?.data?.encuestas || []);
-        setDepartamentos(departamentosRes?.data || []);
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
-        toast.error('Error al cargar datos');
-      } finally {
-        setLoading(false);
+  const fetchEncuestas = async (prioridad) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (prioridad && prioridad !== 'todos') {
+        params.append('prioridad', prioridad);
       }
-    };
-    fetchData();
-  }, []);
+      const encuestasUrl = params.toString() ? `/crm/tools/encuesta?${params.toString()}` : '/crm/tools/encuesta';
+      const response = await apiClient.get(encuestasUrl);
+      setEncuestas(response?.data?.encuestas || []);
+    } catch (error) {
+      console.error('Error al cargar encuestas:', error);
+      toast.error('Error al cargar encuestas');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Cargar municipios cuando cambia el departamento
+  // Cargar datos iniciales y cuando cambia prioridad
   useEffect(() => {
-    const fetchMunicipios = async () => {
-      try {
-        const url = filtros.departamento
-          ? `/crm/tools/encuesta/municipios?departamento=${encodeURIComponent(filtros.departamento)}`
-          : '/crm/tools/encuesta/municipios';
-        const response = await apiClient.get(url);
-        setMunicipios(response?.data || []);
-      } catch (error) {
-        console.error('Error al cargar municipios:', error);
-      }
-    };
-    fetchMunicipios();
-  }, [filtros.departamento]);
+    fetchEncuestas(filtros.prioridad);
+  }, [filtros.prioridad]);
 
-  // Filtrar encuestas
+  // Extraer departamentos unicos de las encuestas cargadas
+  const departamentos = [...new Set(encuestas.map(e => e.departamento).filter(d => d && d.trim() !== ''))].sort();
+
+  // Extraer municipios unicos (filtrados por departamento si hay uno seleccionado)
+  const municipios = [...new Set(
+    encuestas
+      .filter(e => !filtros.departamento || e.departamento === filtros.departamento)
+      .map(e => e.municipio)
+      .filter(m => m && m.trim() !== '')
+  )].sort();
+
+  // Filtrar encuestas por departamento, municipio y participacion
   const encuestasFiltradas = encuestas.filter(e => {
     if (filtros.departamento && e.departamento !== filtros.departamento) return false;
     if (filtros.municipio && e.municipio !== filtros.municipio) return false;
+    if (filtros.participacion && filtros.participacion !== 'todos') {
+      const participacion = String(e.participacion || '').toLowerCase();
+      if (filtros.participacion === 'acepto' && !participacion.includes('acept')) return false;
+      if (filtros.participacion === 'rechazo' && !participacion.includes('rechaz') && !participacion.includes('no')) return false;
+    }
     return true;
   });
 
   const handleFiltroChange = (campo, valor) => {
-    if (campo === 'departamento') {
-      setFiltros({ departamento: valor, municipio: '' });
+    if (campo === 'prioridad') {
+      // Limpiar departamento y municipio cuando cambia prioridad
+      setFiltros(prev => ({ ...prev, prioridad: valor, departamento: '', municipio: '' }));
+    } else if (campo === 'departamento') {
+      setFiltros(prev => ({ ...prev, departamento: valor, municipio: '' }));
     } else {
       setFiltros(prev => ({ ...prev, [campo]: valor }));
     }
@@ -226,9 +231,35 @@ export default function ReportesPage() {
               ))}
             </select>
           </div>
-          {(filtros.departamento || filtros.municipio) && (
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+            <select
+              value={filtros.prioridad}
+              onChange={(e) => handleFiltroChange('prioridad', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las prioridades</option>
+              <option value="0">Sin prioridad</option>
+              <option value="1">Prioridad 1</option>
+              <option value="2">Prioridad 2</option>
+              <option value="3">Prioridad 3</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Participacion</label>
+            <select
+              value={filtros.participacion}
+              onChange={(e) => handleFiltroChange('participacion', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="todos">Todas las participaciones</option>
+              <option value="acepto">Acepto</option>
+              <option value="rechazo">Rechazo</option>
+            </select>
+          </div>
+          {(filtros.departamento || filtros.municipio || filtros.prioridad !== 'todos' || filtros.participacion !== 'todos') && (
             <button
-              onClick={() => setFiltros({ departamento: '', municipio: '' })}
+              onClick={() => setFiltros({ departamento: '', municipio: '', prioridad: 'todos', participacion: 'todos' })}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Limpiar filtros

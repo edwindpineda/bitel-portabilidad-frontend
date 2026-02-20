@@ -135,20 +135,32 @@ export default function EncuestasPage() {
       {/* Indicadores */}
       {!loading && (
         <div className="space-y-4 mb-6">
-          {/* Filtro de prioridad */}
+          {/* Filtro de prioridad y boton actualizar */}
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-700">Indicadores de Personas</h3>
-            <select
-              value={prioridadFilter}
-              onChange={(e) => setPrioridadFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            >
-              <option value="todos">Todas las prioridades</option>
-              <option value="0">Sin prioridad</option>
-              <option value="1">Prioridad 1</option>
-              <option value="2">Prioridad 2</option>
-              <option value="3">Prioridad 3</option>
-            </select>
+            <div className="flex items-center space-x-3">
+              <select
+                value={prioridadFilter}
+                onChange={(e) => setPrioridadFilter(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              >
+                <option value="todos">Todas las prioridades</option>
+                <option value="0">Sin prioridad</option>
+                <option value="1">Prioridad 1</option>
+                <option value="2">Prioridad 2</option>
+                <option value="3">Prioridad 3</option>
+              </select>
+              <button
+                onClick={() => fetchStats(prioridadFilter)}
+                disabled={loading}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-1 disabled:opacity-50"
+              >
+                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Actualizar</span>
+              </button>
+            </div>
           </div>
 
           {/* Stats Personas */}
