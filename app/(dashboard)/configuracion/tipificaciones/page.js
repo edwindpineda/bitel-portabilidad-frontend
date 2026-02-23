@@ -1,82 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
-
-const COLORES_PREDEFINIDOS = [
-  { nombre: 'Rojo', valor: '#EF4444' },
-  { nombre: 'Naranja', valor: '#F97316' },
-  { nombre: 'Amarillo', valor: '#EAB308' },
-  { nombre: 'Verde', valor: '#22C55E' },
-  { nombre: 'Azul', valor: '#3B82F6' },
-  { nombre: 'Indigo', valor: '#6366F1' },
-  { nombre: 'Purpura', valor: '#A855F7' },
-  { nombre: 'Rosa', valor: '#EC4899' },
-  { nombre: 'Gris', valor: '#6B7280' },
-];
 
 export default function TipificacionesPage() {
   const [tipificaciones, setTipificaciones] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingTipificacion, setEditingTipificacion] = useState(null);
-  const [draggedItem, setDraggedItem] = useState(null);
-  const [dragOverItem, setDragOverItem] = useState(null);
-  const [savingOrder, setSavingOrder] = useState(false);
-  const [isAsesor, setIsAsesor] = useState(false);
-  const [isBot, setIsBot] = useState(false);
-  const [nivelesSeleccionados, setNivelesSeleccionados] = useState([]);
-  const [formData, setFormData] = useState({
-    nombre: '',
-    definicion: '',
-    orden: 0,
-    color: '#3B82F6',
-    flag_asesor: isAsesor,
-    flag_bot: isBot,
-    id_padre: null
-  });
-
-  // Obtener tipificaciones padre (las que no tienen padre)
-  const tipificacionesPadre = tipificaciones.filter(t => !t.id_padre);
-
-  // Obtener hijos de un padre específico
-  const getHijosDePadre = (idPadre) => {
-    return tipificaciones.filter(t => t.id_padre === idPadre);
-  };
-
-  // Construir los niveles de dropdowns basados en la selección
-  const construirNiveles = () => {
-    const niveles = [{ opciones: tipificacionesPadre, seleccionado: nivelesSeleccionados[0] || null }];
-
-    for (let i = 0; i < nivelesSeleccionados.length; i++) {
-      const hijos = getHijosDePadre(nivelesSeleccionados[i]);
-      if (hijos.length > 0) {
-        niveles.push({ opciones: hijos, seleccionado: nivelesSeleccionados[i + 1] || null });
-      } else {
-        break;
-      }
-    }
-    return niveles;
-  };
-
-  const nivelesDropdown = construirNiveles();
-
-  // Manejar cambio de nivel
-  const handleNivelChange = (nivelIndex, value) => {
-    const nuevoValor = value ? parseInt(value) : null;
-    const nuevosNiveles = nivelesSeleccionados.slice(0, nivelIndex);
-
-    if (nuevoValor) {
-      nuevosNiveles.push(nuevoValor);
-    }
-
-    setNivelesSeleccionados(nuevosNiveles);
-
-    // El id_padre es el último nivel seleccionado
-    const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
-    setFormData(prev => ({ ...prev, id_padre: ultimoNivel }));
-  };
+  const [search, setSearch] = useState('');
+  const [expandedRow, setExpandedRow] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -94,170 +26,45 @@ export default function TipificacionesPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      console.log(`Asesor: ${isAsesor}, Bot: ${isBot}`);
-      console.log(formData);
-      if (editingTipificacion) {
-        await apiClient.put(`/crm/tipificaciones/${editingTipificacion.id}`, {...formData, flag_asesor: isAsesor, flag_bot: isBot});
-      } else {
-        // Asignar el siguiente orden disponible
-        const maxOrden = tipificaciones.length > 0
-          ? Math.max(...tipificaciones.map(t => t.orden || 0))
-          : -1;
-        await apiClient.post('/crm/tipificaciones', { ...formData, orden: maxOrden + 1, flag_asesor: isAsesor, flag_bot: isBot });
-      }
-      setIsAsesor(false);
-      setIsBot(false);
-      setShowModal(false);
-      setEditingTipificacion(null);
-      resetForm();
-      loadData();
-    } catch (error) {
-      console.error('Error al guardar tipificacion:', error);
-      alert(error.msg || 'Error al guardar tipificacion');
-    }
-  };
-
-  const handleEdit = (tipificacion) => {
-    setEditingTipificacion(tipificacion);
-    setIsAsesor(tipificacion.flag_asesor || false);
-    setIsBot(tipificacion.flag_bot || false);
-
-    // Construir la cadena de niveles desde el id_padre hacia arriba
-    const niveles = [];
-    if (tipificacion.id_padre) {
-      let currentId = tipificacion.id_padre;
-      while (currentId) {
-        niveles.unshift(currentId);
-        const current = tipificaciones.find(t => t.id === currentId);
-        currentId = current?.id_padre || null;
-      }
-    }
-    setNivelesSeleccionados(niveles);
-
-    setFormData({
-      nombre: tipificacion.nombre || '',
-      definicion: tipificacion.definicion || '',
-      orden: tipificacion.orden || 0,
-      color: tipificacion.color || '#3B82F6',
-      flag_asesor: tipificacion.flag_asesor || false,
-      flag_bot: tipificacion.flag_bot || false,
-      id_padre: tipificacion.id_padre || null
-    });
-    setShowModal(true);
-  };
-
   const handleDelete = async (id) => {
-    if (confirm('Esta seguro de eliminar esta tipificacion?')) {
+    if (confirm('¿Está seguro de eliminar esta tipificación?')) {
       try {
         await apiClient.delete(`/crm/tipificaciones/${id}`);
         loadData();
       } catch (error) {
-        console.error('Error al eliminar tipificacion:', error);
-        alert('No se puede eliminar la tipificacion porque esta en uso');
+        console.error('Error al eliminar tipificación:', error);
+        alert('No se puede eliminar la tipificación porque está en uso');
       }
     }
   };
 
-  const handleCheckboxChange = (e) => {
-    if (e.target.id === "asesor") {
-      setIsAsesor(e.target.checked);
-    } else if (e.target.id === "bot") {
-      setIsBot(e.target.checked);
-    }
-  }
+  const filteredTipificaciones = tipificaciones.filter(t => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (t.nombre || '').toLowerCase().includes(s) ||
+      (t.tipo || '').toLowerCase().includes(s) ||
+      (t.prospecto?.nombre_completo || '').toLowerCase().includes(s) ||
+      (t.proyecto?.nombre || '').toLowerCase().includes(s) ||
+      (t.resumen || '').toLowerCase().includes(s)
+    );
+  });
 
-  const resetForm = () => {
-    setFormData({
-      nombre: '',
-      definicion: '',
-      orden: 0,
-      color: '#3B82F6',
-      id_padre: null
-    });
-    setNivelesSeleccionados([]);
-  };
-
-  const openNewModal = () => {
-    setEditingTipificacion(null);
-    resetForm();
-    setShowModal(true);
-  };
-
-  // Drag and Drop handlers
-  const handleDragStart = (e, index) => {
-    setDraggedItem(index);
-    e.dataTransfer.effectAllowed = 'move';
-    e.target.style.opacity = '0.5';
-  };
-
-  const handleDragEnd = (e) => {
-    e.target.style.opacity = '1';
-    setDraggedItem(null);
-    setDragOverItem(null);
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedItem === null) return;
-    if (index !== dragOverItem) {
-      setDragOverItem(index);
-    }
-  };
-
-  const handleDrop = async (e, dropIndex) => {
-    e.preventDefault();
-    if (draggedItem === null || draggedItem === dropIndex) {
-      setDraggedItem(null);
-      setDragOverItem(null);
-      return;
-    }
-
-    // Reordenar localmente
-    const newTipificaciones = [...tipificaciones];
-    const draggedItemData = newTipificaciones[draggedItem];
-    newTipificaciones.splice(draggedItem, 1);
-    newTipificaciones.splice(dropIndex, 0, draggedItemData);
-
-    // Actualizar orden en el estado local
-    const updatedTipificaciones = newTipificaciones.map((item, index) => ({
-      ...item,
-      orden: index
-    }));
-
-    setTipificaciones(updatedTipificaciones);
-    setDraggedItem(null);
-    setDragOverItem(null);
-
-    // Guardar nuevo orden en el backend
-    await saveNewOrder(updatedTipificaciones);
-  };
-
-  const saveNewOrder = async (items) => {
-    setSavingOrder(true);
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
     try {
-      // Actualizar cada tipificacion con su nuevo orden
-      const promises = items.map((item, index) =>
-        apiClient.put(`/crm/tipificaciones/${item.id}`, {
-          nombre: item.nombre,
-          definicion: item.definicion,
-          orden: index,
-          color: item.color,
-          flag_asesor: item.flag_asesor,
-          flag_bot: item.flag_bot,
-          id_padre: item.id_padre
-        })
-      );
-      await Promise.all(promises);
-    } catch (error) {
-      console.error('Error al guardar orden:', error);
-      // Recargar datos si hay error
-      loadData();
-    } finally {
-      setSavingOrder(false);
+      return new Date(dateStr).toLocaleString('es-PE', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    } catch {
+      return dateStr;
     }
+  };
+
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined || value === 0) return '-';
+    return `S/ ${Number(value).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
   };
 
   if (loading) {
@@ -269,323 +76,144 @@ export default function TipificacionesPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <Link href="/configuracion" className="hover:text-primary-600">Configuracion</Link>
+            <Link href="/configuracion" className="hover:text-primary-600">Configuración</Link>
             <span>/</span>
             <span className="text-gray-900">Tipificaciones</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Tipificaciones</h1>
-          <p className="text-gray-600 mt-1">Arrastra para cambiar el orden de las tipificaciones</p>
+          <p className="text-gray-600 mt-1">Gestiona las tipificaciones del sistema.</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Link
-            href="/configuracion/tipificaciones/arbol"
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center space-x-2 border border-gray-300"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            <span>Vista Arbol</span>
-          </Link>
-          <button
-            onClick={openNewModal}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center space-x-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Nueva Tipificacion</span>
-          </button>
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          {filteredTipificaciones.length} {filteredTipificaciones.length === 1 ? 'tipificación' : 'tipificaciones'}
         </div>
       </div>
 
-      {savingOrder && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg flex items-center space-x-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          <span className="text-sm">Guardando orden...</span>
+      {/* Search */}
+      <div className="flex items-center space-x-3">
+        <div className="relative flex-1 max-w-md">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar por nombre, tipo, prospecto, proyecto..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+          />
         </div>
-      )}
+      </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-          <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 uppercase">
-            <div className="col-span-1 text-center">#</div>
-            <div className="col-span-2">Nombre</div>
-            <div className="col-span-2">Padre</div>
-            <div className="col-span-2">Definicion</div>
-            <div className="col-span-1 text-center">Color</div>
-            <div className="col-span-1 text-center">Asesor</div>
-            <div className="col-span-1 text-center">Bot</div>
-            <div className="col-span-2 text-center">Acciones</div>
-          </div>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          {tipificaciones.map((tipificacion, index) => (
-            <div
-              key={tipificacion.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragEnd={handleDragEnd}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDrop={(e) => handleDrop(e, index)}
-              className={`grid grid-cols-12 gap-4 px-4 py-6 items-center transition-all cursor-move hover:bg-gray-50 ${
-                dragOverItem === index ? 'bg-primary-50 border-t-2 border-primary-500' : ''
-              } ${draggedItem === index ? 'opacity-50' : ''}`}
-            >
-              {/* Drag Handle */}
-              {/* <div className="flex items-center justify-center space-x-1">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                </svg>
-              </div> */}
-
-              {/* Orden */}
-              <div className="col-span-1">
-                <p className="text-sm font-medium text-gray-500 text-center">{index + 1}</p>
-              </div>
-
-              {/* Nombre */}
-              <div className="col-span-2 flex items-center space-x-2 gap-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: tipificacion.color || '#3B82F6' }}
-                >
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-medium text-gray-900 truncate">{tipificacion.nombre}</span>
-              </div>
-
-              {/* Padre */}
-              <div className="col-span-2">
-                <p className="text-sm text-gray-600 truncate">
-                  {tipificacion.id_padre
-                    ? tipificaciones.find(t => t.id === tipificacion.id_padre)?.nombre || '-'
-                    : <span className="text-gray-400 italic">Principal</span>
-                  }
-                </p>
-              </div>
-
-              {/* Definicion */}
-              <div className="col-span-2">
-                <p className="text-sm text-gray-600 truncate">
-                  {tipificacion.definicion || <span className="text-gray-400 italic">Sin definicion</span>}
-                </p>
-              </div>
-
-              {/* Color */}
-              <div className=" col-span-1 flex items-center justify-center">
-                <div
-                  className="w-6 h-6 rounded-full border border-gray-300"
-                  style={{ backgroundColor: tipificacion.color || '#3B82F6' }}
-                ></div>
-              </div>
-
-              {/* Flag Asesor */}
-              <div className="col-span-1 flex items-center justify-center">
-                {tipificacion.flag_asesor ? (
-                  <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                ) : (
-                  <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-
-              {/* Flag Bot */}
-              <div className="col-span-1 flex items-center justify-center">
-                {tipificacion.flag_bot ? (
-                  <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                ) : (
-                  <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-
-              {/* Acciones */}
-              <div className="col-span-2 flex items-center justify-center space-x-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleEdit(tipificacion); }}
-                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                  title="Editar"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(tipificacion.id); }}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Eliminar"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          ))}
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Prospecto</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Proyecto</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Teléfono</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Correo</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fecha Cita</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredTipificaciones.map((tip) => (
+                <>
+                  <tr
+                    key={tip.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setExpandedRow(expandedRow === tip.id ? null : tip.id)}
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{tip.nombre}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {tip.tipo || '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{tip.prospecto?.nombre_completo || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{tip.proyecto?.nombre || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{tip.telefono || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{tip.correo || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{formatDate(tip.fecha_hora_cita)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setExpandedRow(expandedRow === tip.id ? null : tip.id); }}
+                          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title="Ver detalle"
+                        >
+                          <svg className={`w-4 h-4 transition-transform ${expandedRow === tip.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(tip.id); }}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedRow === tip.id && (
+                    <tr key={`${tip.id}-detail`} className="bg-gray-50">
+                      <td colSpan={8} className="px-4 py-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500 font-medium">Habitaciones:</span>
+                            <p className="text-gray-900">{tip.num_habitaciones || 0}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Piso Referidos:</span>
+                            <p className="text-gray-900">{tip.piso_referidos || 0}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Precio Indicado:</span>
+                            <p className="text-gray-900">{formatCurrency(tip.precio_indicado)}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Descuento:</span>
+                            <p className="text-gray-900">{formatCurrency(tip.descuento)}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Cuota Crediticia:</span>
+                            <p className="text-gray-900">{formatCurrency(tip.cuota_crediticia)}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 font-medium">Score Crediticio:</span>
+                            <p className="text-gray-900">{tip.score_crediticio || 0}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-gray-500 font-medium">Resumen:</span>
+                            <p className="text-gray-900">{tip.resumen || '-'}</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {tipificaciones.length === 0 && (
+        {filteredTipificaciones.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No hay tipificaciones registradas
+            {search ? 'No se encontraron tipificaciones con ese criterio' : 'No hay tipificaciones registradas'}
           </div>
         )}
       </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingTipificacion ? 'Editar Tipificacion' : 'Nueva Tipificacion'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                <input
-                  type="text"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Definicion</label>
-                <textarea
-                  value={formData.definicion}
-                  onChange={(e) => setFormData({ ...formData, definicion: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  rows={3}
-                  placeholder="Descripcion o definicion del motivo..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jerarquia de Padre</label>
-                <div className="flex flex-wrap gap-2 items-center">
-                  {nivelesDropdown.map((nivel, index) => (
-                    <div key={index} className="flex items-center gap-1">
-                      {index > 0 && <span className="text-gray-400 text-lg">/</span>}
-                      <select
-                        value={nivel.seleccionado || ''}
-                        onChange={(e) => handleNivelChange(index, e.target.value)}
-                        className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 min-w-[120px]"
-                      >
-                        <option value="">{index === 0 ? 'Sin padre' : 'Seleccionar...'}</option>
-                        {nivel.opciones
-                          .filter(t => !editingTipificacion || t.id !== editingTipificacion.id)
-                          .map((t) => (
-                            <option key={t.id} value={t.id}>{t.nombre}</option>
-                          ))
-                        }
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                {formData.id_padre && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Padre seleccionado: {tipificaciones.find(t => t.id === formData.id_padre)?.nombre}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Habilitar para: </label>
-                <div className='flex flex-col gap-3 py-4'>
-                  <div className="inline-flex items-center">
-                    <label className="relative flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isAsesor}
-                        onChange={handleCheckboxChange}
-                        className="h-5 w-5 cursor-pointer rounded border border-slate-300 checked:bg-slate-800 checked:border-slate-800 transition-all"
-                        id="asesor"
-                      />
-                    </label>
-                    <label htmlFor="asesor" className="ml-2 text-slate-600 cursor-pointer text-sm">Asesor</label>
-                  </div>
-
-                  <div className="inline-flex items-center">
-                    <label className="relative flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isBot}
-                        onChange={handleCheckboxChange}
-                        className="h-5 w-5 cursor-pointer rounded border border-slate-300 checked:bg-slate-800 checked:border-slate-800 transition-all"
-                        id="bot"
-                      />
-                    </label>
-                    <label htmlFor="bot" className="ml-2 text-slate-600 cursor-pointer text-sm">Bot</label>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="#3B82F6"
-                  />
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {COLORES_PREDEFINIDOS.map((color) => (
-                    <button
-                      key={color.valor}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, color: color.valor })}
-                      className={`w-8 h-8 rounded-full border-2 ${formData.color === color.valor ? 'border-gray-900' : 'border-transparent'}`}
-                      style={{ backgroundColor: color.valor }}
-                      title={color.nombre}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  {editingTipificacion ? 'Actualizar' : 'Crear'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

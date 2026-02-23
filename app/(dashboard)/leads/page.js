@@ -4,8 +4,79 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import * as XLSX from 'xlsx';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Search,
+  Users,
+  UserCheck,
+  AlertCircle,
+  ClipboardList,
+  FileDown,
+  UserPlus,
+  X,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Eye,
+  Pencil,
+  Loader2,
+  Check,
+  ChevronRight as ChevronRightSmall,
+  Calendar,
+  Hash,
+  Phone,
+  MapPin,
+  User,
+  Tag,
+  Briefcase,
+  MessageSquare,
+  Clock,
+  ArrowUpDown,
+  MoreHorizontal,
+  RefreshCw,
+  Download,
+  UserCog,
+  XCircle,
+  CheckCircle2,
+  FileText,
+  Sparkles,
+  TrendingUp,
+  Filter,
+  Zap,
+  Activity,
+  Shield,
+  CloudDownload,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
-// Mapeo de nombres de colores a códigos hex
 const COLOR_MAP = {
   'rojo': '#EF4444',
   'naranja': '#F97316',
@@ -26,7 +97,6 @@ const getColorHex = (color) => {
   return COLOR_MAP[color.toLowerCase()] || '#6B7280';
 };
 
-// Rangos de fecha predefinidos
 const DATE_RANGES = [
   { label: 'Todos', value: 'all' },
   { label: 'Hoy', value: 'today' },
@@ -75,14 +145,10 @@ export default function LeadsPage() {
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Verificar si el usuario puede filtrar por asesor (rol 1 o 2)
   const canFilterByAsesor = session?.user?.id_rol === 1 || session?.user?.id_rol === 2;
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  // Cargar asesores para filtro cuando la session cambie
   useEffect(() => {
     const loadAsesoresFilter = async () => {
       if (canFilterByAsesor) {
@@ -119,69 +185,44 @@ export default function LeadsPage() {
     }
   };
 
-  // Obtener tipificaciones padre (las que no tienen padre) - solo flag_bot
   const tipificacionesPadreBot = tipificaciones.filter(t => !t.id_padre && t.flag_bot === 1);
-
-  // Obtener tipificaciones padre - solo flag_asesor
   const tipificacionesPadreAsesor = tipificaciones.filter(t => !t.id_padre && t.flag_asesor === 1);
+  const getHijosBot = (idPadre) => tipificaciones.filter(t => t.id_padre === idPadre && t.flag_bot === 1);
+  const getHijosAsesor = (idPadre) => tipificaciones.filter(t => t.id_padre === idPadre && t.flag_asesor === 1);
 
-  // Obtener hijos de un padre para bot
-  const getHijosBot = (idPadre) => {
-    return tipificaciones.filter(t => t.id_padre === idPadre && t.flag_bot === 1);
-  };
-
-  // Obtener hijos de un padre para asesor
-  const getHijosAsesor = (idPadre) => {
-    return tipificaciones.filter(t => t.id_padre === idPadre && t.flag_asesor === 1);
-  };
-
-  // Construir niveles para tipificacion bot
   const construirNivelesBot = () => {
     const niveles = [{ opciones: tipificacionesPadreBot, seleccionado: nivelesTipBot[0] || null }];
     for (let i = 0; i < nivelesTipBot.length; i++) {
       const hijos = getHijosBot(nivelesTipBot[i]);
-      if (hijos.length > 0) {
-        niveles.push({ opciones: hijos, seleccionado: nivelesTipBot[i + 1] || null });
-      } else {
-        break;
-      }
+      if (hijos.length > 0) niveles.push({ opciones: hijos, seleccionado: nivelesTipBot[i + 1] || null });
+      else break;
     }
     return niveles;
   };
 
-  // Construir niveles para tipificacion asesor
   const construirNivelesAsesor = () => {
     const niveles = [{ opciones: tipificacionesPadreAsesor, seleccionado: nivelesTipAsesor[0] || null }];
     for (let i = 0; i < nivelesTipAsesor.length; i++) {
       const hijos = getHijosAsesor(nivelesTipAsesor[i]);
-      if (hijos.length > 0) {
-        niveles.push({ opciones: hijos, seleccionado: nivelesTipAsesor[i + 1] || null });
-      } else {
-        break;
-      }
+      if (hijos.length > 0) niveles.push({ opciones: hijos, seleccionado: nivelesTipAsesor[i + 1] || null });
+      else break;
     }
     return niveles;
   };
 
-  // Manejar cambio de nivel para tipificacion bot
   const handleNivelBotChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesTipBot.slice(0, nivelIndex);
-    if (nuevoValor) {
-      nuevosNiveles.push(nuevoValor);
-    }
+    if (nuevoValor) nuevosNiveles.push(nuevoValor);
     setNivelesTipBot(nuevosNiveles);
     const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
     setSelectedTipificacion(ultimoNivel ? String(ultimoNivel) : '');
   };
 
-  // Manejar cambio de nivel para tipificacion asesor
   const handleNivelAsesorChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesTipAsesor.slice(0, nivelIndex);
-    if (nuevoValor) {
-      nuevosNiveles.push(nuevoValor);
-    }
+    if (nuevoValor) nuevosNiveles.push(nuevoValor);
     setNivelesTipAsesor(nuevosNiveles);
     const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
     setSelectedTipificacionAsesor(ultimoNivel ? String(ultimoNivel) : '');
@@ -222,15 +263,11 @@ export default function LeadsPage() {
   };
 
   const handleEditChange = (field, value) => {
-    setEditingLead(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setEditingLead(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSaveLead = async () => {
     if (!editingLead) return;
-
     try {
       setSavingLead(true);
       await apiClient.put(`/crm/leads/${editingLead.id}`, editingLead);
@@ -246,52 +283,28 @@ export default function LeadsPage() {
     }
   };
 
-  // Calcular fecha desde según el rango seleccionado
   const getDateRangeFilter = () => {
     const now = new Date();
     now.setHours(23, 59, 59, 999);
-
     let fromDate = null;
     let toDate = new Date(now);
-
     switch (dateRange) {
-      case 'today':
-        fromDate = new Date(now);
-        fromDate.setHours(0, 0, 0, 0);
-        break;
-      case '7d':
-        fromDate = new Date(now);
-        fromDate.setDate(fromDate.getDate() - 7);
-        break;
-      case '1m':
-        fromDate = new Date(now);
-        fromDate.setMonth(fromDate.getMonth() - 1);
-        break;
-      case '3m':
-        fromDate = new Date(now);
-        fromDate.setMonth(fromDate.getMonth() - 3);
-        break;
-      case '6m':
-        fromDate = new Date(now);
-        fromDate.setMonth(fromDate.getMonth() - 6);
-        break;
-      case '12m':
-        fromDate = new Date(now);
-        fromDate.setFullYear(fromDate.getFullYear() - 1);
-        break;
+      case 'today': fromDate = new Date(now); fromDate.setHours(0, 0, 0, 0); break;
+      case '7d': fromDate = new Date(now); fromDate.setDate(fromDate.getDate() - 7); break;
+      case '1m': fromDate = new Date(now); fromDate.setMonth(fromDate.getMonth() - 1); break;
+      case '3m': fromDate = new Date(now); fromDate.setMonth(fromDate.getMonth() - 3); break;
+      case '6m': fromDate = new Date(now); fromDate.setMonth(fromDate.getMonth() - 6); break;
+      case '12m': fromDate = new Date(now); fromDate.setFullYear(fromDate.getFullYear() - 1); break;
       case 'custom':
         if (dateFrom) fromDate = new Date(dateFrom + 'T00:00:00');
         if (dateTo) toDate = new Date(dateTo + 'T23:59:59');
         break;
-      default:
-        return { fromDate: null, toDate: null };
+      default: return { fromDate: null, toDate: null };
     }
-
     return { fromDate, toDate };
   };
 
   const filteredLeads = leads.filter(lead => {
-    // Filtro de búsqueda
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm || (
       (lead.nombre_completo && lead.nombre_completo.toLowerCase().includes(searchLower)) ||
@@ -299,86 +312,49 @@ export default function LeadsPage() {
       (lead.dni && lead.dni.includes(searchTerm)) ||
       (lead.contacto_celular && lead.contacto_celular.includes(searchTerm))
     );
-
-    // Filtro de fecha
     const { fromDate, toDate } = getDateRangeFilter();
     let matchesDate = true;
-
     if (fromDate || toDate) {
       const leadDate = new Date(lead.created_at);
       if (fromDate && leadDate < fromDate) matchesDate = false;
       if (toDate && leadDate > toDate) matchesDate = false;
     }
-
-    // Filtro de estado
     const matchesEstado = !selectedEstado || lead.id_estado === parseInt(selectedEstado);
-
-    // Filtro de tipificación
     const matchesTipificacion = !selectedTipificacion || lead.id_tipificacion === parseInt(selectedTipificacion);
-
-    // Filtro de tipificación asesor
     const matchesTipificacionAsesor = !selectedTipificacionAsesor || lead.id_tipificacion_asesor === parseInt(selectedTipificacionAsesor);
-
-    // Filtro de asesor
     const matchesAsesor = !selectedAsesorFilter || lead.id_asesor === parseInt(selectedAsesorFilter);
-
     return matchesSearch && matchesDate && matchesEstado && matchesTipificacion && matchesTipificacionAsesor && matchesAsesor;
   });
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
 
   const handleDateRangeChange = (value) => {
     setDateRange(value);
-    if (value !== 'custom') {
-      setDateFrom('');
-      setDateTo('');
-    }
+    if (value !== 'custom') { setDateFrom(''); setDateTo(''); }
   };
 
   const clearFilters = () => {
-    setSearchTerm('');
-    setDateRange('all');
-    setDateFrom('');
-    setDateTo('');
-    setSelectedEstado('');
-    setSelectedTipificacion('');
-    setSelectedTipificacionAsesor('');
-    setNivelesTipBot([]);
-    setNivelesTipAsesor([]);
-    setSelectedAsesorFilter('');
-    setCurrentPage(1);
+    setSearchTerm(''); setDateRange('all'); setDateFrom(''); setDateTo('');
+    setSelectedEstado(''); setSelectedTipificacion(''); setSelectedTipificacionAsesor('');
+    setNivelesTipBot([]); setNivelesTipAsesor([]); setSelectedAsesorFilter(''); setCurrentPage(1);
   };
 
   const toggleSelectionMode = () => {
-    if (selectionMode) {
-      setSelectedLeads([]);
-    }
+    if (selectionMode) setSelectedLeads([]);
     setSelectionMode(!selectionMode);
   };
 
   const toggleLeadSelection = (leadId) => {
-    setSelectedLeads(prev =>
-      prev.includes(leadId)
-        ? prev.filter(id => id !== leadId)
-        : [...prev, leadId]
-    );
+    setSelectedLeads(prev => prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]);
   };
 
   const toggleSelectAll = () => {
-    if (selectedLeads.length === paginatedLeads.length) {
-      setSelectedLeads([]);
-    } else {
-      setSelectedLeads(paginatedLeads.map(lead => lead.id));
-    }
+    setSelectedLeads(selectedLeads.length === paginatedLeads.length ? [] : paginatedLeads.map(lead => lead.id));
   };
 
   const handleOpenAsesorModal = async () => {
@@ -395,14 +371,9 @@ export default function LeadsPage() {
 
   const handleAssignAsesor = async (asesorId) => {
     if (selectedLeads.length === 0) return;
-
     try {
       setAssigningAsesor(true);
-      await apiClient.post('/crm/leads/bulk-assign', {
-        lead_ids: selectedLeads,
-        id_asesor: asesorId
-      });
-
+      await apiClient.post('/crm/leads/bulk-assign', { lead_ids: selectedLeads, id_asesor: asesorId });
       alert(`${selectedLeads.length} leads asignados correctamente`);
       setShowAsesorModal(false);
       setSelectedLeads([]);
@@ -416,546 +387,694 @@ export default function LeadsPage() {
     }
   };
 
-  // Resetear página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, dateRange, dateFrom, dateTo, selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter]);
+  useEffect(() => { setCurrentPage(1); },
+    [searchTerm, dateRange, dateFrom, dateTo, selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter]);
 
   const hasActiveFilters = searchTerm || dateRange !== 'all' || selectedEstado || selectedTipificacion || selectedTipificacionAsesor || selectedAsesorFilter;
+  const activeFilterCount = [dateRange !== 'all', selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter].filter(Boolean).length;
 
   const handleExportExcel = () => {
     const dataToExport = filteredLeads.map(lead => ({
-      'ID': lead.id,
-      'Nombre': lead.nombre_completo || '',
-      'DNI': lead.dni || '',
-      'Celular': lead.celular || lead.contacto_celular || '',
-      'Direccion': lead.direccion || '',
-      'Estado': lead.estado_nombre || '',
-      'Proveedor': lead.proveedor_nombre || '',
-      'Plan': lead.plan_nombre || '',
-      'Tipificacion': lead.tipificacion_nombre || '',
+      'ID': lead.id, 'Nombre': lead.nombre_completo || '', 'DNI': lead.dni || '',
+      'Celular': lead.celular || lead.contacto_celular || '', 'Direccion': lead.direccion || '',
+      'Estado': lead.estado_nombre || '', 'Proveedor': lead.proveedor_nombre || '',
+      'Plan': lead.plan_nombre || '', 'Tipificacion': lead.tipificacion_nombre || '',
       'Asesor': lead.asesor_nombre || '',
-      'Fecha Registro': lead.created_at ? new Date(lead.created_at).toLocaleDateString('es-PE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }) : ''
+      'Fecha Registro': lead.created_at ? new Date(lead.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
     }));
-
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-
-    const colWidths = [
-      { wch: 6 },   // ID
-      { wch: 30 },  // Nombre
-      { wch: 12 },  // DNI
-      { wch: 15 },  // Celular
-      { wch: 40 },  // Direccion
-      { wch: 15 },  // Estado
-      { wch: 15 },  // Proveedor
-      { wch: 20 },  // Plan
-      { wch: 20 },  // Tipificacion
-      { wch: 20 },  // Asesor
-      { wch: 20 },  // Fecha Registro
-    ];
-    ws['!cols'] = colWidths;
-
-    const fileName = hasActiveFilters
-      ? `leads_filtrados_${new Date().toISOString().slice(0, 10)}.xlsx`
-      : `leads_todos_${new Date().toISOString().slice(0, 10)}.xlsx`;
-
-    XLSX.writeFile(wb, fileName);
+    ws['!cols'] = [{ wch: 6 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+    XLSX.writeFile(wb, hasActiveFilters ? `leads_filtrados_${new Date().toISOString().slice(0, 10)}.xlsx` : `leads_todos_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  // Calcular paginación
   const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+  const goToPage = (page) => setCurrentPage(Math.max(1, Math.min(page, totalPages)));
 
-  const goToPage = (page) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  const statsData = {
+    total: filteredLeads.length,
+    completos: filteredLeads.filter(l => l.nombre_completo && l.dni).length,
+    sinDatos: filteredLeads.filter(l => !l.nombre_completo).length,
+    conPlan: filteredLeads.filter(l => l.id_plan).length,
   };
+
+  const stats = [
+    {
+      key: 'total', label: 'Total Leads', value: statsData.total,
+      icon: Users, gradient: 'from-indigo-600 via-indigo-500 to-blue-500',
+      glow: 'rgba(99, 102, 241, 0.35)', iconBg: 'from-indigo-500 to-blue-500',
+      ring: 'ring-indigo-500/20', change: '+12%',
+    },
+    {
+      key: 'completos', label: 'Datos Completos', value: statsData.completos,
+      icon: CheckCircle2, gradient: 'from-emerald-600 via-emerald-500 to-teal-500',
+      glow: 'rgba(16, 185, 129, 0.35)', iconBg: 'from-emerald-500 to-teal-500',
+      ring: 'ring-emerald-500/20', change: `${statsData.total ? Math.round((statsData.completos / statsData.total) * 100) : 0}%`,
+    },
+    {
+      key: 'sinDatos', label: 'Sin Datos', value: statsData.sinDatos,
+      icon: AlertCircle, gradient: 'from-amber-600 via-amber-500 to-orange-500',
+      glow: 'rgba(245, 158, 11, 0.35)', iconBg: 'from-amber-500 to-orange-500',
+      ring: 'ring-amber-500/20', change: 'Pendientes',
+    },
+    {
+      key: 'conPlan', label: 'Con Plan', value: statsData.conPlan,
+      icon: Zap, gradient: 'from-violet-600 via-violet-500 to-purple-500',
+      glow: 'rgba(139, 92, 246, 0.35)', iconBg: 'from-violet-500 to-purple-500',
+      ring: 'ring-violet-500/20', change: `${statsData.total ? Math.round((statsData.conPlan / statsData.total) * 100) : 0}%`,
+    },
+  ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-indigo-500/25 animate-float">
+            <Users className="h-8 w-8 text-white" />
+          </div>
+          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center">
+            <Loader2 className="h-3 w-3 text-white animate-spin" />
+          </div>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium">Cargando leads</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Preparando tu pipeline...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-          <p className="text-gray-600 mt-1">Gestiona los prospectos del sistema</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          {selectionMode && selectedLeads.length > 0 ? (
-            <button
-              onClick={handleOpenAsesorModal}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+    <div className="space-y-6 animate-fade-in">
+      {/* ========== HERO HEADER ========== */}
+      <div
+        className="relative overflow-hidden rounded-2xl p-6 animate-scale-in"
+        style={{
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #3730a3 100%)',
+        }}
+      >
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-cyan-400/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-indigo-400/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/3" />
+        <div className="absolute top-6 right-20 w-2 h-2 rounded-full bg-cyan-400/60 animate-float" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute top-16 right-40 w-1.5 h-1.5 rounded-full bg-indigo-300/40 animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-8 right-32 w-1 h-1 rounded-full bg-cyan-300/50 animate-float" style={{ animationDelay: '1.5s' }} />
+
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div
+              className="h-14 w-14 rounded-2xl flex items-center justify-center shadow-2xl"
+              style={{
+                background: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
+                boxShadow: '0 8px 32px -4px rgba(6, 182, 212, 0.4)',
+              }}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Aceptar asignacion ({selectedLeads.length})</span>
-            </button>
-          ) : (
-            <button
-              onClick={toggleSelectionMode}
-              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-                selectionMode
-                  ? 'bg-gray-500 text-white hover:bg-gray-600'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              <Users className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Pipeline de Leads</h1>
+              <p className="text-indigo-200/70 text-sm mt-0.5">
+                {leads.length.toLocaleString()} prospectos en tu sistema
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadData}
+              className="gap-2 h-9 text-indigo-200 hover:text-white hover:bg-white/10 border border-white/10"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span>{selectionMode ? 'Cancelar' : 'Asignar Asesor'}</span>
-            </button>
-          )}
-          <button
-            onClick={handleExportExcel}
-            disabled={filteredLeads.length === 0}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span>Exportar Excel</span>
-          </button>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Actualizar
+            </Button>
+            {selectionMode && selectedLeads.length > 0 ? (
+              <Button
+                size="sm"
+                onClick={handleOpenAsesorModal}
+                className="gap-2 h-9 bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg shadow-cyan-500/30"
+              >
+                <Check className="h-3.5 w-3.5" />
+                Asignar ({selectedLeads.length})
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={toggleSelectionMode}
+                className={`gap-2 h-9 ${selectionMode
+                  ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                  : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                }`}
+              >
+                <UserCog className="h-3.5 w-3.5" />
+                {selectionMode ? 'Cancelar' : 'Asignar Asesor'}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleExportExcel}
+              disabled={filteredLeads.length === 0}
+              className="gap-2 h-9 bg-emerald-500/90 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Excel
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        {/* Fila principal: Búsqueda + Botón Filtros */}
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Búsqueda */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
+      {/* ========== STATS CARDS ========== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <Card
+              key={stat.key}
+              className="relative overflow-hidden group hover:shadow-xl transition-all duration-500 animate-scale-in cursor-default"
+              style={{ animationDelay: `${(i + 1) * 100}ms` }}
+            >
+              {/* Gradient top bar */}
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
+              {/* Glow effect on hover */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle at 30% 50%, ${stat.glow}, transparent 70%)`,
+                }}
+              />
+              <CardContent className="p-5 relative z-10">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                    <p className="text-3xl font-bold tracking-tight animate-count-up" style={{ animationDelay: `${(i + 1) * 150}ms` }}>
+                      {stat.value.toLocaleString()}
+                    </p>
+                    <Badge variant="secondary" className="text-[10px] font-semibold gap-1 px-2 py-0.5">
+                      <TrendingUp className="h-2.5 w-2.5" />
+                      {stat.change}
+                    </Badge>
+                  </div>
+                  <div
+                    className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${stat.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                    style={{ boxShadow: `0 8px 24px -4px ${stat.glow}` }}
+                  >
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* ========== SEARCH & FILTERS BAR ========== */}
+      <Card className="overflow-hidden animate-scale-in" style={{ animationDelay: '500ms' }}>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            {/* Search - Premium glass style */}
+            <div className="relative flex-1 max-w-md group">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
+                <Search className="h-3 w-3 text-indigo-500 group-focus-within:text-cyan-500 transition-colors" />
+              </div>
               <input
                 type="text"
-                placeholder="Buscar por nombre, celular o DNI..."
+                placeholder="Buscar nombre, celular, DNI..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
               />
-              <svg className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors">
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
+              )}
             </div>
+
+            {/* Date range - Segmented control style */}
+            <div className="hidden lg:flex items-center bg-muted/60 p-1 rounded-xl">
+              {DATE_RANGES.filter(r => r.value !== 'custom').slice(0, 5).map((range) => (
+                <button
+                  key={range.value}
+                  onClick={() => handleDateRangeChange(range.value)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                    dateRange === range.value
+                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                    ['6m', '12m', 'custom'].includes(dateRange)
+                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}>
+                    Mas...
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {DATE_RANGES.filter(r => !['all', 'today', '7d', '1m', '3m'].includes(r.value)).map((range) => (
+                    <DropdownMenuItem key={range.value} onClick={() => handleDateRangeChange(range.value)}>
+                      {range.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Filter toggle - Premium */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`gap-2 h-10 rounded-xl px-4 transition-all duration-300 ${
+                showFilters
+                  ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-indigo-500 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25'
+                  : hasActiveFilters
+                    ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    : ''
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filtros
+              {activeFilterCount > 0 && (
+                <span className={`h-5 min-w-[20px] flex items-center justify-center text-[10px] font-bold px-1.5 rounded-full ${
+                  showFilters ? 'bg-white/25 text-white' : 'bg-indigo-500 text-white'
+                }`}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-10 gap-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Limpiar
+              </Button>
+            )}
           </div>
 
-          {/* Botón Filtros */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-              hasActiveFilters
-                ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span>Filtros</span>
-            {hasActiveFilters && (
-              <span className="px-2 py-0.5 bg-primary-600 text-white text-xs rounded-full">
-                {[dateRange !== 'all', selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter].filter(Boolean).length}
-              </span>
-            )}
-            <svg
-              className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Botón limpiar - visible solo si hay filtros activos */}
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="px-3 py-2 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 flex items-center gap-1 text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              <span>Limpiar</span>
-            </button>
+          {/* Custom dates */}
+          {dateRange === 'custom' && (
+            <div className="flex items-center gap-3 px-1 py-2 rounded-xl bg-muted/30">
+              <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+              </div>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                className="h-9 px-3 text-xs rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+              <span className="text-xs text-muted-foreground font-medium">hasta</span>
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                className="h-9 px-3 text-xs rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+            </div>
           )}
-        </div>
 
-        {/* Panel de Filtros Desplegable */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
-            {/* Fila 1: Filtros basicos */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {/* Rango de fecha */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Periodo</label>
-                <select
-                  value={dateRange}
-                  onChange={(e) => handleDateRangeChange(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                >
-                  {DATE_RANGES.map((range) => (
-                    <option key={range.value} value={range.value}>
-                      {range.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Filtro de Estado */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
-                <select
-                  value={selectedEstado}
-                  onChange={(e) => setSelectedEstado(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Todos</option>
-                  {estados.map((estado) => (
-                    <option key={estado.id} value={estado.id}>
-                      {estado.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Filtro de Asesor - Solo para rol 1 y 2 */}
-              {canFilterByAsesor && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Asesor</label>
-                  <select
-                    value={selectedAsesorFilter}
-                    onChange={(e) => setSelectedAsesorFilter(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="">Todos</option>
-                    {asesoresFilter.map((asesor) => (
-                      <option key={asesor.id} value={asesor.id}>
-                        {asesor.username}
-                      </option>
-                    ))}
+          {/* Expandable filters */}
+          {showFilters && (
+            <div className="space-y-4 pt-2 animate-slide-up">
+              <Separator />
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                    Estado
+                  </label>
+                  <select value={selectedEstado} onChange={(e) => setSelectedEstado(e.target.value)}
+                    className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                    <option value="">Todos los estados</option>
+                    {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                   </select>
                 </div>
-              )}
-
-              {/* Fechas personalizadas */}
-              {dateRange === 'custom' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Desde</label>
-                    <input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Hasta</label>
-                    <input
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Fila 2: Tipificacion Bot */}
-            <div className="bg-gray-50 rounded-lg p-3">
-              <label className="block text-xs font-medium text-gray-700 mb-2">Tipificacion Bot</label>
-              <div className="flex flex-wrap gap-2 items-center">
-                {nivelesDropdownBot.map((nivel, index) => (
-                  <div key={index} className="flex items-center gap-1">
-                    {index > 0 && <span className="text-gray-400 text-lg font-bold">&gt;</span>}
-                    <select
-                      value={nivel.seleccionado || ''}
-                      onChange={(e) => handleNivelBotChange(index, e.target.value)}
-                      className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white"
-                    >
-                      <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
-                      {nivel.opciones.map((t) => (
-                        <option key={t.id} value={t.id}>{t.nombre}</option>
-                      ))}
+                {canFilterByAsesor && (
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                      Asesor
+                    </label>
+                    <select value={selectedAsesorFilter} onChange={(e) => setSelectedAsesorFilter(e.target.value)}
+                      className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      <option value="">Todos los asesores</option>
+                      {asesoresFilter.map((a) => <option key={a.id} value={a.id}>{a.username}</option>)}
                     </select>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Fila 3: Tipificacion Asesor */}
-            <div className="bg-gray-50 rounded-lg p-3">
-              <label className="block text-xs font-medium text-gray-700 mb-2">Tipificacion Asesor</label>
-              <div className="flex flex-wrap gap-2 items-center">
-                {nivelesDropdownAsesor.map((nivel, index) => (
-                  <div key={index} className="flex items-center gap-1">
-                    {index > 0 && <span className="text-gray-400 text-lg font-bold">&gt;</span>}
-                    <select
-                      value={nivel.seleccionado || ''}
-                      onChange={(e) => handleNivelAsesorChange(index, e.target.value)}
-                      className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white"
-                    >
-                      <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
-                      {nivel.opciones.map((t) => (
-                        <option key={t.id} value={t.id}>{t.nombre}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Indicador de filtros activos */}
-        {hasActiveFilters && (
-          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center text-sm text-gray-600">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <span>
-              Mostrando {filteredLeads.length} de {leads.length} leads
-              {dateRange !== 'all' && dateRange !== 'custom' && ` (${DATE_RANGES.find(r => r.value === dateRange)?.label})`}
-              {dateRange === 'custom' && dateFrom && dateTo && ` (${dateFrom} - ${dateTo})`}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Total Leads</p>
-          <p className="text-2xl font-bold text-gray-900">{filteredLeads.length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Con datos completos</p>
-          <p className="text-2xl font-bold text-green-600">
-            {filteredLeads.filter(l => l.nombre_completo && l.dni).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Sin datos</p>
-          <p className="text-2xl font-bold text-yellow-600">
-            {filteredLeads.filter(l => !l.nombre_completo).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Con plan asignado</p>
-          <p className="text-2xl font-bold text-blue-600">
-            {filteredLeads.filter(l => l.id_plan).length}
-          </p>
-        </div>
-      </div>
-
-      {/* Tabla de leads */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {selectionMode && (
-                  <th className="px-4 py-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={paginatedLeads.length > 0 && selectedLeads.length === paginatedLeads.length}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                    />
-                  </th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Celular</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipificacion</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipificación Asesor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asesor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+                {/* Mobile date range */}
+                <div className="lg:hidden space-y-1.5">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                    Periodo
+                  </label>
+                  <select value={dateRange} onChange={(e) => handleDateRangeChange(e.target.value)}
+                    className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                    {DATE_RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Tipificaciones */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/50 to-blue-50/50 border border-indigo-100/50">
+                  <label className="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3" />
+                    Tipificacion Bot
+                  </label>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {nivelesDropdownBot.map((nivel, index) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        {index > 0 && <ChevronRightSmall className="h-3.5 w-3.5 text-indigo-300" />}
+                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelBotChange(index, e.target.value)}
+                          className="h-8 px-2.5 text-xs rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border border-indigo-200/50">
+                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
+                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-50/50 to-purple-50/50 border border-violet-100/50">
+                  <label className="text-[11px] font-semibold text-violet-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <Shield className="h-3 w-3" />
+                    Tipificacion Asesor
+                  </label>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {nivelesDropdownAsesor.map((nivel, index) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        {index > 0 && <ChevronRightSmall className="h-3.5 w-3.5 text-violet-300" />}
+                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelAsesorChange(index, e.target.value)}
+                          className="h-8 px-2.5 text-xs rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-violet-500/20 border border-violet-200/50">
+                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
+                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active filters summary */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 pt-1">
+              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center">
+                <Activity className="h-3 w-3 text-indigo-500" />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Mostrando <span className="font-semibold text-foreground">{filteredLeads.length}</span> de <span className="font-semibold text-foreground">{leads.length}</span> leads
+              </span>
+              {dateRange !== 'all' && dateRange !== 'custom' && (
+                <Badge className="text-[10px] h-5 px-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-0">
+                  {DATE_RANGES.find(r => r.value === dateRange)?.label}
+                </Badge>
+              )}
+              {dateRange === 'custom' && dateFrom && dateTo && (
+                <Badge className="text-[10px] h-5 px-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-0">
+                  {dateFrom} - {dateTo}
+                </Badge>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ========== DATA TABLE ========== */}
+      <Card className="overflow-hidden shadow-lg shadow-black/[0.03] animate-scale-in" style={{ animationDelay: '600ms' }}>
+        {/* Selection bar */}
+        {selectionMode && selectedLeads.length > 0 && (
+          <div
+            className="px-5 py-3 flex items-center justify-between"
+            style={{
+              background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)',
+              borderBottom: '1px solid rgba(99, 102, 241, 0.15)',
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-sm font-semibold text-indigo-700">
+                {selectedLeads.length} lead{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedLeads([])} className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+              Deseleccionar todo
+            </Button>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent" style={{ background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.04) 0%, rgba(6, 182, 212, 0.02) 100%)' }}>
+                {selectionMode && (
+                  <TableHead className="w-12 pl-5">
+                    <Checkbox
+                      checked={paginatedLeads.length > 0 && selectedLeads.length === paginatedLeads.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                )}
+                <TableHead className="w-16 text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">ID</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 min-w-[180px]">Nombre</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">DNI</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Celular</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Estado</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Proveedor</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Plan</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Bot</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Asesor</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Asesor</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Fecha</TableHead>
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {paginatedLeads.map((lead) => (
-                <tr key={lead.id} className={`hover:bg-gray-50 ${selectedLeads.includes(lead.id) ? 'bg-blue-50' : ''}`}>
+                <TableRow
+                  key={lead.id}
+                  className={`table-row-premium group ${selectedLeads.includes(lead.id) ? 'bg-indigo-50/50' : ''}`}
+                >
                   {selectionMode && (
-                    <td className="px-4 py-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedLeads.includes(lead.id)}
-                        onChange={() => toggleLeadSelection(lead.id)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                      />
-                    </td>
+                    <TableCell className="pl-5">
+                      <Checkbox checked={selectedLeads.includes(lead.id)} onCheckedChange={() => toggleLeadSelection(lead.id)} />
+                    </TableCell>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    #{lead.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {lead.nombre_completo || <span className="text-gray-400 italic">Sin nombre</span>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.dni || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.celular || lead.contacto_celular || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {lead.estado_nombre ? (
-                      <span
-                        className="px-3 py-1 text-xs font-semibold rounded-full text-white"
+                  <TableCell>
+                    <span className="inline-flex items-center justify-center h-6 min-w-[32px] px-1.5 rounded-md bg-muted/60 text-[11px] font-mono font-medium text-muted-foreground">
+                      {lead.id}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-2 ring-white"
                         style={{
-                          backgroundColor: getColorHex(lead.estado_color)
+                          background: `linear-gradient(135deg, ${getColorHex(lead.estado_color)}30, ${getColorHex(lead.estado_color)}15)`,
                         }}
                       >
+                        <span className="text-xs font-bold" style={{ color: getColorHex(lead.estado_color) }}>
+                          {lead.nombre_completo ? lead.nombre_completo.charAt(0).toUpperCase() : '?'}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate leading-tight">
+                          {lead.nombre_completo || <span className="text-muted-foreground/40 italic font-normal text-xs">Sin nombre</span>}
+                        </p>
+                        {lead.direccion && (
+                          <p className="text-[11px] text-muted-foreground/50 truncate max-w-[200px] leading-tight mt-0.5">{lead.direccion}</p>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm tabular-nums text-muted-foreground font-medium">{lead.dni || <span className="text-muted-foreground/25">--</span>}</TableCell>
+                  <TableCell className="text-sm tabular-nums text-muted-foreground font-medium">{lead.celular || lead.contacto_celular || <span className="text-muted-foreground/25">--</span>}</TableCell>
+                  <TableCell>
+                    {lead.estado_nombre ? (
+                      <span
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-sm"
+                        style={{
+                          backgroundColor: getColorHex(lead.estado_color) + '15',
+                          color: getColorHex(lead.estado_color),
+                          boxShadow: `0 2px 8px -2px ${getColorHex(lead.estado_color)}30`,
+                        }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full animate-glow"
+                          style={{
+                            backgroundColor: getColorHex(lead.estado_color),
+                            '--glow-color': getColorHex(lead.estado_color) + '60',
+                          }}
+                        />
                         {lead.estado_nombre}
                       </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.proveedor_nombre || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.plan_nombre || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    ) : <span className="text-muted-foreground/25 text-xs">--</span>}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{lead.proveedor_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{lead.plan_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
+                  <TableCell>
                     {lead.tipificacion_nombre ? (
                       <span
-                        className="px-3 py-1 text-xs font-semibold rounded-full text-white"
+                        className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg"
                         style={{
-                          backgroundColor: getColorHex(lead.tipificacion_color)
+                          backgroundColor: getColorHex(lead.tipificacion_color) + '12',
+                          color: getColorHex(lead.tipificacion_color),
                         }}
                       >
                         {lead.tipificacion_nombre}
                       </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    ) : <span className="text-muted-foreground/25 text-xs">--</span>}
+                  </TableCell>
+                  <TableCell>
                     {lead.tipificacion_asesor_nombre ? (
                       <span
-                        className="px-3 py-1 text-xs font-semibold rounded-full text-white"
+                        className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg"
                         style={{
-                          backgroundColor: getColorHex(lead.tipificacion_asesor_color)
+                          backgroundColor: getColorHex(lead.tipificacion_asesor_color) + '12',
+                          color: getColorHex(lead.tipificacion_asesor_color),
                         }}
                       >
                         {lead.tipificacion_asesor_nombre}
                       </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.asesor_nombre || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(lead.created_at)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        onClick={() => handleOpenDetailModal(lead)}
-                        className="text-gray-600 hover:text-gray-800 p-1"
-                        title="Ver detalle"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleOpenEditModal(lead)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="Editar lead"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    ) : <span className="text-muted-foreground/25 text-xs">--</span>}
+                  </TableCell>
+                  <TableCell>
+                    {lead.asesor_nombre ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-indigo-600">{lead.asesor_nombre.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{lead.asesor_nombre}</span>
+                      </div>
+                    ) : <span className="text-muted-foreground/25 text-xs">--</span>}
+                  </TableCell>
+                  <TableCell className="text-[11px] text-muted-foreground/50 tabular-nums whitespace-nowrap">{formatDate(lead.created_at)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44 p-1.5">
+                        <DropdownMenuItem onClick={() => handleOpenDetailModal(lead)} className="gap-2.5 text-xs rounded-lg py-2.5">
+                          <div className="h-6 w-6 rounded-md bg-blue-50 flex items-center justify-center">
+                            <Eye className="h-3.5 w-3.5 text-blue-600" />
+                          </div>
+                          Ver detalle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenEditModal(lead)} className="gap-2.5 text-xs rounded-lg py-2.5">
+                          <div className="h-6 w-6 rounded-md bg-amber-50 flex items-center justify-center">
+                            <Pencil className="h-3.5 w-3.5 text-amber-600" />
+                          </div>
+                          Editar lead
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
+
+        {/* Empty state */}
         {paginatedLeads.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            {hasActiveFilters ? 'No se encontraron leads con los filtros aplicados' : 'No hay leads registrados'}
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div
+              className="h-20 w-20 rounded-3xl flex items-center justify-center mb-5 animate-float"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+              }}
+            >
+              <Users className="h-9 w-9 text-indigo-400" />
+            </div>
+            <p className="text-base font-semibold">
+              {hasActiveFilters ? 'No se encontraron resultados' : 'Sin leads registrados'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
+              {hasActiveFilters ? 'Intenta ajustar los filtros para encontrar lo que buscas' : 'Los prospectos del sistema apareceran aqui'}
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-5 gap-2 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                onClick={clearFilters}
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Limpiar filtros
+              </Button>
+            )}
           </div>
         )}
 
-        {/* Paginación */}
+        {/* ========== PREMIUM PAGINATION ========== */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Mostrando {startIndex + 1} - {Math.min(endIndex, filteredLeads.length)} de {filteredLeads.length} registros
+          <div
+            className="px-5 py-4 flex items-center justify-between"
+            style={{
+              borderTop: '1px solid hsl(var(--border))',
+              background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.02) 0%, rgba(6, 182, 212, 0.02) 100%)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-bold text-foreground">{startIndex + 1}-{Math.min(endIndex, filteredLeads.length)}</span>
+                <span className="mx-1.5">de</span>
+                <span className="font-bold text-foreground">{filteredLeads.length}</span>
+                <span className="ml-1">leads</span>
+              </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={() => goToPage(1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
 
-              {/* Números de página */}
               {(() => {
                 const pages = [];
-                const maxVisiblePages = 5;
-                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-                if (endPage - startPage + 1 < maxVisiblePages) {
-                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
-                }
-
-                for (let i = startPage; i <= endPage; i++) {
+                const maxVisible = 5;
+                let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let end = Math.min(totalPages, start + maxVisible - 1);
+                if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+                for (let i = start; i <= end; i++) {
                   pages.push(
                     <button
                       key={i}
                       onClick={() => goToPage(i)}
-                      className={`px-3 py-1 text-sm border rounded ${
+                      className={`h-8 min-w-[32px] px-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
                         currentPage === i
-                          ? 'bg-primary-600 text-white border-primary-600'
-                          : 'border-gray-300 hover:bg-gray-50'
+                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
                       {i}
@@ -965,473 +1084,391 @@ export default function LeadsPage() {
                 return pages;
               })()}
 
-              <button
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <button
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={() => goToPage(totalPages)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
-              </button>
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Modal de Selección de Asesor */}
-      {showAsesorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Seleccionar Asesor
-              </h3>
-              <button
-                onClick={() => setShowAsesorModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+      {/* ===== MODALS ===== */}
+
+      {/* Assign Asesor Modal - Premium */}
+      <Dialog open={showAsesorModal} onOpenChange={setShowAsesorModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div
+                className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
+                  boxShadow: '0 8px 24px -4px rgba(99, 102, 241, 0.3)',
+                }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <UserCog className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span>Asignar Asesor</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Selecciona el asesor responsable</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {selectedLeads.length} lead{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 mb-4">
+              <CheckCircle2 className="h-4 w-4 text-indigo-500" />
+              <span className="text-sm font-medium text-indigo-700">
+                {selectedLeads.length} lead{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
+              </span>
             </div>
-            <div className="p-4">
-              <p className="text-sm text-gray-600 mb-4">
-                Selecciona un asesor para asignar a los {selectedLeads.length} leads seleccionados:
-              </p>
-              {asesores.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">No hay asesores disponibles</p>
-              ) : (
-                <div>
-                  <select
-                    value={selectedAsesorId}
-                    onChange={(e) => setSelectedAsesorId(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  >
-                    <option value="">-- Seleccionar asesor --</option>
-                    {asesores.map((asesor) => (
-                      <option key={asesor.id} value={asesor.id}>
-                        {asesor.username} - {asesor.email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end space-x-3 p-4 border-t">
-              <button
-                onClick={() => setShowAsesorModal(false)}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleAssignAsesor(selectedAsesorId)}
-                disabled={!selectedAsesorId || assigningAsesor}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {assigningAsesor ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Asignando...</span>
-                  </>
-                ) : (
-                  <span>Aceptar</span>
-                )}
-              </button>
-            </div>
+            {asesores.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">No hay asesores disponibles</p>
+            ) : (
+              <select value={selectedAsesorId} onChange={(e) => setSelectedAsesorId(e.target.value)}
+                className="w-full h-11 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                <option value="">Seleccionar asesor...</option>
+                {asesores.map((a) => <option key={a.id} value={a.id}>{a.username} - {a.email}</option>)}
+              </select>
+            )}
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAsesorModal(false)} className="rounded-xl">Cancelar</Button>
+            <Button
+              onClick={() => handleAssignAsesor(selectedAsesorId)}
+              disabled={!selectedAsesorId || assigningAsesor}
+              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+            >
+              {assigningAsesor && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {assigningAsesor ? 'Asignando...' : 'Confirmar Asignacion'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal de Edición de Lead */}
-      {showEditModal && editingLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Editar Lead #{editingLead.id}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingLead(null);
+      {/* Edit Lead Modal - Premium */}
+      <Dialog open={showEditModal} onOpenChange={(open) => { if (!open) { setShowEditModal(false); setEditingLead(null); } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div
+                className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+                  boxShadow: '0 8px 24px -4px rgba(245, 158, 11, 0.3)',
                 }}
-                className="text-gray-400 hover:text-gray-600"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {/* Nombre Completo */}
+                <Pencil className="h-5 w-5 text-white" />
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                <input
-                  type="text"
-                  value={editingLead.nombre_completo}
-                  onChange={(e) => handleEditChange('nombre_completo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Ingrese nombre completo"
-                />
+                <span>Editar Lead #{editingLead?.id}</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Modifica la informacion del prospecto</p>
               </div>
-
-              {/* DNI y Celular en una fila */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">DNI</label>
-                  <input
-                    type="text"
-                    value={editingLead.dni}
-                    onChange={(e) => handleEditChange('dni', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ingrese DNI"
-                    maxLength={8}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Celular</label>
-                  <input
-                    type="text"
-                    value={editingLead.celular}
-                    onChange={(e) => handleEditChange('celular', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ingrese celular"
-                    maxLength={9}
-                  />
-                </div>
-              </div>
-
-              {/* Direccion */}
+            </DialogTitle>
+            <DialogDescription className="sr-only">Modifica la informacion del prospecto</DialogDescription>
+          </DialogHeader>
+          {editingLead && (
+            <div className="space-y-6 py-2">
+              {/* Personal info section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Direccion</label>
-                <input
-                  type="text"
-                  value={editingLead.direccion}
-                  onChange={(e) => handleEditChange('direccion', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Ingrese direccion"
-                />
-              </div>
-
-              {/* Estado y Tipificacion en una fila */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={editingLead.id_estado || ''}
-                    onChange={(e) => handleEditChange('id_estado', e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">-- Seleccionar --</option>
-                    {estados.map((estado) => (
-                      <option key={estado.id} value={estado.id}>
-                        {estado.nombre}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <User className="h-3.5 w-3.5 text-blue-600" />
+                  </div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Datos Personales</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipificacion</label>
-                  <select
-                    value={editingLead.id_tipificacion || ''}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-500"
-                  >
-                    <option value="">-- Seleccionar --</option>
-                    {tipificaciones.map((tip) => (
-                      <option key={tip.id} value={tip.id}>
-                        {tip.nombre}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Nombre Completo</label>
+                    <input type="text" value={editingLead.nombre_completo} onChange={(e) => handleEditChange('nombre_completo', e.target.value)}
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="Nombre completo" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">DNI</label>
+                      <input type="text" value={editingLead.dni} onChange={(e) => handleEditChange('dni', e.target.value)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="DNI" maxLength={8} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Celular</label>
+                      <input type="text" value={editingLead.celular} onChange={(e) => handleEditChange('celular', e.target.value)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="Celular" maxLength={9} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Direccion</label>
+                    <input type="text" value={editingLead.direccion} onChange={(e) => handleEditChange('direccion', e.target.value)}
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="Direccion" />
+                  </div>
                 </div>
               </div>
 
-              {/* Tipificacion Asesor */}
+              <Separator />
+
+              {/* Classification section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipificacion Asesor</label>
-                <select
-                  value={editingLead.id_tipificacion_asesor || ''}
-                  onChange={(e) => handleEditChange('id_tipificacion_asesor', e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {tipificaciones.map((tip) => (
-                    <option key={tip.id} value={tip.id}>
-                      {tip.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Proveedor y Plan en una fila */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                  <select
-                    value={editingLead.id_provedor || ''}
-                    onChange={(e) => handleEditChange('id_provedor', e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">-- Seleccionar --</option>
-                    {proveedores.map((prov) => (
-                      <option key={prov.id} value={prov.id}>
-                        {prov.nombre}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 rounded-lg bg-violet-50 flex items-center justify-center">
+                    <Tag className="h-3.5 w-3.5 text-violet-600" />
+                  </div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Clasificacion</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-                  <select
-                    value={editingLead.id_plan || ''}
-                    onChange={(e) => handleEditChange('id_plan', e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">-- Seleccionar --</option>
-                    {planes.map((plan) => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Asesor */}
-              {canFilterByAsesor && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Asesor</label>
-                  <select
-                    value={editingLead.id_asesor || ''}
-                    onChange={(e) => handleEditChange('id_asesor', e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">-- Sin asesor --</option>
-                    {asesoresFilter.map((asesor) => (
-                      <option key={asesor.id} value={asesor.id}>
-                        {asesor.username}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end space-x-3 p-4 border-t sticky bottom-0 bg-white">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingLead(null);
-                }}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveLead}
-                disabled={savingLead}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {savingLead ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Guardando...</span>
-                  </>
-                ) : (
-                  <span>Guardar Cambios</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Detalle de Lead */}
-      {showDetailModal && detailLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Detalle del Lead #{detailLead.id}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowDetailModal(false);
-                  setDetailLead(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {/* Nombre Completo */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Nombre Completo</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.nombre_completo || '-'}</span>
-              </div>
-
-              {/* DNI */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">DNI</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.dni || '-'}</span>
-              </div>
-
-              {/* Celular */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Celular</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.celular || detailLead.contacto_celular || '-'}</span>
-              </div>
-
-              {/* Direccion */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Direccion</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.direccion || '-'}</span>
-              </div>
-
-              {/* Estado */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Estado</span>
-                <div className="col-span-2">
-                  {detailLead.estado_nombre ? (
-                    <span
-                      className="px-3 py-1 text-xs font-semibold rounded-full text-white"
-                      style={{ backgroundColor: getColorHex(detailLead.estado_color) }}
-                    >
-                      {detailLead.estado_nombre}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Estado</label>
+                      <select value={editingLead.id_estado || ''} onChange={(e) => handleEditChange('id_estado', e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                        <option value="">Seleccionar</option>
+                        {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Bot</label>
+                      <select value={editingLead.id_tipificacion || ''} disabled
+                        className="w-full h-10 px-4 rounded-xl bg-muted/30 text-sm text-muted-foreground cursor-not-allowed">
+                        <option value="">Seleccionar</option>
+                        {tipificaciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Asesor</label>
+                    <select value={editingLead.id_tipificacion_asesor || ''} onChange={(e) => handleEditChange('id_tipificacion_asesor', e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      <option value="">Seleccionar</option>
+                      {tipificaciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Proveedor</label>
+                      <select value={editingLead.id_provedor || ''} onChange={(e) => handleEditChange('id_provedor', e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                        <option value="">Seleccionar</option>
+                        {proveedores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Plan</label>
+                      <select value={editingLead.id_plan || ''} onChange={(e) => handleEditChange('id_plan', e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                        <option value="">Seleccionar</option>
+                        {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {canFilterByAsesor && (
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Asesor</label>
+                      <select value={editingLead.id_asesor || ''} onChange={(e) => handleEditChange('id_asesor', e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                        <option value="">Sin asesor</option>
+                        {asesoresFilter.map((a) => <option key={a.id} value={a.id}>{a.username}</option>)}
+                      </select>
+                    </div>
                   )}
                 </div>
               </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowEditModal(false); setEditingLead(null); }} className="rounded-xl">Cancelar</Button>
+            <Button
+              onClick={handleSaveLead}
+              disabled={savingLead}
+              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+            >
+              {savingLead && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {savingLead ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-              {/* Tipificacion */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Tipificacion</span>
-                <div className="col-span-2">
-                  {detailLead.tipificacion_nombre ? (
+      {/* Detail Lead Modal - Premium */}
+      <Dialog open={showDetailModal} onOpenChange={(open) => { if (!open) { setShowDetailModal(false); setDetailLead(null); } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div
+                className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+                  boxShadow: '0 8px 24px -4px rgba(59, 130, 246, 0.3)',
+                }}
+              >
+                <FileText className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span>Detalle del Lead #{detailLead?.id}</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Informacion completa del prospecto</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Informacion completa del prospecto</DialogDescription>
+          </DialogHeader>
+          {detailLead && (
+            <div className="space-y-5 py-2">
+              {/* Lead header card - Premium gradient */}
+              <div
+                className="flex items-center gap-4 p-5 rounded-2xl text-white relative overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
+                }}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-400/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/4" />
+                <div
+                  className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-xl"
+                  style={{
+                    background: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
+                    boxShadow: '0 8px 24px -4px rgba(6, 182, 212, 0.4)',
+                  }}
+                >
+                  <span className="text-lg font-bold text-white">
+                    {detailLead.nombre_completo ? detailLead.nombre_completo.charAt(0).toUpperCase() : '?'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0 relative z-10">
+                  <p className="text-base font-bold truncate">{detailLead.nombre_completo || 'Sin nombre'}</p>
+                  <p className="text-indigo-200 text-sm">{detailLead.celular || detailLead.contacto_celular || 'Sin celular'}</p>
+                </div>
+                {detailLead.estado_nombre && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg relative z-10"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(8px)',
+                    }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getColorHex(detailLead.estado_color) }} />
+                    {detailLead.estado_nombre}
+                  </span>
+                )}
+              </div>
+
+              {/* Info grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: Hash, label: 'DNI', value: detailLead.dni, color: 'blue' },
+                  { icon: Phone, label: 'Celular', value: detailLead.celular || detailLead.contacto_celular, color: 'emerald' },
+                  { icon: MapPin, label: 'Direccion', value: detailLead.direccion, color: 'violet' },
+                  { icon: Briefcase, label: 'Proveedor', value: detailLead.proveedor_nombre, color: 'amber' },
+                  { icon: ClipboardList, label: 'Plan', value: detailLead.plan_nombre, color: 'cyan' },
+                  { icon: User, label: 'Asesor', value: detailLead.asesor_nombre, color: 'indigo' },
+                  { icon: Clock, label: 'Registro', value: formatDate(detailLead.created_at), color: 'rose' },
+                ].map((item) => {
+                  const colorMap = { blue: '#3b82f6', emerald: '#10b981', violet: '#8b5cf6', amber: '#f59e0b', cyan: '#06b6d4', indigo: '#6366f1', rose: '#f43f5e' };
+                  const c = colorMap[item.color];
+                  return (
+                    <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: c + '12' }}>
+                        <item.icon className="h-4 w-4" style={{ color: c }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{item.label}</p>
+                        <p className="text-sm font-medium truncate mt-0.5">{item.value || <span className="text-muted-foreground/30 font-normal">--</span>}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Tipificaciones */}
+              <div className="flex flex-wrap gap-3">
+                {detailLead.tipificacion_nombre && (
+                  <div className="flex items-center gap-2 p-2.5 px-3.5 rounded-xl bg-muted/30">
+                    <span className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">Bot:</span>
                     <span
-                      className="px-3 py-1 text-xs font-semibold rounded-full text-white"
-                      style={{ backgroundColor: getColorHex(detailLead.tipificacion_color) }}
+                      className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-sm"
+                      style={{
+                        backgroundColor: getColorHex(detailLead.tipificacion_color) + '15',
+                        color: getColorHex(detailLead.tipificacion_color),
+                        boxShadow: `0 2px 8px -2px ${getColorHex(detailLead.tipificacion_color)}25`,
+                      }}
                     >
                       {detailLead.tipificacion_nombre}
                     </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Tipificacion Asesor */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Tipificacion Asesor</span>
-                <div className="col-span-2">
-                  {detailLead.tipificacion_asesor_nombre ? (
+                  </div>
+                )}
+                {detailLead.tipificacion_asesor_nombre && (
+                  <div className="flex items-center gap-2 p-2.5 px-3.5 rounded-xl bg-muted/30">
+                    <span className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">Asesor:</span>
                     <span
-                      className="px-3 py-1 text-xs font-semibold rounded-full text-white"
-                      style={{ backgroundColor: getColorHex(detailLead.tipificacion_asesor_color) }}
+                      className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-sm"
+                      style={{
+                        backgroundColor: getColorHex(detailLead.tipificacion_asesor_color) + '15',
+                        color: getColorHex(detailLead.tipificacion_asesor_color),
+                        boxShadow: `0 2px 8px -2px ${getColorHex(detailLead.tipificacion_asesor_color)}25`,
+                      }}
                     >
                       {detailLead.tipificacion_asesor_nombre}
                     </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
-                  )}
+                  </div>
+                )}
+              </div>
+
+              {/* Perfilamiento */}
+              <div>
+                <Separator className="mb-4" />
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center">
+                    <MessageSquare className="h-3.5 w-3.5 text-indigo-500" />
+                  </div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Perfilamiento</p>
                 </div>
-              </div>
-
-              {/* Proveedor */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Proveedor</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.proveedor_nombre || '-'}</span>
-              </div>
-
-              {/* Plan */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Plan</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.plan_nombre || '-'}</span>
-              </div>
-
-              {/* Asesor */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Asesor</span>
-                <span className="col-span-2 text-sm text-gray-900">{detailLead.asesor_nombre || '-'}</span>
-              </div>
-
-              {/* Fecha de Registro */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Fecha de Registro</span>
-                <span className="col-span-2 text-sm text-gray-900">{formatDate(detailLead.created_at)}</span>
-              </div>
-
-              {/* Seccion de Perfilamiento */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Preguntas de Perfilamiento</h4>
                 {loadingPerfilamiento ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-                    <span className="ml-2 text-sm text-gray-500">Cargando...</span>
+                  <div className="flex items-center justify-center py-8 gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                    <span className="text-xs text-muted-foreground">Cargando respuestas...</span>
                   </div>
                 ) : perfilamientoData.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {perfilamientoData.map((item, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm font-medium text-gray-700">{item.pregunta}</p>
-                        <p className="text-sm text-gray-900 mt-1">{item.respuesta || '-'}</p>
+                      <div key={index} className="p-4 rounded-xl bg-gradient-to-r from-muted/40 to-muted/20 hover:from-muted/60 hover:to-muted/30 transition-colors">
+                        <p className="text-xs font-semibold text-foreground">{item.pregunta}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{item.respuesta || '--'}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 italic py-2">Sin respuestas de perfilamiento</p>
+                  <div className="text-center py-8">
+                    <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                      <MessageSquare className="h-5 w-5 text-muted-foreground/30" />
+                    </div>
+                    <p className="text-xs text-muted-foreground/50">Sin respuestas de perfilamiento</p>
+                  </div>
                 )}
               </div>
             </div>
-            <div className="flex justify-end space-x-3 p-4 border-t sticky bottom-0 bg-white">
-              <button
-                onClick={() => {
-                  setShowDetailModal(false);
-                  setDetailLead(null);
-                }}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cerrar
-              </button>
-              <button
-                onClick={() => {
-                  setShowDetailModal(false);
-                  handleOpenEditModal(detailLead);
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span>Editar</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowDetailModal(false); setDetailLead(null); }} className="rounded-xl">Cerrar</Button>
+            <Button
+              onClick={() => { setShowDetailModal(false); handleOpenEditModal(detailLead); }}
+              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Editar Lead
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

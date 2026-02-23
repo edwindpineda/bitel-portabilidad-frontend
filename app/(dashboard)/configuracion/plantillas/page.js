@@ -31,7 +31,7 @@ export default function PlantillasPage() {
   };
 
   const [formData, setFormData] = useState({
-    id_formato: '',
+    id_tipo_plantilla: '',
     nombre: '',
     descripcion: '',
     prompt_sistema: '',
@@ -50,7 +50,7 @@ export default function PlantillasPage() {
       setLoading(true);
       const [plantillasRes, formatosRes] = await Promise.all([
         apiClient.get('/crm/plantillas'),
-        apiClient.get('/crm/formatos')
+        apiClient.get('/crm/tipo-plantillas')
       ]);
       setPlantillas(plantillasRes?.data || []);
       setFormatos(formatosRes?.data || []);
@@ -67,7 +67,7 @@ export default function PlantillasPage() {
       return;
     }
     try {
-      const response = await apiClient.get(`/crm/formatos/${idFormato}`);
+      const response = await apiClient.get(`/crm/tipo-plantillas/${idFormato}`);
       const campos = response?.data?.campos || [];
       setCamposFormato(campos);
     } catch (error) {
@@ -78,7 +78,7 @@ export default function PlantillasPage() {
 
   const handleFormatoChange = (e) => {
     const idFormato = e.target.value;
-    setFormData({ ...formData, id_formato: idFormato });
+    setFormData({ ...formData, id_tipo_plantilla: idFormato });
     loadCamposFormato(idFormato);
   };
 
@@ -104,7 +104,7 @@ export default function PlantillasPage() {
     setEditingPlantilla(plantilla);
     setIsCreating(false);
     setFormData({
-      id_formato: plantilla.id_formato || '',
+      id_tipo_plantilla: plantilla.id_tipo_plantilla || '',
       nombre: plantilla.nombre || '',
       descripcion: plantilla.descripcion || '',
       prompt_sistema: plantilla.prompt_sistema || '',
@@ -113,7 +113,7 @@ export default function PlantillasPage() {
       prompt_cierre: plantilla.prompt_cierre || '',
       prompt_resultado: plantilla.prompt_resultado || ''
     });
-    await loadCamposFormato(plantilla.id_formato);
+    await loadCamposFormato(plantilla.id_tipo_plantilla);
   };
 
   const handleDelete = async (id) => {
@@ -133,7 +133,7 @@ export default function PlantillasPage() {
 
   const resetForm = () => {
     setFormData({
-      id_formato: '',
+      id_tipo_plantilla: '',
       nombre: '',
       descripcion: '',
       prompt_sistema: '',
@@ -244,7 +244,7 @@ export default function PlantillasPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Formato *</label>
                   <select
-                    value={formData.id_formato}
+                    value={formData.id_tipo_plantilla}
                     onChange={handleFormatoChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     required
@@ -278,7 +278,7 @@ export default function PlantillasPage() {
                 </div>
 
                 {/* Campos disponibles */}
-                {formData.id_formato && (
+                {formData.id_tipo_plantilla && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Campos disponibles
@@ -494,7 +494,7 @@ export default function PlantillasPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      {plantilla.formato_nombre || 'Sin formato'}
+                      {plantilla.tipoPlantilla?.nombre || 'Sin tipo'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
