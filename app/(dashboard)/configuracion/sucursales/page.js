@@ -28,8 +28,9 @@ export default function SucursalesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     nombre: '',
-    definicion: '',
-    color: ''
+    direccion: '',
+    telefono: '',
+    email: ''
   });
 
   useEffect(() => {
@@ -70,8 +71,9 @@ export default function SucursalesPage() {
     setEditingSucursal(sucursal);
     setFormData({
       nombre: sucursal.nombre || '',
-      definicion: sucursal.definicion || '',
-      color: sucursal.color || ''
+      direccion: sucursal.direccion || '',
+      telefono: sucursal.telefono || '',
+      email: sucursal.email || ''
     });
     setShowModal(true);
   };
@@ -90,8 +92,9 @@ export default function SucursalesPage() {
   const resetForm = () => {
     setFormData({
       nombre: '',
-      definicion: '',
-      color: ''
+      direccion: '',
+      telefono: '',
+      email: ''
     });
   };
 
@@ -103,7 +106,7 @@ export default function SucursalesPage() {
 
   const filteredSucursales = sucursales.filter((s) =>
     s.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.definicion?.toLowerCase().includes(searchTerm.toLowerCase())
+    s.direccion?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -162,9 +165,10 @@ export default function SucursalesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[250px]">Nombre</TableHead>
-                  <TableHead>Definición</TableHead>
-                  <TableHead className="w-[80px]">Color</TableHead>
+                  <TableHead className="w-[200px]">Nombre</TableHead>
+                  <TableHead>Dirección</TableHead>
+                  <TableHead className="w-[140px]">Teléfono</TableHead>
+                  <TableHead className="w-[180px]">Email</TableHead>
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -180,17 +184,22 @@ export default function SucursalesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {sucursal.definicion ? (
-                        <span className="text-muted-foreground">{sucursal.definicion}</span>
+                      {sucursal.direccion ? (
+                        <span className="text-muted-foreground">{sucursal.direccion}</span>
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {sucursal.color ? (
-                        <div className="flex items-center gap-2">
-                          <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: sucursal.color }} />
-                        </div>
+                      {sucursal.telefono ? (
+                        <span className="text-muted-foreground">{sucursal.telefono}</span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {sucursal.email ? (
+                        <span className="text-muted-foreground">{sucursal.email}</span>
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
@@ -264,29 +273,29 @@ export default function SucursalesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Definición</label>
+                <label className="text-sm font-medium">Dirección</label>
                 <Input
-                  value={formData.definicion}
-                  onChange={(e) => setFormData({ ...formData, definicion: e.target.value })}
-                  placeholder="Descripción breve"
+                  value={formData.direccion}
+                  onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                  placeholder="Dirección de la sucursal"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Color</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={formData.color || '#6366f1'}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="h-9 w-12 rounded border cursor-pointer"
-                  />
-                  <Input
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    placeholder="#6366f1"
-                    className="flex-1"
-                  />
-                </div>
+                <label className="text-sm font-medium">Teléfono</label>
+                <Input
+                  value={formData.telefono}
+                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  placeholder="Número de teléfono"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="correo@ejemplo.com"
+                />
               </div>
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>

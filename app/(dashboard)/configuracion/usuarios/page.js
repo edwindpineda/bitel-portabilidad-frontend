@@ -30,7 +30,7 @@ export default function UsuariosPage() {
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
-    usuario: '',
+    username: '',
     password: '',
     id_rol: '',
     id_sucursal: '',
@@ -88,7 +88,7 @@ export default function UsuariosPage() {
   const handleEdit = (usuario) => {
     setEditingUser(usuario);
     setFormData({
-      usuario: usuario.usuario || '',
+      username: usuario.username || '',
       password: '',
       id_rol: usuario.id_rol || '',
       id_sucursal: usuario.id_sucursal || '',
@@ -110,7 +110,7 @@ export default function UsuariosPage() {
 
   const resetForm = () => {
     setFormData({
-      usuario: '',
+      username: '',
       password: '',
       id_rol: '',
       id_sucursal: '',
@@ -314,8 +314,8 @@ export default function UsuariosPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Username *</label>
                 <Input
-                  value={formData.usuario}
-                  onChange={(e) => setFormData({ ...formData, usuario: e.target.value })}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   placeholder="nombre de usuario"
                   required
                 />

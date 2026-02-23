@@ -16,30 +16,37 @@ import {
   LayoutTemplate,
   ChevronRight,
   Shield,
-  Tag,
-  Layers,
-  Megaphone,
+  Package,
+  Truck,
+  Monitor,
+  ClipboardList,
+  FileText,
+  FileUp,
+  MessageSquare,
+  Database,
 } from 'lucide-react';
 
 const gestionUsuario = [
   { title: 'Usuarios', description: 'Gestionar usuarios del sistema', href: '/configuracion/usuarios', icon: Users, gradient: 'from-blue-500 to-indigo-500', glow: 'rgba(59,130,246,0.15)' },
   { title: 'Equipos', description: 'Ver coordinadores y sus asesores', href: '/configuracion/equipos', icon: UsersRound, gradient: 'from-amber-500 to-orange-500', glow: 'rgba(245,158,11,0.15)' },
   { title: 'Sucursales', description: 'Gestionar sucursales', href: '/configuracion/sucursales', icon: Building2, gradient: 'from-orange-500 to-red-500', glow: 'rgba(249,115,22,0.15)' },
+  { title: 'Proveedores', description: 'Gestionar proveedores', href: '/configuracion/proveedores', icon: Truck, gradient: 'from-cyan-500 to-blue-500', glow: 'rgba(6,182,212,0.15)' },
 ];
 
 const gestionWhatsApp = [
+  { title: 'Catálogo', description: 'Gestionar catálogo de planes y precios', href: '/configuracion/catalogo', icon: Package, gradient: 'from-indigo-500 to-purple-500', glow: 'rgba(99,102,241,0.15)' },
   { title: 'Preguntas Frecuentes', description: 'Gestionar FAQs del sistema', href: '/configuracion/faqs', icon: HelpCircle, gradient: 'from-pink-500 to-rose-500', glow: 'rgba(236,72,153,0.15)' },
   { title: 'Tipificaciones', description: 'Gestionar tipificaciones de leads', href: '/configuracion/tipificaciones', icon: Tags, gradient: 'from-rose-500 to-red-500', glow: 'rgba(244,63,94,0.15)' },
   { title: 'WhatsApp', description: 'Escanear QR y conectar WhatsApp', href: '/configuracion/whatsapp', icon: MessageCircle, gradient: 'from-green-500 to-emerald-500', glow: 'rgba(34,197,94,0.15)' },
+  { title: 'Prompt del Bot', description: 'Configurar prompt del asistente', href: '/configuracion/prompt-bot', icon: Monitor, gradient: 'from-teal-500 to-cyan-500', glow: 'rgba(20,184,166,0.15)' },
+  { title: 'Preguntas Perfilamiento', description: 'Gestionar preguntas de perfilamiento', href: '/configuracion/preguntas-perfilamiento', icon: ClipboardList, gradient: 'from-violet-500 to-purple-500', glow: 'rgba(139,92,246,0.15)' },
+  { title: 'Argumentos de Venta', description: 'Gestionar argumentos de venta', href: '/configuracion/argumentos-venta', icon: FileText, gradient: 'from-emerald-500 to-green-500', glow: 'rgba(16,185,129,0.15)' },
   { title: 'Periodicidades Recordatorio', description: 'Configurar intervalos de recordatorios', href: '/configuracion/periodicidades-recordatorio', icon: Clock, gradient: 'from-sky-500 to-blue-500', glow: 'rgba(14,165,233,0.15)' },
 ];
 
-const gestionCampanias = [
-  { title: 'Tipos de Campaña', description: 'Configurar tipos de campaña (llamada, whatsapp, etc.)', href: '/configuracion/tipos-campania', icon: Layers, gradient: 'from-indigo-500 to-violet-500', glow: 'rgba(99,102,241,0.15)' },
-  { title: 'Estados de Campaña', description: 'Configurar estados disponibles para campañas', href: '/configuracion/estados-campania', icon: Tag, gradient: 'from-emerald-500 to-teal-500', glow: 'rgba(16,185,129,0.15)' },
-];
-
 const gestionLlamadas = [
+  { title: 'Formatos', description: 'Gestionar formatos de datos y campos', href: '/configuracion/formatos', icon: Database, gradient: 'from-amber-500 to-yellow-500', glow: 'rgba(245,158,11,0.15)' },
+  { title: 'Base de Números', description: 'Cargar y gestionar bases de números', href: '/configuracion/bases-numeros', icon: FileUp, gradient: 'from-lime-500 to-green-500', glow: 'rgba(132,204,22,0.15)' },
   { title: 'Plantillas', description: 'Gestionar plantillas de prompts para campañas', href: '/configuracion/plantillas', icon: LayoutTemplate, gradient: 'from-fuchsia-500 to-pink-500', glow: 'rgba(217,70,239,0.15)' },
 ];
 
@@ -47,7 +54,7 @@ const sections = [
   {
     id: 'usuarios',
     title: 'Gestión de Usuario',
-    description: 'Usuarios, equipos y sucursales',
+    description: 'Usuarios, equipos, roles, módulos, sucursales y proveedores',
     icon: Shield,
     gradient: 'from-blue-500 to-indigo-500',
     items: gestionUsuario,
@@ -55,23 +62,15 @@ const sections = [
   {
     id: 'whatsapp',
     title: 'Gestión de Mensajes WhatsApp',
-    description: 'FAQs, tipificaciones, WhatsApp y recordatorios',
+    description: 'Configuración de mensajería, planes, FAQs y tipificaciones',
     icon: MessageCircle,
     gradient: 'from-green-500 to-emerald-500',
     items: gestionWhatsApp,
   },
   {
-    id: 'campanias',
-    title: 'Gestión de Campañas',
-    description: 'Estados y configuración general de campañas',
-    icon: Megaphone,
-    gradient: 'from-emerald-500 to-teal-500',
-    items: gestionCampanias,
-  },
-  {
     id: 'llamadas',
     title: 'Gestión de Llamada de Voz',
-    description: 'Plantillas de prompts para campañas',
+    description: 'Formatos, bases de números, plantillas y campañas',
     icon: Phone,
     gradient: 'from-purple-500 to-violet-500',
     items: gestionLlamadas,

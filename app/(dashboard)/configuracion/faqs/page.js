@@ -50,6 +50,7 @@ export default function FaqsPage() {
     pregunta: '',
     proceso: 'Contacto',
     respuesta: '',
+    activo: 1,
   });
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function FaqsPage() {
       const dataToSend = {
         ...formData,
         numero: parseInt(formData.numero) || 0,
+        activo: formData.activo ? 1 : 0,
       };
 
       if (editingFaq) {
@@ -98,6 +100,7 @@ export default function FaqsPage() {
       pregunta: faq.pregunta || '',
       proceso: faq.proceso || 'Contacto',
       respuesta: faq.respuesta || '',
+      activo: faq.activo ? 1 : 0,
     });
     setShowModal(true);
   };
@@ -119,6 +122,7 @@ export default function FaqsPage() {
       pregunta: '',
       proceso: 'Contacto',
       respuesta: '',
+      activo: 1,
     });
   };
 
@@ -209,6 +213,7 @@ export default function FaqsPage() {
                   <TableHead className="w-[60px]">#</TableHead>
                   <TableHead>Pregunta</TableHead>
                   <TableHead className="w-[200px]">Proceso</TableHead>
+                  <TableHead className="w-[100px]">Estado</TableHead>
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -227,6 +232,11 @@ export default function FaqsPage() {
                     <TableCell>
                       <Badge variant="secondary" className={PROCESO_COLORS[faq.proceso] || 'bg-gray-100 text-gray-700'}>
                         {faq.proceso}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={faq.activo ? 'default' : 'secondary'} className={faq.activo ? 'bg-green-100 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-100'}>
+                        {faq.activo ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -334,6 +344,16 @@ export default function FaqsPage() {
                   placeholder="Escribe la respuesta..."
                   required
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="activo"
+                  checked={!!formData.activo}
+                  onChange={(e) => setFormData({ ...formData, activo: e.target.checked ? 1 : 0 })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="activo" className="text-sm font-medium cursor-pointer">Activo</label>
               </div>
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
