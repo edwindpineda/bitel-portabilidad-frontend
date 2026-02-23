@@ -498,7 +498,7 @@ export default function LeadsPage() {
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">Pipeline de Leads</h1>
               <p className="text-indigo-200/70 text-sm mt-0.5">
-                {leads.length.toLocaleString()} prospectos en tu sistema
+                {leads.length.toLocaleString()} personas en tu sistema
               </p>
             </div>
           </div>
@@ -1007,7 +1007,7 @@ export default function LeadsPage() {
               {hasActiveFilters ? 'No se encontraron resultados' : 'Sin leads registrados'}
             </p>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
-              {hasActiveFilters ? 'Intenta ajustar los filtros para encontrar lo que buscas' : 'Los prospectos del sistema apareceran aqui'}
+              {hasActiveFilters ? 'Intenta ajustar los filtros para encontrar lo que buscas' : 'Las personas del sistema apareceran aqui'}
             </p>
             {hasActiveFilters && (
               <Button
@@ -1179,10 +1179,10 @@ export default function LeadsPage() {
               </div>
               <div>
                 <span>Editar Lead #{editingLead?.id}</span>
-                <p className="text-xs font-normal text-muted-foreground mt-0.5">Modifica la informacion del prospecto</p>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Modifica la informacion de la persona</p>
               </div>
             </DialogTitle>
-            <DialogDescription className="sr-only">Modifica la informacion del prospecto</DialogDescription>
+            <DialogDescription className="sr-only">Modifica la informacion de la persona</DialogDescription>
           </DialogHeader>
           {editingLead && (
             <div className="space-y-6 py-2">
@@ -1319,10 +1319,10 @@ export default function LeadsPage() {
               </div>
               <div>
                 <span>Detalle del Lead #{detailLead?.id}</span>
-                <p className="text-xs font-normal text-muted-foreground mt-0.5">Informacion completa del prospecto</p>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Informacion completa de la persona</p>
               </div>
             </DialogTitle>
-            <DialogDescription className="sr-only">Informacion completa del prospecto</DialogDescription>
+            <DialogDescription className="sr-only">Informacion completa de la persona</DialogDescription>
           </DialogHeader>
           {detailLead && (
             <div className="space-y-5 py-2">

@@ -169,7 +169,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <CardTitle className="text-sm font-semibold">Pipeline de Ventas</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">100 prospectos en total</p>
+                <p className="text-xs text-muted-foreground mt-0.5">100 personas en total</p>
               </div>
             </div>
           </CardHeader>

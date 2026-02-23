@@ -135,9 +135,9 @@ export default function UsuariosPage() {
   };
 
   const filteredUsuarios = usuarios.filter((u) =>
-    u.usuario?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.rol?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.sucursal?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+    u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.rol_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.sucursal_nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getRolBadge = (rolNombre) => {
@@ -218,22 +218,22 @@ export default function UsuariosPage() {
                         <div className="h-9 w-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                           <UserCircle className="h-4 w-4 text-blue-600" />
                         </div>
-                        <span className="font-medium">@{usuario.usuario}</span>
+                        <span className="font-medium">@{usuario.username}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getRolBadge(usuario.rol?.nombre)}
+                      {getRolBadge(usuario.rol_nombre)}
                     </TableCell>
                     <TableCell>
-                      {usuario.sucursal?.nombre ? (
-                        <span>{usuario.sucursal.nombre}</span>
+                      {usuario.sucursal_nombre ? (
+                        <span>{usuario.sucursal_nombre}</span>
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {usuario.padre?.usuario ? (
-                        <span className="text-muted-foreground">@{usuario.padre.usuario}</span>
+                      {usuario.padre_username ? (
+                        <span className="text-muted-foreground">@{usuario.padre_username}</span>
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
@@ -371,7 +371,7 @@ export default function UsuariosPage() {
                     >
                       <option value="">Seleccionar coordinador</option>
                       {supervisores.map((supervisor) => (
-                        <option key={supervisor.id} value={supervisor.id}>{supervisor.usuario}</option>
+                        <option key={supervisor.id} value={supervisor.id}>{supervisor.username}</option>
                       ))}
                     </select>
                   </div>

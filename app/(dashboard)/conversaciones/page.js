@@ -86,15 +86,15 @@ export default function ConversacionesPage() {
   const [nivelesTipBot, setNivelesTipBot] = useState([]);
   const [nivelesTipAsesor, setNivelesTipAsesor] = useState([]);
 
-  // Estados para menu y edicion de prospecto
-  const [showEditProspectoModal, setShowEditProspectoModal] = useState(false);
-  const [editingProspecto, setEditingProspecto] = useState(null);
+  // Estados para menu y edicion de persona
+  const [showEditPersonaModal, setShowEditPersonaModal] = useState(false);
+  const [editingPersona, setEditingPersona] = useState(null);
   const [nivelesEditTipAsesor, setNivelesEditTipAsesor] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [planes, setPlanes] = useState([]);
-  const [savingProspecto, setSavingProspecto] = useState(false);
+  const [savingPersona, setSavingPersona] = useState(false);
 
-  // Estados para modal de detalle de prospecto
+  // Estados para modal de detalle de persona
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [perfilamientoData, setPerfilamientoData] = useState([]);
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
@@ -496,7 +496,7 @@ export default function ConversacionesPage() {
     }
     setNivelesEditTipAsesor(nuevosNiveles);
     const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
-    handleEditProspectoChange('id_tipificacion_asesor', ultimoNivel);
+    handleEditPersonaChange('id_tipificacion_asesor', ultimoNivel);
   };
 
   const nivelesDropdownEditAsesor = construirNivelesEditAsesor();
@@ -604,10 +604,10 @@ export default function ConversacionesPage() {
     }
   };
 
-  const handleOpenEditProspecto = () => {
+  const handleOpenEditPersona = () => {
     if (!selectedChat) return;
-    setEditingProspecto({
-      id: selectedChat.id_prospecto || selectedChat.id,
+    setEditingPersona({
+      id: selectedChat.id_persona || selectedChat.id,
       nombre_completo: selectedChat.nombre_completo || '',
       dni: selectedChat.dni || '',
       celular: selectedChat.celular || '',
@@ -631,7 +631,7 @@ export default function ConversacionesPage() {
     } else {
       setNivelesEditTipAsesor([]);
     }
-    setShowEditProspectoModal(true);
+    setShowEditPersonaModal(true);
   };
 
   const handleOpenDetailModal = async () => {
@@ -640,8 +640,8 @@ export default function ConversacionesPage() {
     setPerfilamientoData([]);
     setLoadingPerfilamiento(true);
     try {
-      const prospectoId = selectedChat.id_prospecto || selectedChat.id;
-      const response = await apiClient.get(`/crm/leads/${prospectoId}/perfilamiento`);
+      const personaId = selectedChat.id_persona || selectedChat.id;
+      const response = await apiClient.get(`/crm/leads/${personaId}/perfilamiento`);
       setPerfilamientoData(response.data || []);
     } catch (error) {
       console.error('Error al cargar perfilamiento:', error);
@@ -650,33 +650,33 @@ export default function ConversacionesPage() {
     }
   };
 
-  const handleEditProspectoChange = (field, value) => {
-    setEditingProspecto(prev => ({
+  const handleEditPersonaChange = (field, value) => {
+    setEditingPersona(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleSaveProspecto = async () => {
-    if (!editingProspecto) return;
+  const handleSavePersona = async () => {
+    if (!editingPersona) return;
 
-    setSavingProspecto(true);
+    setSavingPersona(true);
     try {
-      await apiClient.put(`/crm/leads/${editingProspecto.id}`, editingProspecto);
+      await apiClient.put(`/crm/leads/${editingPersona.id}`, editingPersona);
 
-      const tipificacionAsesor = tipificaciones.find(t => t.id == editingProspecto.id_tipificacion_asesor);
+      const tipificacionAsesor = tipificaciones.find(t => t.id == editingPersona.id_tipificacion_asesor);
       const updatedChat = {
         ...selectedChat,
-        nombre_completo: editingProspecto.nombre_completo,
-        dni: editingProspecto.dni,
-        celular: editingProspecto.celular,
-        direccion: editingProspecto.direccion,
-        id_estado: editingProspecto.id_estado,
-        id_provedor: editingProspecto.id_provedor,
-        id_plan: editingProspecto.id_plan,
-        id_tipificacion_asesor: editingProspecto.id_tipificacion_asesor,
-        estado_nombre: estados.find(e => e.id == editingProspecto.id_estado)?.nombre || selectedChat.estado_nombre,
-        estado_color: estados.find(e => e.id == editingProspecto.id_estado)?.color || selectedChat.estado_color,
+        nombre_completo: editingPersona.nombre_completo,
+        dni: editingPersona.dni,
+        celular: editingPersona.celular,
+        direccion: editingPersona.direccion,
+        id_estado: editingPersona.id_estado,
+        id_provedor: editingPersona.id_provedor,
+        id_plan: editingPersona.id_plan,
+        id_tipificacion_asesor: editingPersona.id_tipificacion_asesor,
+        estado_nombre: estados.find(e => e.id == editingPersona.id_estado)?.nombre || selectedChat.estado_nombre,
+        estado_color: estados.find(e => e.id == editingPersona.id_estado)?.color || selectedChat.estado_color,
         tipificacion_nombre: tipificacionAsesor?.nombre || selectedChat.tipificacion_nombre,
         tipificacion_color: tipificacionAsesor?.color || selectedChat.tipificacion_color
       };
@@ -687,13 +687,13 @@ export default function ConversacionesPage() {
         c.id === selectedChat.id ? updatedChat : c
       ));
 
-      setShowEditProspectoModal(false);
-      setEditingProspecto(null);
+      setShowEditPersonaModal(false);
+      setEditingPersona(null);
     } catch (err) {
-      console.error('Error al guardar prospecto:', err);
+      console.error('Error al guardar persona:', err);
       alert('Error al guardar los cambios');
     } finally {
-      setSavingProspecto(false);
+      setSavingPersona(false);
     }
   };
 
@@ -1089,9 +1089,9 @@ export default function ConversacionesPage() {
                       <Eye className="h-4 w-4" />
                       Ver Detalle
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleOpenEditProspecto} className="cursor-pointer gap-2 py-2.5">
+                    <DropdownMenuItem onClick={handleOpenEditPersona} className="cursor-pointer gap-2 py-2.5">
                       <Pencil className="h-4 w-4" />
-                      Editar Prospecto
+                      Editar Persona
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1279,9 +1279,9 @@ export default function ConversacionesPage() {
       </div>
 
       {/* ============================================ */}
-      {/* MODAL: Editar Prospecto */}
+      {/* MODAL: Editar Persona */}
       {/* ============================================ */}
-      {showEditProspectoModal && editingProspecto && (
+      {showEditPersonaModal && editingPersona && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-scale-in">
             {/* Header */}
@@ -1290,12 +1290,12 @@ export default function ConversacionesPage() {
                 <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: '#008069' }}>
                   <Pencil className="h-5 w-5 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-[#111b21]">Editar Prospecto</h2>
+                <h2 className="text-lg font-semibold text-[#111b21]">Editar Persona</h2>
               </div>
               <button
                 onClick={() => {
-                  setShowEditProspectoModal(false);
-                  setEditingProspecto(null);
+                  setShowEditPersonaModal(false);
+                  setEditingPersona(null);
                 }}
                 className="h-9 w-9 rounded-full hover:bg-[#f0f2f5] flex items-center justify-center transition-colors"
               >
@@ -1310,8 +1310,8 @@ export default function ConversacionesPage() {
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Nombre Completo</label>
                   <input
                     type="text"
-                    value={editingProspecto.nombre_completo || ''}
-                    onChange={(e) => handleEditProspectoChange('nombre_completo', e.target.value)}
+                    value={editingPersona.nombre_completo || ''}
+                    onChange={(e) => handleEditPersonaChange('nombre_completo', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
@@ -1319,8 +1319,8 @@ export default function ConversacionesPage() {
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">DNI</label>
                   <input
                     type="text"
-                    value={editingProspecto.dni || ''}
-                    onChange={(e) => handleEditProspectoChange('dni', e.target.value)}
+                    value={editingPersona.dni || ''}
+                    onChange={(e) => handleEditPersonaChange('dni', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
@@ -1328,8 +1328,8 @@ export default function ConversacionesPage() {
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Celular</label>
                   <input
                     type="text"
-                    value={editingProspecto.celular || ''}
-                    onChange={(e) => handleEditProspectoChange('celular', e.target.value)}
+                    value={editingPersona.celular || ''}
+                    onChange={(e) => handleEditPersonaChange('celular', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
@@ -1337,16 +1337,16 @@ export default function ConversacionesPage() {
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Direccion</label>
                   <input
                     type="text"
-                    value={editingProspecto.direccion || ''}
-                    onChange={(e) => handleEditProspectoChange('direccion', e.target.value)}
+                    value={editingPersona.direccion || ''}
+                    onChange={(e) => handleEditPersonaChange('direccion', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Estado</label>
                   <select
-                    value={editingProspecto.id_estado || ''}
-                    onChange={(e) => handleEditProspectoChange('id_estado', e.target.value)}
+                    value={editingPersona.id_estado || ''}
+                    onChange={(e) => handleEditPersonaChange('id_estado', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   >
                     <option value="">Seleccionar estado</option>
@@ -1379,7 +1379,7 @@ export default function ConversacionesPage() {
                         type="button"
                         onClick={() => {
                           setNivelesEditTipAsesor([]);
-                          handleEditProspectoChange('id_tipificacion_asesor', null);
+                          handleEditPersonaChange('id_tipificacion_asesor', null);
                         }}
                         className="ml-2 p-1.5 text-[#667781] hover:text-red-500 rounded-full hover:bg-red-50 transition-colors"
                         title="Limpiar tipificacion"
@@ -1392,8 +1392,8 @@ export default function ConversacionesPage() {
                 <div>
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Proveedor</label>
                   <select
-                    value={editingProspecto.id_provedor || ''}
-                    onChange={(e) => handleEditProspectoChange('id_provedor', e.target.value)}
+                    value={editingPersona.id_provedor || ''}
+                    onChange={(e) => handleEditPersonaChange('id_provedor', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   >
                     <option value="">Seleccionar proveedor</option>
@@ -1405,8 +1405,8 @@ export default function ConversacionesPage() {
                 <div>
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Plan</label>
                   <select
-                    value={editingProspecto.id_plan || ''}
-                    onChange={(e) => handleEditProspectoChange('id_plan', e.target.value)}
+                    value={editingPersona.id_plan || ''}
+                    onChange={(e) => handleEditPersonaChange('id_plan', e.target.value)}
                     className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   >
                     <option value="">Seleccionar plan</option>
@@ -1423,20 +1423,20 @@ export default function ConversacionesPage() {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setShowEditProspectoModal(false);
-                  setEditingProspecto(null);
+                  setShowEditPersonaModal(false);
+                  setEditingPersona(null);
                 }}
                 className="text-[#667781] hover:bg-[#f0f2f5]"
               >
                 Cancelar
               </Button>
               <Button
-                onClick={handleSaveProspecto}
-                disabled={savingProspecto}
+                onClick={handleSavePersona}
+                disabled={savingPersona}
                 className="text-white gap-2"
                 style={{ background: '#008069' }}
               >
-                {savingProspecto ? (
+                {savingPersona ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Guardando...
@@ -1451,7 +1451,7 @@ export default function ConversacionesPage() {
       )}
 
       {/* ============================================ */}
-      {/* MODAL: Detalle del Prospecto */}
+      {/* MODAL: Detalle de la Persona */}
       {/* ============================================ */}
       {showDetailModal && selectedChat && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
@@ -1462,7 +1462,7 @@ export default function ConversacionesPage() {
                 <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: '#008069' }}>
                   <Eye className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold text-[#111b21]">Detalle del Prospecto</h3>
+                <h3 className="text-lg font-semibold text-[#111b21]">Detalle de la Persona</h3>
               </div>
               <button
                 onClick={() => setShowDetailModal(false)}

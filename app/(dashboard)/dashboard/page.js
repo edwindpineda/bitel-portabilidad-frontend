@@ -46,7 +46,7 @@ const STAT_CONFIG = [
   {
     key: 'totalLeads',
     name: 'Total Leads',
-    subtitle: 'Prospectos registrados',
+    subtitle: 'Personas registradas',
     icon: Users,
     from: '#3b82f6',
     to: '#2563eb',
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">General</h1>
-              <p className="text-xs text-muted-foreground">Seguimiento de prospectos y tasa de conversión</p>
+              <p className="text-xs text-muted-foreground">Seguimiento de personas y tasa de conversión</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -358,7 +358,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">Embudo de Conversión</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Flujo de prospectos</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Flujo de personas</p>
                 </div>
               </div>
             </CardHeader>
@@ -414,7 +414,7 @@ export default function DashboardPage() {
                   <CheckCircle2 className="h-6 w-6 text-emerald-200" />
                 </div>
                 <p className="text-4xl font-bold">{stats?.interesados?.toLocaleString() || 0}</p>
-                <p className="text-sm text-emerald-100 mt-1">Prospectos interesados</p>
+                <p className="text-sm text-emerald-100 mt-1">Personas interesadas</p>
                 <div className="flex items-center gap-2 mt-3">
                   <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">Line1 + Line2</Badge>
                   <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">{stats?.tasaConversion || 0}%</Badge>
@@ -456,7 +456,7 @@ export default function DashboardPage() {
                   </div>
                   <Progress value={stats?.tasaConversion || 0} className="h-2" />
                   <p className="text-xs text-muted-foreground mt-1.5">
-                    {stats?.interesados || 0} de {stats?.totalLeads || 0} prospectos
+                    {stats?.interesados || 0} de {stats?.totalLeads || 0} personas
                   </p>
                 </div>
                 <div className="border-t border-gray-200/60 pt-4">
