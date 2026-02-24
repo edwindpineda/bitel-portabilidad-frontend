@@ -65,7 +65,6 @@ import {
   TrendingUp,
   Filter,
   Zap,
-  Activity,
   Shield,
   CloudDownload,
 } from 'lucide-react';
@@ -253,11 +252,13 @@ export default function LeadsPage() {
       dni: lead.dni || '',
       celular: lead.celular || lead.contacto_celular || '',
       direccion: lead.direccion || '',
-      id_estado: lead.id_estado || '',
-      id_provedor: lead.id_provedor || '',
-      id_plan: lead.id_plan || '',
-      id_tipificacion: lead.id_tipificacion || '',
-      id_asesor: lead.id_asesor || ''
+      id_estado: lead.id_estado ? parseInt(lead.id_estado) : '',
+      id_provedor: lead.id_proveedor ? parseInt(lead.id_proveedor) : (lead.id_provedor ? parseInt(lead.id_provedor) : ''),
+      id_plan: lead.id_catalogo ? parseInt(lead.id_catalogo) : (lead.id_plan ? parseInt(lead.id_plan) : ''),
+      id_tipificacion: lead.id_tipificacion ? parseInt(lead.id_tipificacion) : '',
+      id_tipificacion_asesor: lead.id_tipificacion ? parseInt(lead.id_tipificacion) : '',
+      id_tipificacion_bot: lead.id_tipificacion_bot ? parseInt(lead.id_tipificacion_bot) : '',
+      id_asesor: lead.id_usuario ? parseInt(lead.id_usuario) : (lead.id_asesor ? parseInt(lead.id_asesor) : '')
     });
     setShowEditModal(true);
   };
@@ -315,14 +316,14 @@ export default function LeadsPage() {
     const { fromDate, toDate } = getDateRangeFilter();
     let matchesDate = true;
     if (fromDate || toDate) {
-      const leadDate = new Date(lead.created_at);
+      const leadDate = new Date(lead.fecha_registro);
       if (fromDate && leadDate < fromDate) matchesDate = false;
       if (toDate && leadDate > toDate) matchesDate = false;
     }
     const matchesEstado = !selectedEstado || lead.id_estado === parseInt(selectedEstado);
-    const matchesTipificacion = !selectedTipificacion || lead.id_tipificacion === parseInt(selectedTipificacion);
-    const matchesTipificacionAsesor = !selectedTipificacionAsesor || lead.id_tipificacion_asesor === parseInt(selectedTipificacionAsesor);
-    const matchesAsesor = !selectedAsesorFilter || lead.id_asesor === parseInt(selectedAsesorFilter);
+    const matchesTipificacion = !selectedTipificacion || lead.id_tipificacion_bot === parseInt(selectedTipificacion);
+    const matchesTipificacionAsesor = !selectedTipificacionAsesor || lead.id_tipificacion === parseInt(selectedTipificacionAsesor);
+    const matchesAsesor = !selectedAsesorFilter || lead.id_usuario === parseInt(selectedAsesorFilter);
     return matchesSearch && matchesDate && matchesEstado && matchesTipificacion && matchesTipificacionAsesor && matchesAsesor;
   });
 
@@ -400,7 +401,7 @@ export default function LeadsPage() {
       'Estado': lead.estado_nombre || '', 'Proveedor': lead.proveedor_nombre || '',
       'Plan': lead.plan_nombre || '', 'Tipificacion': lead.tipificacion_nombre || '',
       'Asesor': lead.asesor_nombre || '',
-      'Fecha Registro': lead.created_at ? new Date(lead.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
+      'Fecha Registro': lead.fecha_registro ? new Date(lead.fecha_registro).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
     }));
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
@@ -593,10 +594,10 @@ export default function LeadsPage() {
 
       {/* ========== SEARCH & FILTERS BAR ========== */}
       <Card className="overflow-hidden animate-scale-in" style={{ animationDelay: '500ms' }}>
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-3 space-y-2">
           <div className="flex items-center gap-3">
             {/* Search - Premium glass style */}
-            <div className="relative flex-1 max-w-md group">
+            <div className="relative flex-1 max-w-sm group">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
                 <Search className="h-3 w-3 text-indigo-500 group-focus-within:text-cyan-500 transition-colors" />
               </div>
@@ -605,7 +606,7 @@ export default function LeadsPage() {
                 placeholder="Buscar nombre, celular, DNI..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
+                className="w-full h-9 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
               />
               {searchTerm && (
                 <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors">
@@ -654,7 +655,7 @@ export default function LeadsPage() {
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className={`gap-2 h-10 rounded-xl px-4 transition-all duration-300 ${
+              className={`gap-2 h-9 rounded-xl px-3 transition-all duration-300 ${
                 showFilters
                   ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-indigo-500 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25'
                   : hasActiveFilters
@@ -673,17 +674,21 @@ export default function LeadsPage() {
               )}
             </Button>
 
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-10 gap-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl"
-              >
-                <XCircle className="h-3.5 w-3.5" />
-                Limpiar
-              </Button>
-            )}
+            {/* Results summary - inline */}
+            <div className="hidden md:flex items-center gap-2 ml-auto">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                <span className="font-bold text-foreground tabular-nums">{filteredLeads.length}</span>
+                {' '}/{' '}
+                <span className="font-bold text-foreground tabular-nums">{leads.length}</span>
+                {' '}leads
+              </span>
+              {hasActiveFilters && (
+                <button onClick={clearFilters} className="text-[11px] font-medium text-muted-foreground hover:text-red-500 flex items-center gap-1 transition-colors">
+                  <XCircle className="h-3 w-3" />
+                  Limpiar
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Custom dates */}
@@ -702,109 +707,99 @@ export default function LeadsPage() {
 
           {/* Expandable filters */}
           {showFilters && (
-            <div className="space-y-4 pt-2 animate-slide-up">
-              <Separator />
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <div className="border-t border-border/40 pt-2.5 animate-slide-up">
+              <div className="flex flex-wrap items-end gap-3">
+
+                {/* Estado */}
+                <div className="flex flex-col gap-1 min-w-[160px]">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
                     Estado
                   </label>
                   <select value={selectedEstado} onChange={(e) => setSelectedEstado(e.target.value)}
-                    className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                    className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
                     <option value="">Todos los estados</option>
                     {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                   </select>
                 </div>
+
+                {/* Asesor */}
                 {canFilterByAsesor && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="flex flex-col gap-1 min-w-[160px]">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                       <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
                       Asesor
                     </label>
                     <select value={selectedAsesorFilter} onChange={(e) => setSelectedAsesorFilter(e.target.value)}
-                      className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
                       <option value="">Todos los asesores</option>
                       {asesoresFilter.map((a) => <option key={a.id} value={a.id}>{a.username}</option>)}
                     </select>
                   </div>
                 )}
-                {/* Mobile date range */}
-                <div className="lg:hidden space-y-1.5">
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+
+                {/* Separador vertical */}
+                <div className="hidden lg:block h-8 w-px bg-border/60 self-end mb-0.5" />
+
+                {/* Tipificacion Bot */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    Tipif. Bot
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {nivelesDropdownBot.map((nivel, index) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        {index > 0 && <ChevronRightSmall className="h-3 w-3 text-indigo-300" />}
+                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelBotChange(index, e.target.value)}
+                          className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border-0">
+                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
+                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Separador vertical */}
+                <div className="hidden lg:block h-8 w-px bg-border/60 self-end mb-0.5" />
+
+                {/* Tipificacion Asesor */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-wider flex items-center gap-1">
+                    <Shield className="h-2.5 w-2.5" />
+                    Tipif. Asesor
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {nivelesDropdownAsesor.map((nivel, index) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        {index > 0 && <ChevronRightSmall className="h-3 w-3 text-violet-300" />}
+                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelAsesorChange(index, e.target.value)}
+                          className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20 border-0">
+                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
+                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mobile: Periodo */}
+                <div className="lg:hidden flex flex-col gap-1 min-w-[140px]">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
                     Periodo
                   </label>
                   <select value={dateRange} onChange={(e) => handleDateRangeChange(e.target.value)}
-                    className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                    className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
                     {DATE_RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
-              </div>
 
-              {/* Tipificaciones */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/50 to-blue-50/50 border border-indigo-100/50">
-                  <label className="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3" />
-                    Tipificacion Bot
-                  </label>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {nivelesDropdownBot.map((nivel, index) => (
-                      <div key={index} className="flex items-center gap-1.5">
-                        {index > 0 && <ChevronRightSmall className="h-3.5 w-3.5 text-indigo-300" />}
-                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelBotChange(index, e.target.value)}
-                          className="h-8 px-2.5 text-xs rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border border-indigo-200/50">
-                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
-                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-50/50 to-purple-50/50 border border-violet-100/50">
-                  <label className="text-[11px] font-semibold text-violet-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    <Shield className="h-3 w-3" />
-                    Tipificacion Asesor
-                  </label>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {nivelesDropdownAsesor.map((nivel, index) => (
-                      <div key={index} className="flex items-center gap-1.5">
-                        {index > 0 && <ChevronRightSmall className="h-3.5 w-3.5 text-violet-300" />}
-                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelAsesorChange(index, e.target.value)}
-                          className="h-8 px-2.5 text-xs rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-violet-500/20 border border-violet-200/50">
-                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
-                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           )}
 
-          {/* Active filters summary */}
-          {hasActiveFilters && (
-            <div className="flex items-center gap-2 pt-1">
-              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center">
-                <Activity className="h-3 w-3 text-indigo-500" />
-              </div>
-              <span className="text-xs text-muted-foreground">
-                Mostrando <span className="font-semibold text-foreground">{filteredLeads.length}</span> de <span className="font-semibold text-foreground">{leads.length}</span> leads
-              </span>
-              {dateRange !== 'all' && dateRange !== 'custom' && (
-                <Badge className="text-[10px] h-5 px-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-0">
-                  {DATE_RANGES.find(r => r.value === dateRange)?.label}
-                </Badge>
-              )}
-              {dateRange === 'custom' && dateFrom && dateTo && (
-                <Badge className="text-[10px] h-5 px-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-0">
-                  {dateFrom} - {dateTo}
-                </Badge>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -923,15 +918,15 @@ export default function LeadsPage() {
                   <TableCell className="text-sm text-muted-foreground">{lead.proveedor_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{lead.plan_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
                   <TableCell>
-                    {lead.tipificacion_nombre ? (
+                    {lead.tipificacion_bot_nombre ? (
                       <span
                         className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg"
                         style={{
-                          backgroundColor: getColorHex(lead.tipificacion_color) + '12',
-                          color: getColorHex(lead.tipificacion_color),
+                          backgroundColor: getColorHex(lead.tipificacion_bot_color) + '12',
+                          color: getColorHex(lead.tipificacion_bot_color),
                         }}
                       >
-                        {lead.tipificacion_nombre}
+                        {lead.tipificacion_bot_nombre}
                       </span>
                     ) : <span className="text-muted-foreground/25 text-xs">--</span>}
                   </TableCell>
@@ -958,7 +953,7 @@ export default function LeadsPage() {
                       </div>
                     ) : <span className="text-muted-foreground/25 text-xs">--</span>}
                   </TableCell>
-                  <TableCell className="text-[11px] text-muted-foreground/50 tabular-nums whitespace-nowrap">{formatDate(lead.created_at)}</TableCell>
+                  <TableCell className="text-[11px] text-muted-foreground/50 tabular-nums whitespace-nowrap">{formatDate(lead.fecha_registro)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1242,19 +1237,19 @@ export default function LeadsPage() {
                     </div>
                     <div>
                       <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Bot</label>
-                      <select value={editingLead.id_tipificacion || ''} disabled
-                        className="w-full h-10 px-4 rounded-xl bg-muted/30 text-sm text-muted-foreground cursor-not-allowed">
+                      <select value={editingLead.id_tipificacion_bot ? String(editingLead.id_tipificacion_bot) : ''} onChange={(e) => handleEditChange('id_tipificacion_bot', e.target.value ? parseInt(e.target.value) : null)}
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
                         <option value="">Seleccionar</option>
-                        {tipificaciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                        {tipificaciones.filter(t => t.flag_bot == 1).map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
                       </select>
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Asesor</label>
-                    <select value={editingLead.id_tipificacion_asesor || ''} onChange={(e) => handleEditChange('id_tipificacion_asesor', e.target.value ? parseInt(e.target.value) : null)}
+                    <select value={editingLead.id_tipificacion_asesor ? String(editingLead.id_tipificacion_asesor) : ''} onChange={(e) => handleEditChange('id_tipificacion_asesor', e.target.value ? parseInt(e.target.value) : null)}
                       className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
                       <option value="">Seleccionar</option>
-                      {tipificaciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                      {tipificaciones.filter(t => t.flag_asesor == 1).map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1372,7 +1367,7 @@ export default function LeadsPage() {
                   { icon: Briefcase, label: 'Proveedor', value: detailLead.proveedor_nombre, color: 'amber' },
                   { icon: ClipboardList, label: 'Plan', value: detailLead.plan_nombre, color: 'cyan' },
                   { icon: User, label: 'Asesor', value: detailLead.asesor_nombre, color: 'indigo' },
-                  { icon: Clock, label: 'Registro', value: formatDate(detailLead.created_at), color: 'rose' },
+                  { icon: Clock, label: 'Registro', value: formatDate(detailLead.fecha_registro), color: 'rose' },
                 ].map((item) => {
                   const colorMap = { blue: '#3b82f6', emerald: '#10b981', violet: '#8b5cf6', amber: '#f59e0b', cyan: '#06b6d4', indigo: '#6366f1', rose: '#f43f5e' };
                   const c = colorMap[item.color];
@@ -1392,18 +1387,18 @@ export default function LeadsPage() {
 
               {/* Tipificaciones */}
               <div className="flex flex-wrap gap-3">
-                {detailLead.tipificacion_nombre && (
+                {detailLead.tipificacion_bot_nombre && (
                   <div className="flex items-center gap-2 p-2.5 px-3.5 rounded-xl bg-muted/30">
                     <span className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">Bot:</span>
                     <span
                       className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-sm"
                       style={{
-                        backgroundColor: getColorHex(detailLead.tipificacion_color) + '15',
-                        color: getColorHex(detailLead.tipificacion_color),
-                        boxShadow: `0 2px 8px -2px ${getColorHex(detailLead.tipificacion_color)}25`,
+                        backgroundColor: getColorHex(detailLead.tipificacion_bot_color) + '15',
+                        color: getColorHex(detailLead.tipificacion_bot_color),
+                        boxShadow: `0 2px 8px -2px ${getColorHex(detailLead.tipificacion_bot_color)}25`,
                       }}
                     >
-                      {detailLead.tipificacion_nombre}
+                      {detailLead.tipificacion_bot_nombre}
                     </span>
                   </div>
                 )}

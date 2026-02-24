@@ -53,8 +53,8 @@ const STAT_CONFIG = [
   },
   {
     key: 'interesados',
-    name: 'Interesados',
-    subtitle: 'Line1 + Line2',
+    name: 'Clientes',
+    subtitle: 'Prospectos convertidos',
     icon: CheckCircle2,
     from: '#10b981',
     to: '#059669',
@@ -70,7 +70,7 @@ const STAT_CONFIG = [
   {
     key: 'tasaConversion',
     name: 'Conversión',
-    subtitle: 'Interesados / Total',
+    subtitle: 'Clientes / Total leads',
     icon: TrendingUp,
     from: '#f59e0b',
     to: '#f97316',
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                     <Target className="h-5 w-5 text-emerald-600" />
                     <div>
                       <p className="text-sm font-medium">Tasa de Conversión</p>
-                      <p className="text-xs text-muted-foreground">Interesados sobre total</p>
+                      <p className="text-xs text-muted-foreground">Clientes / Total leads</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -387,15 +387,15 @@ export default function DashboardPage() {
                   <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                   <CheckCircle2 className="h-5 w-5 mb-3 opacity-80" />
                   <p className="text-3xl font-bold">{stats?.interesados?.toLocaleString() || 0}</p>
-                  <p className="text-sm text-emerald-100 mt-1">Interesados</p>
-                  <p className="text-xs text-emerald-200 mt-0.5">Line1 + Line2</p>
+                  <p className="text-sm text-emerald-100 mt-1">Clientes</p>
+                  <p className="text-xs text-emerald-200 mt-0.5">Prospectos convertidos</p>
                 </div>
               </div>
 
               {/* Conversion arrows */}
               <div className="flex items-center justify-center gap-2 mt-5 py-3 px-4 rounded-xl bg-gray-50/80">
                 <span className="text-sm text-muted-foreground">Fórmula:</span>
-                <span className="text-sm font-medium">Interesados / Total Leads</span>
+                <span className="text-sm font-medium">Clientes / Total Leads</span>
                 <span className="text-sm text-muted-foreground">=</span>
                 <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0">
                   {stats?.tasaConversion || 0}% conversión
@@ -410,13 +410,13 @@ export default function DashboardPage() {
             <GlassCard className="overflow-hidden">
               <div className="bg-gradient-to-br from-emerald-500 to-cyan-500 p-6 text-white">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm font-medium text-emerald-100">Interesados</p>
+                  <p className="text-sm font-medium text-emerald-100">Clientes</p>
                   <CheckCircle2 className="h-6 w-6 text-emerald-200" />
                 </div>
                 <p className="text-4xl font-bold">{stats?.interesados?.toLocaleString() || 0}</p>
-                <p className="text-sm text-emerald-100 mt-1">Personas interesadas</p>
+                <p className="text-sm text-emerald-100 mt-1">Prospectos convertidos</p>
                 <div className="flex items-center gap-2 mt-3">
-                  <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">Line1 + Line2</Badge>
+                  <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">Tipo persona = Cliente</Badge>
                   <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">{stats?.tasaConversion || 0}%</Badge>
                 </div>
               </div>
@@ -451,7 +451,7 @@ export default function DashboardPage() {
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Interesados / Total</span>
+                    <span className="text-muted-foreground">Clientes / Total</span>
                     <span className="font-bold text-emerald-600">{stats?.tasaConversion || 0}%</span>
                   </div>
                   <Progress value={stats?.tasaConversion || 0} className="h-2" />

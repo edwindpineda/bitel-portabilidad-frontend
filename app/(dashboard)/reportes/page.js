@@ -73,32 +73,42 @@ export default function ReportesPage() {
   const [tipoReporte, setTipoReporte] = useState('mensajes');
 
   const getDateParams = useCallback(() => {
-    const now = new Date();
+    const today = new Date().toISOString().split('T')[0];
     let fromDate = null;
-    let toDate = now.toISOString().split('T')[0];
+    let toDate = today;
 
     switch (dateRange) {
       case 'today':
-        fromDate = toDate;
+        fromDate = today;
         break;
-      case '7d':
-        fromDate = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
+      case '7d': {
+        const d = new Date(); d.setDate(d.getDate() - 7);
+        fromDate = d.toISOString().split('T')[0];
         break;
-      case '1m':
-        fromDate = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0];
+      }
+      case '1m': {
+        const d = new Date(); d.setMonth(d.getMonth() - 1);
+        fromDate = d.toISOString().split('T')[0];
         break;
-      case '3m':
-        fromDate = new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0];
+      }
+      case '3m': {
+        const d = new Date(); d.setMonth(d.getMonth() - 3);
+        fromDate = d.toISOString().split('T')[0];
         break;
-      case '6m':
-        fromDate = new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString().split('T')[0];
+      }
+      case '6m': {
+        const d = new Date(); d.setMonth(d.getMonth() - 6);
+        fromDate = d.toISOString().split('T')[0];
         break;
-      case '12m':
-        fromDate = new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0];
+      }
+      case '12m': {
+        const d = new Date(); d.setFullYear(d.getFullYear() - 1);
+        fromDate = d.toISOString().split('T')[0];
         break;
+      }
       case 'custom':
         fromDate = dateFrom || null;
-        toDate = dateTo || new Date().toISOString().split('T')[0];
+        toDate = dateTo || today;
         break;
       default:
         return {};
@@ -106,7 +116,7 @@ export default function ReportesPage() {
 
     const params = {};
     if (fromDate) params.dateFrom = fromDate;
-    if (toDate && dateRange !== 'all') params.dateTo = toDate;
+    if (toDate) params.dateTo = toDate;
     return params;
   }, [dateRange, dateFrom, dateTo]);
 
