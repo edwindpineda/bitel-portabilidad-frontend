@@ -22,6 +22,7 @@ import {
   Home,
   MessageCircle,
   Users,
+  UserCheck,
   BarChart3,
   Megaphone,
   Building2,
@@ -52,6 +53,7 @@ const BASE_MENU = [
   { name: 'Dashboard', icon: Home, path: '/dashboard', badge: null },
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
   { name: 'Leads', icon: Users, path: '/leads', badge: null },
+  { name: 'Clientes', icon: UserCheck, path: '/clientes', badge: null },
   { name: 'Reportes', icon: BarChart3, path: '/reportes', badge: null },
   { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null },
   { name: 'Configuración', icon: Settings, path: '/configuracion', badge: null },
@@ -191,9 +193,9 @@ export default function Sidebar() {
     const fetchUnreadCount = async () => {
       try {
         const response = await apiClient.get('/crm/contactos/unread/count');
-        setUnreadCount(response.data?.data?.unreadCount || 0);
-      } catch (error) {
-        console.error('Error al cargar conteo de no leidos:', error);
+        setUnreadCount(response.data?.unreadCount || 0);
+      } catch {
+        // silencioso — el backend puede no tener esta ruta habilitada
       }
     };
 

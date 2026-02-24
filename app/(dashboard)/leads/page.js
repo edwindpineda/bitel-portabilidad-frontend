@@ -67,6 +67,7 @@ import {
   Zap,
   Shield,
   CloudDownload,
+  UserCheck2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -138,6 +139,9 @@ export default function LeadsPage() {
   const [proveedores, setProveedores] = useState([]);
   const [planes, setPlanes] = useState([]);
   const [savingLead, setSavingLead] = useState(false);
+  const [showConvertirModal, setShowConvertirModal] = useState(false);
+  const [convertingLead, setConvertingLead] = useState(null);
+  const [convertingLoading, setConvertingLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailLead, setDetailLead] = useState(null);
   const [perfilamientoData, setPerfilamientoData] = useState([]);
@@ -281,6 +285,25 @@ export default function LeadsPage() {
       alert('Error al actualizar lead');
     } finally {
       setSavingLead(false);
+    }
+  };
+
+  const handleConvertirCliente = async () => {
+    if (!convertingLead) return;
+    try {
+      setConvertingLoading(true);
+      await apiClient.put(`/crm/leads/${convertingLead.id}`, {
+        tipo: 'cliente',
+        fue_prospecto: true,
+      });
+      setShowConvertirModal(false);
+      setConvertingLead(null);
+      loadData();
+    } catch (error) {
+      console.error('Error al convertir a cliente:', error);
+      alert('Error al convertir a cliente');
+    } finally {
+      setConvertingLoading(false);
     }
   };
 
@@ -978,6 +1001,20 @@ export default function LeadsPage() {
                           </div>
                           Editar lead
                         </DropdownMenuItem>
+                        {lead.tipo !== 'cliente' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => { setConvertingLead(lead); setShowConvertirModal(true); }}
+                              className="gap-2.5 text-xs rounded-lg py-2.5"
+                            >
+                              <div className="h-6 w-6 rounded-md bg-emerald-50 flex items-center justify-center">
+                                <UserCheck2 className="h-3.5 w-3.5 text-emerald-600" />
+                              </div>
+                              Convertir a cliente
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -1293,6 +1330,59 @@ export default function LeadsPage() {
             >
               {savingLead && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {savingLead ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convertir a Cliente Modal */}
+      <Dialog open={showConvertirModal} onOpenChange={(open) => { if (!open) { setShowConvertirModal(false); setConvertingLead(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div
+                className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                  boxShadow: '0 8px 24px -4px rgba(16, 185, 129, 0.3)',
+                }}
+              >
+                <UserCheck2 className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span>Convertir a Cliente</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Esta accion cambiara el tipo del prospecto</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Confirmar conversion de prospecto a cliente</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+              <UserCheck2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">
+                  {convertingLead?.nombre_completo || 'Sin nombre'}
+                </p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  {convertingLead?.celular || convertingLead?.contacto_celular || 'Sin celular'}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground px-1">
+              Se establecera el tipo a <span className="font-semibold text-foreground">cliente</span> y se activara la flag <span className="font-semibold text-foreground">fue_prospecto</span>. Esta accion no se puede deshacer desde aqui.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowConvertirModal(false); setConvertingLead(null); }} className="rounded-xl">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConvertirCliente}
+              disabled={convertingLoading}
+              className="gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/25 text-white"
+            >
+              {convertingLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {convertingLoading ? 'Convirtiendo...' : 'Confirmar Conversion'}
             </Button>
           </DialogFooter>
         </DialogContent>
