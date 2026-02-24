@@ -47,6 +47,10 @@ import {
   Tag,
   Database,
   Radio,
+  Users,
+  UserPlus,
+  ChevronLeft,
+  UserCheck2,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -77,12 +81,24 @@ export default function CampaniasPage() {
   const [ejecuciones, setEjecuciones] = useState([]);
   const [ejecutando, setEjecutando] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tiposCampania, setTiposCampania] = useState([]);
+  // Personas por ejecucion
+  const [selectedEjecucion, setSelectedEjecucion] = useState(null);
+  const [personasEjecucion, setPersonasEjecucion] = useState([]);
+  const [loadingPersonas, setLoadingPersonas] = useState(false);
+  const [searchPersona, setSearchPersona] = useState('');
+  const [personasResultados, setPersonasResultados] = useState([]);
+  const [loadingBusqueda, setLoadingBusqueda] = useState(false);
+  const [filtroTipoPersona, setFiltroTipoPersona] = useState('todos'); // 'todos' | 'prospecto' | 'cliente'
+  const [personasSeleccionadas, setPersonasSeleccionadas] = useState([]); // ids seleccionados para agregar en lote
+  const [agregandoLote, setAgregandoLote] = useState(false);
 
   // Estados para el modal de crear/editar
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    id_formato: ''
+    id_formato: '',
+    id_tipo_campania: ''
   });
   const [basesSeleccionadas, setBasesSeleccionadas] = useState([]);
   const [searchBase, setSearchBase] = useState('');
@@ -107,16 +123,18 @@ export default function CampaniasPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [campaniasRes, basesRes, formatosRes, plantillasRes] = await Promise.all([
+      const [campaniasRes, basesRes, formatosRes, plantillasRes, tiposRes] = await Promise.all([
         apiClient.get('/crm/campanias'),
         apiClient.get('/crm/bases-numeros'),
         apiClient.get('/crm/formatos'),
-        apiClient.get('/crm/plantillas')
+        apiClient.get('/crm/plantillas'),
+        apiClient.get('/crm/tipos-campania'),
       ]);
       setCampanias(campaniasRes?.data || []);
       setBasesDisponibles(basesRes?.data || []);
       setFormatos(formatosRes?.data || []);
       setPlantillasDisponibles(plantillasRes?.data || []);
+      setTiposCampania(tiposRes?.data || []);
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {
@@ -131,13 +149,15 @@ export default function CampaniasPage() {
       if (editingCampania) {
         await apiClient.put(`/crm/campanias/${editingCampania.id}`, {
           nombre: formData.nombre,
-          descripcion: formData.descripcion
+          descripcion: formData.descripcion,
+          id_tipo_campania: formData.id_tipo_campania ? parseInt(formData.id_tipo_campania) : null,
         });
         campaniaId = editingCampania.id;
       } else {
         const response = await apiClient.post('/crm/campanias', {
           nombre: formData.nombre,
-          descripcion: formData.descripcion
+          descripcion: formData.descripcion,
+          id_tipo_campania: formData.id_tipo_campania ? parseInt(formData.id_tipo_campania) : null,
         });
         campaniaId = response.data?.id;
       }
@@ -171,7 +191,8 @@ export default function CampaniasPage() {
     setFormData({
       nombre: campania.nombre || '',
       descripcion: campania.descripcion || '',
-      id_formato: ''
+      id_formato: '',
+      id_tipo_campania: campania.id_tipo_campania ? String(campania.id_tipo_campania) : ''
     });
     setBasesSeleccionadas([]);
     setSearchBase('');
@@ -193,7 +214,8 @@ export default function CampaniasPage() {
     setFormData({
       nombre: '',
       descripcion: '',
-      id_formato: ''
+      id_formato: '',
+      id_tipo_campania: ''
     });
     setBasesSeleccionadas([]);
     setSearchBase('');
@@ -348,6 +370,117 @@ export default function CampaniasPage() {
       alert(error.msg || 'Error al ejecutar campania');
     } finally {
       setEjecutando(false);
+    }
+  };
+
+  // ===== PERSONAS POR EJECUCION =====
+  const loadPersonasEjecucion = async (idEjecucion) => {
+    try {
+      setLoadingPersonas(true);
+      const res = await apiClient.get(`/crm/campania-ejecuciones/${idEjecucion}/personas`);
+      setPersonasEjecucion(res?.data || []);
+    } catch (error) {
+      console.error('Error al cargar personas de ejecucion:', error);
+    } finally {
+      setLoadingPersonas(false);
+    }
+  };
+
+  const [todasPersonas, setTodasPersonas] = useState([]);
+
+  const cargarTodasPersonas = async () => {
+    try {
+      setLoadingBusqueda(true);
+      const res = await apiClient.get('/crm/personas');
+      const todas = res?.data?.data || res?.data || [];
+      setTodasPersonas(todas);
+      setPersonasResultados(todas);
+    } catch (error) {
+      console.error('Error al cargar personas:', error);
+    } finally {
+      setLoadingBusqueda(false);
+    }
+  };
+
+  const buscarPersonas = (termino) => {
+    if (!termino || termino.trim() === '') {
+      setPersonasResultados(todasPersonas);
+      return;
+    }
+    const lower = termino.toLowerCase();
+    const filtradas = todasPersonas.filter(p =>
+      (p.nombre_completo && p.nombre_completo.toLowerCase().includes(lower)) ||
+      (p.celular && p.celular.includes(termino)) ||
+      (p.dni && p.dni.includes(termino))
+    );
+    setPersonasResultados(filtradas);
+  };
+
+  const handleAddPersona = async (persona) => {
+    if (!selectedEjecucion) return;
+    // Validación frontend: no agregar si ya está
+    if (personasEjecucion.some(pe => pe.id_persona === persona.id)) return;
+    try {
+      await apiClient.post(`/crm/campania-ejecuciones/${selectedEjecucion.id}/personas`, {
+        persona_ids: [persona.id]
+      });
+      await loadPersonasEjecucion(selectedEjecucion.id);
+    } catch (error) {
+      console.error('Error al agregar persona:', error);
+      alert(error?.msg || 'Error al agregar persona');
+    }
+  };
+
+  const handleRemovePersona = async (idCampaniaPersona) => {
+    try {
+      await apiClient.delete(`/crm/campania-personas/${idCampaniaPersona}`);
+      await loadPersonasEjecucion(selectedEjecucion.id);
+    } catch (error) {
+      console.error('Error al quitar persona:', error);
+    }
+  };
+
+  const handleVerPersonas = (ejecucion) => {
+    setSelectedEjecucion(ejecucion);
+    setSearchPersona('');
+    setPersonasResultados([]);
+    setTodasPersonas([]);
+    setFiltroTipoPersona('todos');
+    setPersonasSeleccionadas([]);
+    loadPersonasEjecucion(ejecucion.id);
+    cargarTodasPersonas();
+  };
+
+  const handleToggleSeleccion = (persona) => {
+    setPersonasSeleccionadas(prev =>
+      prev.some(p => p.id === persona.id)
+        ? prev.filter(p => p.id !== persona.id)
+        : [...prev, persona]
+    );
+  };
+
+  const handleAgregarLote = async () => {
+    if (!selectedEjecucion || personasSeleccionadas.length === 0) return;
+    // Filtrar las que ya están asignadas (doble validación frontend)
+    const idsNuevas = personasSeleccionadas
+      .filter(p => !personasEjecucion.some(pe => pe.id_persona === p.id))
+      .map(p => p.id);
+    if (idsNuevas.length === 0) {
+      setPersonasSeleccionadas([]);
+      return;
+    }
+    try {
+      setAgregandoLote(true);
+      await apiClient.post(`/crm/campania-ejecuciones/${selectedEjecucion.id}/personas`, {
+        persona_ids: idsNuevas
+      });
+      setPersonasSeleccionadas([]);
+      await loadPersonasEjecucion(selectedEjecucion.id);
+    } catch (error) {
+      console.error('Error al agregar personas:', error);
+      alert(error?.msg || 'Error al agregar personas');
+    } finally {
+      setAgregandoLote(false);
     }
   };
 
@@ -531,9 +664,9 @@ export default function CampaniasPage() {
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Nombre</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipo</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Descripcion</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Bases</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Plantillas</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Ejecuciones</TableHead>
               <TableHead className="w-16" />
             </TableRow>
@@ -553,6 +686,14 @@ export default function CampaniasPage() {
                   </div>
                 </TableCell>
                 <TableCell>
+                  {campania.tipo_campania_nombre ? (
+                    <Badge variant="secondary" className="text-[10px] bg-violet-50 text-violet-700 border border-violet-200/50 gap-1">
+                      <Tag className="h-2.5 w-2.5" />
+                      {campania.tipo_campania_nombre}
+                    </Badge>
+                  ) : <span className="text-muted-foreground/30 text-xs">--</span>}
+                </TableCell>
+                <TableCell>
                   <span className="text-sm text-muted-foreground max-w-[200px] truncate block">
                     {campania.descripcion || '-'}
                   </span>
@@ -566,17 +707,6 @@ export default function CampaniasPage() {
                   >
                     <Database className="h-3.5 w-3.5" />
                     {campania.total_bases || 0} bases
-                  </Button>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleViewPlantillas}
-                    className="gap-1.5 text-xs font-medium h-8 hover:bg-violet-50 hover:text-violet-700"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    {plantillasDisponibles.length} plantillas
                   </Button>
                 </TableCell>
                 <TableCell className="text-center">
@@ -714,6 +844,23 @@ export default function CampaniasPage() {
                 rows={2}
                 placeholder="Descripcion de la campania"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                Tipo de Campania
+              </label>
+              <select
+                value={formData.id_tipo_campania}
+                onChange={(e) => setFormData({ ...formData, id_tipo_campania: e.target.value })}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
+              >
+                <option value="">Sin tipo</option>
+                {tiposCampania.map((t) => (
+                  <option key={t.id} value={t.id}>{t.nombre}</option>
+                ))}
+              </select>
             </div>
 
             {/* Seccion de seleccion de bases (solo para nueva campania) */}
@@ -952,70 +1099,293 @@ export default function CampaniasPage() {
       </Dialog>
 
       {/* ========== MODAL: EJECUCIONES ========== */}
-      <Dialog open={showEjecucionesModal} onOpenChange={setShowEjecucionesModal}>
+      <Dialog open={showEjecucionesModal} onOpenChange={(open) => { if (!open) { setShowEjecucionesModal(false); setSelectedEjecucion(null); setPersonasEjecucion([]); setPersonasResultados([]); setTodasPersonas([]); setSearchPersona(''); setPersonasSeleccionadas([]); setFiltroTipoPersona('todos'); } }}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-white" />
-              </div>
-              Ejecuciones de Campania
+              {selectedEjecucion ? (
+                <>
+                  <button
+                    onClick={() => { setSelectedEjecucion(null); setPersonasEjecucion([]); setPersonasResultados([]); setTodasPersonas([]); setSearchPersona(''); setPersonasSeleccionadas([]); setFiltroTipoPersona('todos'); }}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-white" />
+                  </div>
+                  <span>Personas — Ejecucion #{selectedEjecucion.id}</span>
+                </>
+              ) : (
+                <>
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <Zap className="h-4 w-4 text-white" />
+                  </div>
+                  Ejecuciones de Campania
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
-              {selectedCampania?.nombre}
+              {selectedCampania?.nombre}{selectedEjecucion ? ` · ${selectedEjecucion.base_nombre}` : ''}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">ID</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Base</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Estado</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Resultado</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Registrado</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Inicio</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Fin</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ejecuciones.map((ejecucion) => (
-                  <TableRow key={ejecucion.id} className="table-row-premium">
-                    <TableCell className="text-sm text-muted-foreground font-mono">#{ejecucion.id}</TableCell>
-                    <TableCell className="text-sm font-medium">{ejecucion.base_nombre}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] font-semibold ${ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.color || 'bg-gray-100 text-gray-800'}`}
-                      >
-                        {ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.label || ejecucion.estado_ejecucion}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
-                      {ejecucion.resultado || '-'}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {ejecucion.fecha_registro ? new Date(ejecucion.fecha_registro).toLocaleString() : '-'}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {ejecucion.fecha_inicio ? new Date(ejecucion.fecha_inicio).toLocaleString() : '-'}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {ejecucion.fecha_fin ? new Date(ejecucion.fecha_fin).toLocaleString() : '-'}
-                    </TableCell>
+          {/* ---- VISTA: LISTA DE EJECUCIONES ---- */}
+          {!selectedEjecucion && (
+            <div className="rounded-xl border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">ID</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Base</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Estado</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Resultado</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Registrado</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Inicio</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Fin</TableHead>
+                    <TableHead className="w-12" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {ejecuciones.map((ejecucion) => (
+                    <TableRow key={ejecucion.id} className="table-row-premium group">
+                      <TableCell className="text-sm text-muted-foreground font-mono">#{ejecucion.id}</TableCell>
+                      <TableCell className="text-sm font-medium">{ejecucion.base_nombre}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] font-semibold ${ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.color || 'bg-gray-100 text-gray-800'}`}
+                        >
+                          {ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.label || ejecucion.estado_ejecucion}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
+                        {ejecucion.resultado || '-'}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {ejecucion.fecha_registro ? new Date(ejecucion.fecha_registro).toLocaleString() : '-'}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {ejecucion.fecha_inicio ? new Date(ejecucion.fecha_inicio).toLocaleString() : '-'}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {ejecucion.fecha_fin ? new Date(ejecucion.fecha_fin).toLocaleString() : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          onClick={() => handleVerPersonas(ejecucion)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50"
+                        >
+                          <Users className="h-3.5 w-3.5" />
+                          Personas
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {ejecuciones.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <ClipboardList className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campania</p>
+                </div>
+              )}
+            </div>
+          )}
 
-            {ejecuciones.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12">
-                <ClipboardList className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campania</p>
+          {/* ---- VISTA: PERSONAS DE LA EJECUCION ---- */}
+          {selectedEjecucion && (
+            <div className="space-y-4">
+              {/* Buscador + Filtro */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <UserPlus className="h-3 w-3" />
+                  Buscar y agregar persona
+                </label>
+
+                {/* Fila: input + filtro tipo */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
+                      <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Filtrar por nombre, celular o DNI..."
+                      value={searchPersona}
+                      onChange={(e) => { setSearchPersona(e.target.value); buscarPersonas(e.target.value); }}
+                      className="w-full h-10 pl-10 pr-9 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-background transition-colors"
+                    />
+                    {searchPersona && (
+                      <button onClick={() => { setSearchPersona(''); buscarPersonas(''); setPersonasSeleccionadas([]); }} className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors">
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                  {/* Filtro tipo persona */}
+                  <div className="flex rounded-xl overflow-hidden border bg-muted/30 text-[11px] font-semibold shrink-0">
+                    {[
+                      { key: 'todos', label: 'Todos' },
+                      { key: 'prospecto', label: 'Prospectos' },
+                      { key: 'cliente', label: 'Clientes' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setFiltroTipoPersona(key)}
+                        className={`px-3 h-10 transition-colors ${filtroTipoPersona === key ? 'bg-emerald-500 text-white' : 'text-muted-foreground hover:bg-muted/60'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Lista de personas disponibles */}
+                {loadingBusqueda && (
+                  <div className="flex items-center justify-center py-6 gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                    <span className="text-xs text-muted-foreground">Cargando personas...</span>
+                  </div>
+                )}
+                {!loadingBusqueda && (() => {
+                  const resultadosFiltrados = personasResultados.filter(p => {
+                    if (filtroTipoPersona === 'prospecto') return p.id_tipo_persona === 1;
+                    if (filtroTipoPersona === 'cliente') return p.id_tipo_persona === 2;
+                    return true;
+                  });
+                  return (
+                    <>
+                      {resultadosFiltrados.length > 0 && (
+                        <div className="border rounded-xl overflow-hidden">
+                          <div className="max-h-52 overflow-y-auto">
+                            {resultadosFiltrados.map((p) => {
+                              const yaAgregada = personasEjecucion.some(pe => pe.id_persona === p.id);
+                              const seleccionada = personasSeleccionadas.some(ps => ps.id === p.id);
+                              return (
+                                <div key={p.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors border-b last:border-b-0 ${seleccionada ? 'bg-emerald-50/50' : ''}`}>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    {!yaAgregada && (
+                                      <Checkbox
+                                        checked={seleccionada}
+                                        onCheckedChange={() => handleToggleSeleccion(p)}
+                                        className="shrink-0 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                      />
+                                    )}
+                                    <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center shrink-0">
+                                      <span className="text-[10px] font-bold text-emerald-600">{p.nombre_completo ? p.nombre_completo.charAt(0).toUpperCase() : '?'}</span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium truncate">{p.nombre_completo || 'Sin nombre'}</p>
+                                      <p className="text-[11px] text-muted-foreground">{p.celular || p.dni || '--'}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Badge variant="secondary" className={`text-[10px] ${p.id_tipo_persona === 2 ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                                      {p.tipo_persona_nombre || (p.id_tipo_persona === 2 ? 'Cliente' : 'Prospecto')}
+                                    </Badge>
+                                    {yaAgregada ? (
+                                      <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1"><UserCheck2 className="h-3 w-3" /> Ya agregado</span>
+                                    ) : (
+                                      <button onClick={() => { handleAddPersona(p); setPersonasSeleccionadas(prev => prev.filter(ps => ps.id !== p.id)); }} className="h-7 w-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors" title="Agregar solo este">
+                                        <Plus className="h-3.5 w-3.5 text-emerald-600" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Barra de selección múltiple */}
+                          {personasSeleccionadas.length > 0 && (
+                            <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50 border-t">
+                              <span className="text-xs font-medium text-emerald-700">
+                                {personasSeleccionadas.length} persona{personasSeleccionadas.length !== 1 ? 's' : ''} seleccionada{personasSeleccionadas.length !== 1 ? 's' : ''}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => setPersonasSeleccionadas([])} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                  Deseleccionar
+                                </button>
+                                <button
+                                  onClick={handleAgregarLote}
+                                  disabled={agregandoLote}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-60"
+                                >
+                                  {agregandoLote ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                                  Agregar {personasSeleccionadas.length}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {!loadingBusqueda && personasResultados.length > 0 && resultadosFiltrados.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">No hay personas de este tipo</p>
+                      )}
+                      {!loadingBusqueda && personasResultados.length === 0 && !loadingBusqueda && (
+                        <p className="text-xs text-muted-foreground text-center py-2">No se encontraron personas</p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
-            )}
-          </div>
+
+              {/* Lista de personas ya asignadas */}
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <Users className="h-3 w-3" />
+                  Personas asignadas ({personasEjecucion.length})
+                </label>
+                <div className="rounded-xl border overflow-hidden">
+                  {loadingPersonas ? (
+                    <div className="flex items-center justify-center py-8 gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                      <span className="text-xs text-muted-foreground">Cargando...</span>
+                    </div>
+                  ) : personasEjecucion.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Nombre</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Celular</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">DNI</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Tipo</TableHead>
+                          <TableHead className="w-10" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {personasEjecucion.map((p) => (
+                          <TableRow key={p.id} className="table-row-premium group">
+                            <TableCell className="text-sm font-medium">{p.nombre_completo || '-'}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{p.celular || '-'}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{p.dni || '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] ${p.id_tipo_persona === 2 ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                                {p.tipo_persona_nombre || (p.id_tipo_persona === 2 ? 'Cliente' : 'Prospecto')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <button
+                                onClick={() => handleRemovePersona(p.id)}
+                                className="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 transition-all"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10">
+                      <Users className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                      <p className="text-sm text-muted-foreground">Sin personas asignadas</p>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">Usa el buscador para agregar</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -50,7 +50,6 @@ import {
   MapPin,
   User,
   Tag,
-  Briefcase,
   MessageSquare,
   Clock,
   ArrowUpDown,
@@ -136,7 +135,6 @@ export default function LeadsPage() {
   const [selectedAsesorId, setSelectedAsesorId] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
-  const [proveedores, setProveedores] = useState([]);
   const [planes, setPlanes] = useState([]);
   const [savingLead, setSavingLead] = useState(false);
   const [showConvertirModal, setShowConvertirModal] = useState(false);
@@ -169,17 +167,15 @@ export default function LeadsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [leadsRes, estadosRes, tipificacionesRes, proveedoresRes, planesRes] = await Promise.all([
+      const [leadsRes, estadosRes, tipificacionesRes, planesRes] = await Promise.all([
         apiClient.get('/crm/leads'),
         apiClient.get('/crm/estados'),
         apiClient.get('/crm/tipificaciones'),
-        apiClient.get('/crm/leads/proveedores'),
         apiClient.get('/crm/leads/catalogo')
       ]);
       setLeads(leadsRes.data || []);
       setEstados(estadosRes.data || []);
       setTipificaciones(tipificacionesRes.data || []);
-      setProveedores(proveedoresRes.data || []);
       setPlanes(planesRes.data || []);
     } catch (error) {
       console.error('Error al cargar datos:', error);
@@ -257,7 +253,6 @@ export default function LeadsPage() {
       celular: lead.celular || lead.contacto_celular || '',
       direccion: lead.direccion || '',
       id_estado: lead.id_estado ? parseInt(lead.id_estado) : '',
-      id_provedor: lead.id_proveedor ? parseInt(lead.id_proveedor) : (lead.id_provedor ? parseInt(lead.id_provedor) : ''),
       id_plan: lead.id_catalogo ? parseInt(lead.id_catalogo) : (lead.id_plan ? parseInt(lead.id_plan) : ''),
       id_tipificacion: lead.id_tipificacion ? parseInt(lead.id_tipificacion) : '',
       id_tipificacion_asesor: lead.id_tipificacion ? parseInt(lead.id_tipificacion) : '',
@@ -420,7 +415,7 @@ export default function LeadsPage() {
     const dataToExport = filteredLeads.map(lead => ({
       'ID': lead.id, 'Nombre': lead.nombre_completo || '', 'DNI': lead.dni || '',
       'Celular': lead.celular || lead.contacto_celular || '', 'Direccion': lead.direccion || '',
-      'Estado': lead.estado_nombre || '', 'Proveedor': lead.proveedor_nombre || '',
+      'Estado': lead.estado_nombre || '',
       'Plan': lead.plan_nombre || '', 'Tipificacion': lead.tipificacion_nombre || '',
       'Asesor': lead.asesor_nombre || '',
       'Fecha Registro': lead.fecha_registro ? new Date(lead.fecha_registro).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
@@ -867,7 +862,6 @@ export default function LeadsPage() {
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">DNI</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Celular</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Estado</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Proveedor</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Plan</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Bot</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Asesor</TableHead>
@@ -937,7 +931,6 @@ export default function LeadsPage() {
                       </span>
                     ) : <span className="text-muted-foreground/25 text-xs">--</span>}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{lead.proveedor_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{lead.plan_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
                   <TableCell>
                     {lead.tipificacion_bot_nombre ? (
@@ -1288,23 +1281,13 @@ export default function LeadsPage() {
                       {tipificaciones.filter(t => t.flag_asesor == 1).map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Proveedor</label>
-                      <select value={editingLead.id_provedor || ''} onChange={(e) => handleEditChange('id_provedor', e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
-                        <option value="">Seleccionar</option>
-                        {proveedores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Plan</label>
-                      <select value={editingLead.id_plan || ''} onChange={(e) => handleEditChange('id_plan', e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
-                        <option value="">Seleccionar</option>
-                        {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Plan</label>
+                    <select value={editingLead.id_plan || ''} onChange={(e) => handleEditChange('id_plan', e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      <option value="">Seleccionar</option>
+                      {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                    </select>
                   </div>
                   {canFilterByAsesor && (
                     <div>
@@ -1453,7 +1436,6 @@ export default function LeadsPage() {
                   { icon: Hash, label: 'DNI', value: detailLead.dni, color: 'blue' },
                   { icon: Phone, label: 'Celular', value: detailLead.celular || detailLead.contacto_celular, color: 'emerald' },
                   { icon: MapPin, label: 'Direccion', value: detailLead.direccion, color: 'violet' },
-                  { icon: Briefcase, label: 'Proveedor', value: detailLead.proveedor_nombre, color: 'amber' },
                   { icon: ClipboardList, label: 'Plan', value: detailLead.plan_nombre, color: 'cyan' },
                   { icon: User, label: 'Asesor', value: detailLead.asesor_nombre, color: 'indigo' },
                   { icon: Clock, label: 'Registro', value: formatDate(detailLead.fecha_registro), color: 'rose' },
