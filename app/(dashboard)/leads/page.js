@@ -293,8 +293,7 @@ export default function LeadsPage() {
     try {
       setConvertingLoading(true);
       await apiClient.put(`/crm/leads/${convertingLead.id}`, {
-        tipo: 'cliente',
-        fue_prospecto: true,
+        id_tipo_persona: 2,
       });
       setShowConvertirModal(false);
       setConvertingLead(null);
@@ -1001,7 +1000,7 @@ export default function LeadsPage() {
                           </div>
                           Editar lead
                         </DropdownMenuItem>
-                        {lead.tipo !== 'cliente' && (
+                        {lead.id_tipo_persona !== 2 && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
