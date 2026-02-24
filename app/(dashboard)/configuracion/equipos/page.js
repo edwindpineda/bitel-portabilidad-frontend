@@ -151,7 +151,7 @@ export default function EquiposPage() {
                         <div key={asesor.id} className="px-6 py-3 flex items-center space-x-4 ml-8">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                            {asesor.username.charAt(0).toUpperCase()}
+                            {(asesor.username || '?').charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">@{asesor.username}</p>
@@ -191,7 +191,7 @@ export default function EquiposPage() {
               {asesoresSinAsignar.map((asesor) => (
                 <div key={asesor.id} className="px-6 py-3 flex items-center space-x-4">
                   <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {asesor.username.charAt(0).toUpperCase()}
+                    {(asesor.username || '?').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">@{asesor.username}</p>

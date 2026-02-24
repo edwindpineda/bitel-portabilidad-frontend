@@ -2,6 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  Users,
+  CheckCircle2,
+  UserPlus,
+  TrendingUp,
+  RefreshCw,
+  ArrowRight,
+  BarChart3,
+  Loader2,
+  Zap,
+  Target,
+  Activity,
+  Filter,
+  Sparkles,
+} from 'lucide-react';
 
 const COLOR_MAP = {
   'rojo': '#EF4444',
@@ -22,6 +41,133 @@ const getColorHex = (color) => {
   if (color.startsWith('#')) return color;
   return COLOR_MAP[color.toLowerCase()] || '#6B7280';
 };
+
+const STAT_CONFIG = [
+  {
+    key: 'totalLeads',
+    name: 'Total Leads',
+    subtitle: 'Personas registradas',
+    icon: Users,
+    from: '#3b82f6',
+    to: '#2563eb',
+  },
+  {
+    key: 'interesados',
+    name: 'Clientes',
+    subtitle: 'Prospectos convertidos',
+    icon: CheckCircle2,
+    from: '#10b981',
+    to: '#059669',
+  },
+  {
+    key: 'leadsSemana',
+    name: 'Leads Semana',
+    subtitle: 'Últimos 7 días',
+    icon: UserPlus,
+    from: '#8b5cf6',
+    to: '#7c3aed',
+  },
+  {
+    key: 'tasaConversion',
+    name: 'Conversión',
+    subtitle: 'Clientes / Total leads',
+    icon: TrendingUp,
+    from: '#f59e0b',
+    to: '#f97316',
+    format: (val) => `${val || 0}%`,
+  },
+];
+
+// ============================
+// Animated counter hook
+// ============================
+function useAnimatedValue(target, duration = 1200) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    const num = typeof target === 'string' ? parseFloat(target.replace(/[^0-9.]/g, '')) : target;
+    if (isNaN(num)) return;
+    const startTime = performance.now();
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setVal(Math.floor(eased * num));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [target, duration]);
+  return val;
+}
+
+// ============================
+// Animated stat card (matches Resumen/Auto/Speech)
+// ============================
+function StatCard({ config, value, subtitle, index }) {
+  const Icon = config.icon;
+  const numericValue = String(value).replace(/[^0-9.]/g, '');
+  const animated = useAnimatedValue(numericValue);
+  const isPercent = String(value).includes('%');
+  const displayVal = isPercent ? `${animated}%` : animated.toLocaleString();
+
+  return (
+    <div
+      className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {/* Gradient accent top */}
+      <div
+        className="absolute top-0 left-0 right-0 h-1 opacity-80"
+        style={{ background: `linear-gradient(90deg, ${config.from}, ${config.to})` }}
+      />
+      {/* Background glow on hover */}
+      <div
+        className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-2xl"
+        style={{ background: config.from }}
+      />
+
+      <div className="relative flex items-start justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{config.name}</p>
+          <p className="text-3xl font-bold tracking-tight">{displayVal}</p>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        </div>
+        <div
+          className="h-11 w-11 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
+          style={{ background: `linear-gradient(135deg, ${config.from}, ${config.to})` }}
+        >
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================
+// Premium card wrapper (matches others)
+// ============================
+function GlassCard({ children, className = '' }) {
+  return (
+    <Card className={`relative overflow-hidden border-white/60 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg transition-shadow duration-300 ${className}`}>
+      {children}
+    </Card>
+  );
+}
+
+// ============================
+// Separator (matches others)
+// ============================
+function SectionSeparator({ label }) {
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full border-t border-gray-200/60" />
+      </div>
+      <div className="relative flex justify-center">
+        <span className="bg-[#f5f3ff] px-4 text-xs text-muted-foreground uppercase tracking-widest">{label}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
@@ -45,247 +191,287 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-full flex flex-col items-center justify-center h-64 gap-3" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <p className="text-sm text-muted-foreground">Cargando dashboard...</p>
       </div>
     );
   }
 
-  const statCards = stats ? [
-    {
-      name: 'Total Leads',
-      value: stats.totalLeads?.toLocaleString() || '0',
-      subtitle: 'Prospectos registrados',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      ),
-      color: 'primary',
-    },
-    {
-      name: 'Interesados',
-      value: stats.interesados?.toLocaleString() || '0',
-      subtitle: 'Line1 + Line2',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      color: 'success',
-    },
-    {
-      name: 'Leads Esta Semana',
-      value: stats.leadsSemana?.toLocaleString() || '0',
-      subtitle: 'Ultimos 7 dias',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-        </svg>
-      ),
-      color: 'purple',
-    },
-    {
-      name: 'Tasa de Conversion',
-      value: `${stats.tasaConversion || 0}%`,
-      subtitle: `${stats.interesados || 0} de ${stats.totalLeads || 0} interesados`,
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      ),
-      color: 'warning',
-    },
-  ] : [];
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Seguimiento de prospectos y tasa de conversión</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={loadDashboardStats}
-            className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Actualizar</span>
-          </button>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Ultima actualizacion</p>
-            <p className="text-sm font-medium text-gray-900">Hoy, {new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}</p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-full" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
+      <div className="space-y-7">
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`p-3 rounded-lg ${
-                stat.color === 'primary' ? 'bg-primary-100' :
-                stat.color === 'success' ? 'bg-success-100' :
-                stat.color === 'purple' ? 'bg-purple-100' :
-                stat.color === 'warning' ? 'bg-warning-100' : 'bg-gray-100'
-              }`}>
-                <div className={`${
-                  stat.color === 'primary' ? 'text-primary-600' :
-                  stat.color === 'success' ? 'text-success-600' :
-                  stat.color === 'purple' ? 'text-purple-600' :
-                  stat.color === 'warning' ? 'text-warning-600' : 'text-gray-600'
-                }`}>
-                  {stat.icon}
-                </div>
-              </div>
+        {/* Breadcrumb */}
+        <div className="text-sm text-muted-foreground">
+          Dashboard <span className="mx-1.5 text-gray-300">/</span>
+          <span className="text-foreground font-medium">General</span>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-3xl font-bold text-gray-900">{stat.value}</h3>
-              <p className="text-sm font-medium text-gray-900 mt-1">{stat.name}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{stat.subtitle}</p>
+              <h1 className="text-2xl font-bold tracking-tight">General</h1>
+              <p className="text-xs text-muted-foreground">Seguimiento de personas y tasa de conversión</p>
             </div>
           </div>
-        ))}
-      </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadDashboardStats}
+              className="gap-2 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Actualizar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+            >
+              <Filter className="h-4 w-4" />
+              Filtros
+            </Button>
+            <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Historial de cambios
+            </button>
+          </div>
+        </div>
 
-      {/* Pipeline Visual */}
-      {stats?.pipeline && stats.pipeline.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pipeline por Estado</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {stats.pipeline.map((stage) => {
-              const colorHex = getColorHex(stage.color);
-              const percentage = stats.totalLeads > 0 ? Math.round((stage.total / stats.totalLeads) * 100) : 0;
-              return (
-                <div key={stage.nombre} className="text-center">
-                  <div
-                    className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-3"
-                    style={{ backgroundColor: `${colorHex}20` }}
-                  >
-                    <span
-                      className="text-2xl font-bold"
-                      style={{ color: colorHex }}
-                    >
-                      {stage.total}
-                    </span>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {STAT_CONFIG.map((stat, index) => {
+            const value = stat.format
+              ? stat.format(stats?.[stat.key])
+              : stats?.[stat.key]?.toLocaleString() || '0';
+            const subtitle = stat.key === 'tasaConversion'
+              ? `${stats?.interesados || 0} de ${stats?.totalLeads || 0}`
+              : stat.subtitle;
+
+            return (
+              <StatCard
+                key={stat.key}
+                config={stat}
+                value={value}
+                subtitle={subtitle}
+                index={index}
+              />
+            );
+          })}
+        </div>
+
+        {/* Pipeline Section */}
+        {stats?.pipeline && stats.pipeline.length > 0 && (
+          <>
+            <SectionSeparator label="Pipeline" />
+
+            <GlassCard>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                      <Activity className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-semibold">Pipeline por Estado</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">{stats.totalLeads} leads en total</p>
+                    </div>
                   </div>
-                  <p className="text-sm font-medium text-gray-900">{stage.nombre}</p>
-                  <p className="text-xs text-gray-500 mt-1">{percentage}% del total</p>
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
+                    {stats.pipeline.length} etapas
+                  </Badge>
                 </div>
-              );
-            })}
-          </div>
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-gray-600">Tasa de Conversion (Interesados)</span>
-              <span className="font-semibold text-gray-900">{stats.interesados} de {stats.totalLeads} ({stats.tasaConversion}%)</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-success-500 to-success-600 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${stats.tasaConversion}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Conversion Stats */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumen de Conversion</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-3xl font-bold text-blue-600">{stats?.totalLeads?.toLocaleString() || 0}</p>
-              <p className="text-sm text-blue-700 mt-1">Total Leads</p>
-              <p className="text-xs text-blue-500 mt-0.5">100% del pipeline</p>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-3xl font-bold text-yellow-600">{stats?.contactados?.toLocaleString() || 0}</p>
-              <p className="text-sm text-yellow-700 mt-1">Contactados</p>
-              <p className="text-xs text-yellow-500 mt-0.5">Tiene mensaje</p>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-3xl font-bold text-green-600">{stats?.interesados?.toLocaleString() || 0}</p>
-              <p className="text-sm text-green-700 mt-1">Interesados</p>
-              <p className="text-xs text-green-500 mt-0.5">Line1 + Line2</p>
-            </div>
-          </div>
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-2">Nota: La tasa de conversion se calcula como:</p>
-            <p className="text-sm font-medium text-gray-900">
-              Interesados (Line1 + Line2) / Total Leads = <span className="text-success-600">{stats?.tasaConversion || 0}%</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Quick Actions & Stats */}
-        <div className="space-y-6">
-          {/* Interesados Card */}
-          <div className="bg-gradient-to-br from-success-50 to-success-100 rounded-lg shadow-sm border border-success-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-success-900">Interesados</h2>
-              <svg className="w-8 h-8 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="text-center">
-              <p className="text-4xl font-bold text-success-900">{stats?.interesados?.toLocaleString() || 0}</p>
-              <p className="text-sm text-success-700 mt-1">Prospectos interesados</p>
-              <p className="text-xs text-success-600 mt-2">Estados: Line1 + Line2</p>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rapidas</h2>
-            <div className="space-y-3">
-              <a
-                href="/leads"
-                className="block w-full px-4 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors text-center"
-              >
-                Ver Leads
-              </a>
-              <a
-                href="/reportes"
-                className="block w-full px-4 py-3 bg-gray-100 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition-colors text-center"
-              >
-                Ver Reportes
-              </a>
-            </div>
-          </div>
-
-          {/* Tasa de Conversion */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tasa de Conversion</h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-600">Interesados / Total</span>
-                  <span className="font-semibold text-success-600">{stats?.tasaConversion || 0}%</span>
+              </CardHeader>
+              <CardContent>
+                {/* Pipeline bars */}
+                <div className="space-y-4">
+                  {stats.pipeline.map((stage) => {
+                    const colorHex = getColorHex(stage.color);
+                    const percentage = stats.totalLeads > 0
+                      ? Math.round((stage.total / stats.totalLeads) * 100)
+                      : 0;
+                    return (
+                      <div key={stage.nombre} className="group">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-3 w-3 rounded-full shadow-sm"
+                              style={{ backgroundColor: colorHex }}
+                            />
+                            <span className="text-sm font-medium capitalize">{stage.nombre}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold">{stage.total}</span>
+                            <Badge variant="outline" className="text-xs tabular-nums">
+                              {percentage}%
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: colorHex,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-success-500 h-2.5 rounded-full transition-all"
-                    style={{ width: `${stats?.tasaConversion || 0}%` }}
-                  ></div>
+
+                {/* Conversion summary */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-cyan-50 mt-6">
+                  <div className="flex items-center gap-3">
+                    <Target className="h-5 w-5 text-emerald-600" />
+                    <div>
+                      <p className="text-sm font-medium">Tasa de Conversión</p>
+                      <p className="text-xs text-muted-foreground">Clientes / Total leads</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-emerald-600">{stats.tasaConversion}%</p>
+                    <p className="text-xs text-muted-foreground">{stats.interesados} de {stats.totalLeads}</p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{stats?.interesados || 0} de {stats?.totalLeads || 0} prospectos</p>
+              </CardContent>
+            </GlassCard>
+          </>
+        )}
+
+        <SectionSeparator label="Análisis detallado" />
+
+        {/* Bottom Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Conversion Funnel */}
+          <GlassCard className="lg:col-span-2">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <BarChart3 className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold">Embudo de Conversión</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">Flujo de personas</p>
+                </div>
               </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-600">Leads Esta Semana</span>
-                  <span className="font-semibold text-purple-600">+{stats?.leadsSemana || 0}</span>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                {/* Total Leads */}
+                <div className="relative p-5 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                  <Users className="h-5 w-5 mb-3 opacity-80" />
+                  <p className="text-3xl font-bold">{stats?.totalLeads?.toLocaleString() || 0}</p>
+                  <p className="text-sm text-blue-100 mt-1">Total Leads</p>
+                  <p className="text-xs text-blue-200 mt-0.5">100% del pipeline</p>
                 </div>
-                <p className="text-xs text-gray-500">Nuevos prospectos ultimos 7 dias</p>
+
+                {/* Contactados */}
+                <div className="relative p-5 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                  <Zap className="h-5 w-5 mb-3 opacity-80" />
+                  <p className="text-3xl font-bold">{stats?.contactados?.toLocaleString() || 0}</p>
+                  <p className="text-sm text-amber-100 mt-1">Contactados</p>
+                  <p className="text-xs text-amber-200 mt-0.5">Tiene mensaje</p>
+                </div>
+
+                {/* Interesados */}
+                <div className="relative p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                  <CheckCircle2 className="h-5 w-5 mb-3 opacity-80" />
+                  <p className="text-3xl font-bold">{stats?.interesados?.toLocaleString() || 0}</p>
+                  <p className="text-sm text-emerald-100 mt-1">Clientes</p>
+                  <p className="text-xs text-emerald-200 mt-0.5">Prospectos convertidos</p>
+                </div>
               </div>
-            </div>
+
+              {/* Conversion arrows */}
+              <div className="flex items-center justify-center gap-2 mt-5 py-3 px-4 rounded-xl bg-gray-50/80">
+                <span className="text-sm text-muted-foreground">Fórmula:</span>
+                <span className="text-sm font-medium">Clientes / Total Leads</span>
+                <span className="text-sm text-muted-foreground">=</span>
+                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0">
+                  {stats?.tasaConversion || 0}% conversión
+                </Badge>
+              </div>
+            </CardContent>
+          </GlassCard>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Interesados Highlight */}
+            <GlassCard className="overflow-hidden">
+              <div className="bg-gradient-to-br from-emerald-500 to-cyan-500 p-6 text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-medium text-emerald-100">Clientes</p>
+                  <CheckCircle2 className="h-6 w-6 text-emerald-200" />
+                </div>
+                <p className="text-4xl font-bold">{stats?.interesados?.toLocaleString() || 0}</p>
+                <p className="text-sm text-emerald-100 mt-1">Prospectos convertidos</p>
+                <div className="flex items-center gap-2 mt-3">
+                  <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">Tipo persona = Cliente</Badge>
+                  <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">{stats?.tasaConversion || 0}%</Badge>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Quick Actions */}
+            <GlassCard>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">Acciones Rápidas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button className="w-full justify-between rounded-xl" asChild>
+                  <a href="/leads">
+                    Ver Leads
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full justify-between rounded-xl" asChild>
+                  <a href="/reportes">
+                    Ver Reportes
+                    <BarChart3 className="h-4 w-4" />
+                  </a>
+                </Button>
+              </CardContent>
+            </GlassCard>
+
+            {/* Conversion Rate */}
+            <GlassCard>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">Tasa de Conversión</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Clientes / Total</span>
+                    <span className="font-bold text-emerald-600">{stats?.tasaConversion || 0}%</span>
+                  </div>
+                  <Progress value={stats?.tasaConversion || 0} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {stats?.interesados || 0} de {stats?.totalLeads || 0} personas
+                  </p>
+                </div>
+                <div className="border-t border-gray-200/60 pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Leads esta semana</p>
+                      <p className="text-xs text-muted-foreground">Últimos 7 días</p>
+                    </div>
+                    <Badge variant="outline" className="text-base font-bold px-3 py-1">
+                      +{stats?.leadsSemana || 0}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </GlassCard>
           </div>
         </div>
       </div>

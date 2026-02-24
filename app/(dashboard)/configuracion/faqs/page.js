@@ -3,6 +3,22 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
+import { HelpCircle, Plus, Pencil, Trash2, Search, ChevronRight, Filter } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const PROCESOS = [
   'Contacto',
@@ -13,18 +29,28 @@ const PROCESOS = [
   'Aceptación'
 ];
 
+const PROCESO_COLORS = {
+  'Contacto': 'bg-blue-100 text-blue-700 hover:bg-blue-100',
+  'Toma de datos': 'bg-purple-100 text-purple-700 hover:bg-purple-100',
+  'Oferta': 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
+  'Cierre de ventas': 'bg-green-100 text-green-700 hover:bg-green-100',
+  'Cierre de ventas (Contrato)': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
+  'Aceptación': 'bg-indigo-100 text-indigo-700 hover:bg-indigo-100'
+};
+
 export default function FaqsPage() {
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingFaq, setEditingFaq] = useState(null);
-  const [filtroProces, setFiltroProceso] = useState('');
+  const [filtroProceso, setFiltroProceso] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     numero: '',
     pregunta: '',
     proceso: 'Contacto',
     respuesta: '',
-    activo: 1
+    activo: 1,
   });
 
   useEffect(() => {
@@ -49,7 +75,7 @@ export default function FaqsPage() {
       const dataToSend = {
         ...formData,
         numero: parseInt(formData.numero) || 0,
-        activo: formData.activo ? 1 : 0
+        activo: formData.activo ? 1 : 0,
       };
 
       if (editingFaq) {
@@ -74,7 +100,7 @@ export default function FaqsPage() {
       pregunta: faq.pregunta || '',
       proceso: faq.proceso || 'Contacto',
       respuesta: faq.respuesta || '',
-      activo: faq.activo ? 1 : 0
+      activo: faq.activo ? 1 : 0,
     });
     setShowModal(true);
   };
@@ -96,7 +122,7 @@ export default function FaqsPage() {
       pregunta: '',
       proceso: 'Contacto',
       respuesta: '',
-      activo: 1
+      activo: 1,
     });
   };
 
@@ -106,140 +132,189 @@ export default function FaqsPage() {
     setShowModal(true);
   };
 
-  const filteredFaqs = filtroProces
-    ? faqs.filter(faq => faq.proceso === filtroProces)
-    : faqs;
-
-  const getProcesoColor = (proceso) => {
-    const colors = {
-      'Contacto': 'bg-blue-100 text-blue-800',
-      'Toma de datos': 'bg-purple-100 text-purple-800',
-      'Oferta': 'bg-yellow-100 text-yellow-800',
-      'Cierre de ventas': 'bg-green-100 text-green-800',
-      'Cierre de ventas (Contrato)': 'bg-emerald-100 text-emerald-800',
-      'Aceptación': 'bg-indigo-100 text-indigo-800'
-    };
-    return colors[proceso] || 'bg-gray-100 text-gray-800';
-  };
+  const filteredFaqs = faqs.filter((faq) => {
+    const matchesProceso = filtroProceso ? faq.proceso === filtroProceso : true;
+    const matchesSearch = searchTerm
+      ? faq.pregunta?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        faq.respuesta?.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+    return matchesProceso && matchesSearch;
+  });
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Breadcrumb */}
         <div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <Link href="/configuracion" className="hover:text-primary-600">Configuración</Link>
-            <span>/</span>
-            <span className="text-gray-900">Preguntas Frecuentes</span>
+          <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+            <Link href="/configuracion" className="hover:text-foreground transition-colors">Configuración</Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-medium">Preguntas Frecuentes</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Preguntas Frecuentes</h1>
-          <p className="text-gray-600 mt-1">Gestiona las preguntas frecuentes del sistema</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Preguntas Frecuentes</h1>
+              <p className="text-muted-foreground">Gestiona las preguntas frecuentes del sistema</p>
+            </div>
+            <Button onClick={openNewModal}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva FAQ
+            </Button>
+          </div>
         </div>
-        <button
-          onClick={openNewModal}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center space-x-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Nueva FAQ</span>
-        </button>
-      </div>
 
-      {/* Filtro por proceso */}
-      <div className="mb-4">
-        <select
-          value={filtroProces}
-          onChange={(e) => setFiltroProceso(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-        >
-          <option value="">Todos los procesos</option>
-          {PROCESOS.map((proceso) => (
-            <option key={proceso} value={proceso}>{proceso}</option>
-          ))}
-        </select>
-      </div>
+        <Separator />
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pregunta</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proceso</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredFaqs.map((faq) => (
-              <tr key={faq.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{faq.numero}</td>
-                <td className="px-6 py-4">
-                  <div className="text-sm font-medium text-gray-900 line-clamp-2">{faq.pregunta}</div>
-                  <div className="text-sm text-gray-500 line-clamp-1 mt-1">{faq.respuesta}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getProcesoColor(faq.proceso)}`}>
-                    {faq.proceso}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${faq.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {faq.activo ? 'Activo' : 'Inactivo'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button onClick={() => handleEdit(faq)} className="text-primary-600 hover:text-primary-900 mr-3">
-                    Editar
-                  </button>
-                  <button onClick={() => handleDelete(faq.id)} className="text-red-600 hover:text-red-900">
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {filteredFaqs.length === 0 && (
-        <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-gray-200 mt-4">
-          No hay preguntas frecuentes registradas
+        {/* Filters */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              {faqs.length} {faqs.length === 1 ? 'pregunta' : 'preguntas'}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={filtroProceso}
+                onChange={(e) => setFiltroProceso(e.target.value)}
+                className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Todos los procesos</option>
+                {PROCESOS.map((proceso) => (
+                  <option key={proceso} value={proceso}>{proceso}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar pregunta..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
-      )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingFaq ? 'Editar Pregunta Frecuente' : 'Nueva Pregunta Frecuente'}
-            </h2>
+        {/* Table */}
+        {filteredFaqs.length > 0 ? (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[60px]">#</TableHead>
+                  <TableHead>Pregunta</TableHead>
+                  <TableHead className="w-[200px]">Proceso</TableHead>
+                  <TableHead className="w-[100px]">Estado</TableHead>
+                  <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredFaqs.map((faq) => (
+                  <TableRow key={faq.id}>
+                    <TableCell>
+                      <span className="font-mono text-muted-foreground">{faq.numero}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium line-clamp-1">{faq.pregunta}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{faq.respuesta}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={PROCESO_COLORS[faq.proceso] || 'bg-gray-100 text-gray-700'}>
+                        {faq.proceso}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={faq.activo ? 'default' : 'secondary'} className={faq.activo ? 'bg-green-100 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-100'}>
+                        {faq.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(faq)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(faq.id)} className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <HelpCircle className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium">
+                {searchTerm || filtroProceso ? 'No se encontraron resultados' : 'No hay preguntas frecuentes registradas'}
+              </p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                {searchTerm || filtroProceso ? 'Intenta con otros filtros de búsqueda' : 'Crea una nueva FAQ para comenzar'}
+              </p>
+              {!searchTerm && !filtroProceso && (
+                <Button onClick={openNewModal} variant="outline" className="mt-4">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva FAQ
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Create/Edit Dialog */}
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingFaq ? 'Editar Pregunta Frecuente' : 'Nueva Pregunta Frecuente'}</DialogTitle>
+              <DialogDescription>
+                {editingFaq
+                  ? 'Modifica los datos de la pregunta frecuente'
+                  : 'Completa los datos para crear una nueva FAQ'}
+              </DialogDescription>
+            </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Número *</label>
-                  <input
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Número *</label>
+                  <Input
                     type="number"
                     value={formData.numero}
                     onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="1"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Proceso *</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Proceso *</label>
                   <select
                     value={formData.proceso}
                     onChange={(e) => setFormData({ ...formData, proceso: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     required
                   >
                     {PROCESOS.map((proceso) => (
@@ -248,55 +323,50 @@ export default function FaqsPage() {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pregunta *</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Pregunta *</label>
                 <textarea
                   value={formData.pregunta}
                   onChange={(e) => setFormData({ ...formData, pregunta: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   rows={3}
+                  placeholder="Escribe la pregunta..."
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Respuesta *</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Respuesta *</label>
                 <textarea
                   value={formData.respuesta}
                   onChange={(e) => setFormData({ ...formData, respuesta: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   rows={5}
+                  placeholder="Escribe la respuesta..."
                   required
                 />
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="activo"
-                  checked={formData.activo}
+                  checked={!!formData.activo}
                   onChange={(e) => setFormData({ ...formData, activo: e.target.checked ? 1 : 0 })}
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
-                <label htmlFor="activo" className="text-sm text-gray-700">FAQ activa</label>
+                <label htmlFor="activo" className="text-sm font-medium cursor-pointer">Activo</label>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
+                </Button>
+                <Button type="submit">
                   {editingFaq ? 'Actualizar' : 'Crear'}
-                </button>
-              </div>
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }

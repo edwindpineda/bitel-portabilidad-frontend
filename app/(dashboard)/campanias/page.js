@@ -2,7 +2,52 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/lib/api';
-import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Megaphone,
+  Plus,
+  Search,
+  FileText,
+  ClipboardList,
+  Play,
+  Pencil,
+  Trash2,
+  X,
+  Loader2,
+  MoreHorizontal,
+  TrendingUp,
+  Zap,
+  Tag,
+  Database,
+  Radio,
+} from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
   pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
@@ -31,6 +76,7 @@ export default function CampaniasPage() {
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
   const [ejecuciones, setEjecuciones] = useState([]);
   const [ejecutando, setEjecutando] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Estados para el modal de crear/editar
   const [formData, setFormData] = useState({
@@ -115,8 +161,8 @@ export default function CampaniasPage() {
       resetForm();
       loadData();
     } catch (error) {
-      console.error('Error al guardar campaña:', error);
-      alert(error.msg || 'Error al guardar campaña');
+      console.error('Error al guardar campania:', error);
+      alert(error.msg || 'Error al guardar campania');
     }
   };
 
@@ -133,12 +179,12 @@ export default function CampaniasPage() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('¿Está seguro de eliminar esta campaña?')) {
+    if (confirm('Esta seguro de eliminar esta campania?')) {
       try {
         await apiClient.delete(`/crm/campanias/${id}`);
         loadData();
       } catch (error) {
-        console.error('Error al eliminar campaña:', error);
+        console.error('Error al eliminar campania:', error);
       }
     }
   };
@@ -210,7 +256,7 @@ export default function CampaniasPage() {
   };
 
   const handleRemoveBase = async (id) => {
-    if (confirm('¿Está seguro de quitar esta base de la campaña?')) {
+    if (confirm('Esta seguro de quitar esta base de la campania?')) {
       try {
         await apiClient.delete(`/crm/campania-bases/${id}`);
         const response = await apiClient.get(`/crm/campanias/${selectedCampania.id}/bases`);
@@ -242,7 +288,7 @@ export default function CampaniasPage() {
 
   // Ejecutar campania
   const handleEjecutar = async (campania) => {
-    if (confirm(`¿Está seguro de ejecutar la campaña "${campania.nombre}"? Esto creará ejecuciones pendientes para todas las bases asignadas.`)) {
+    if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
       try {
         const reponse = await apiClient.get(`/crm/bases-numeros/${baseSeleccionada}/detalles`);
         const numeros = reponse?.data;
@@ -256,16 +302,16 @@ export default function CampaniasPage() {
           //     }
           //   )
           //   if (llamada?.data.success) {
-          //     console.log(`Número ${num.telefono} realizado con exito`);
+          //     console.log(`Numero ${num.telefono} realizado con exito`);
           //   }
           //   else {
-          //     console.log(`Error al llamar al número ${num.telefono}`);
+          //     console.log(`Error al llamar al numero ${num.telefono}`);
           //   }
           // });
           const numero = numeros[0].telefono
           const nombre = numeros[0].nombre
           const dni = numeros[0].numero_documento
-          
+
           let nuevaPlantilla
           if (nombre) {
             nuevaPlantilla = plantillaSeleccionada.prompt_flujo.replaceAll("{{nombre}}", nombre)
@@ -278,10 +324,10 @@ export default function CampaniasPage() {
             }
           );
           if (llamada?.data.success) {
-            console.log(`Número ${numero} realizado con exito`);
+            console.log(`Numero ${numero} realizado con exito`);
           }
           else {
-            console.log(`Error al llamar al número ${numero}`);
+            console.log(`Error al llamar al numero ${numero}`);
           }
         }
       }
@@ -295,11 +341,11 @@ export default function CampaniasPage() {
       const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
         id_campania: campania.id
       });
-      alert(`Ejecución iniciada: ${response.data?.total_bases || 0} bases programadas`);
+      alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
       loadData();
     } catch (error) {
-      console.error('Error al ejecutar campaña:', error);
-      alert(error.msg || 'Error al ejecutar campaña');
+      console.error('Error al ejecutar campania:', error);
+      alert(error.msg || 'Error al ejecutar campania');
     } finally {
       setEjecutando(false);
     }
@@ -310,303 +356,508 @@ export default function CampaniasPage() {
     base => !basesAsignadas.some(ba => ba.id_base_numero === base.id)
   );
 
+  // Filtrar campanias por busqueda
+  const filteredCampanias = campanias.filter(c => {
+    return c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  const totalCampanias = campanias.length;
+  const totalBases = basesDisponibles.length;
+  const totalEjecuciones = campanias.reduce((sum, c) => sum + (c.total_ejecuciones || 0), 0);
+  const totalPlantillas = plantillasDisponibles.length;
+
+  const STATS = [
+    {
+      label: 'Campanias',
+      value: totalCampanias,
+      icon: Megaphone,
+      gradient: 'from-indigo-500 to-indigo-600',
+      iconBg: 'from-indigo-500 to-indigo-600',
+      glow: 'rgba(99, 102, 241, 0.15)',
+      change: 'Total',
+    },
+    {
+      label: 'Bases',
+      value: totalBases,
+      icon: Database,
+      gradient: 'from-cyan-500 to-cyan-600',
+      iconBg: 'from-cyan-500 to-teal-500',
+      glow: 'rgba(6, 182, 212, 0.15)',
+      change: 'Disponibles',
+    },
+    {
+      label: 'Ejecuciones',
+      value: totalEjecuciones,
+      icon: Zap,
+      gradient: 'from-amber-500 to-orange-500',
+      iconBg: 'from-amber-500 to-orange-500',
+      glow: 'rgba(245, 158, 11, 0.15)',
+      change: 'Historico',
+    },
+    {
+      label: 'Plantillas',
+      value: totalPlantillas,
+      icon: FileText,
+      gradient: 'from-violet-500 to-purple-600',
+      iconBg: 'from-violet-500 to-purple-600',
+      glow: 'rgba(139, 92, 246, 0.15)',
+      change: 'Disponibles',
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg animate-pulse">
+              <Megaphone className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm font-medium">Cargando campanias...</span>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Campañas de Llamadas</h1>
-          <p className="text-gray-600 mt-1">Gestiona las campañas y sus bases de números</p>
+    <div className="space-y-6">
+      {/* ========== HEADER ========== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Megaphone className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gradient">Campanias de Llamadas</h1>
+              <p className="text-sm text-muted-foreground">Gestiona las campanias y sus bases de numeros</p>
+            </div>
+          </div>
         </div>
-        <button
+        <Button
           onClick={openNewModal}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center space-x-2"
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25 text-white gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Nueva Campaña</span>
-        </button>
+          <Plus className="h-4 w-4" />
+          Nueva Campania
+        </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripcion</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bases</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plantillas</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ejecuciones</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {campanias.map((campania) => (
-              <tr key={campania.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{campania.nombre}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-gray-500 max-w-xs truncate">{campania.descripcion || '-'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleViewBases(campania)}
-                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                    </svg>
-                    {campania.total_bases || 0} bases
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={handleViewPlantillas}
-                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    {plantillasDisponibles.length} plantillas
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleViewEjecuciones(campania)}
-                    className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    {campania.total_ejecuciones || 0}
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleEjecutar(campania)}
-                    disabled={ejecutando || campania.total_bases === 0}
-                    className={`mr-2 px-3 py-1.5 text-xs font-medium rounded ${
-                      campania.total_bases > 0
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    }`}
-                    title={campania.total_bases === 0 ? 'Asigna bases primero' : 'Ejecutar campaña'}
-                  >
-                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Ejecutar
-                  </button>
-                  <button
-                    onClick={() => handleEdit(campania)}
-                    className="text-primary-600 hover:text-primary-900 mr-3"
-                    title="Editar"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(campania.id)}
-                    className="text-red-600 hover:text-red-900"
-                    title="Eliminar"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {campanias.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No hay campañas registradas
-          </div>
-        )}
-      </div>
-
-      {/* Modal Campania */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingCampania ? 'Editar Campaña' : 'Nueva Campaña'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                <input
-                  type="text"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
-                <textarea
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  rows={2}
-                />
-              </div>
-
-              {/* Seccion de seleccion de bases (solo para nueva campania) */}
-              {!editingCampania && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Formato (filtro)</label>
-                    <select
-                      value={formData.id_formato}
-                      onChange={(e) => setFormData({ ...formData, id_formato: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="">Todos los formatos</option>
-                      {formatos.map((formato) => (
-                        <option key={formato.id} value={formato.id}>{formato.nombre}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="relative" ref={dropdownRef}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Agregar Bases</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={searchBase}
-                        onChange={(e) => {
-                          setSearchBase(e.target.value);
-                          setShowBaseDropdown(true);
-                        }}
-                        onFocus={() => setShowBaseDropdown(true)}
-                        placeholder="Buscar base por nombre..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                      />
-                      <svg className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-
-                    {/* Dropdown de bases */}
-                    {showBaseDropdown && basesFiltradas.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {basesFiltradas.map((base) => (
-                          <button
-                            key={base.id}
-                            type="button"
-                            onClick={() => handleAddBaseToSelection(base)}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
-                          >
-                            <span className="text-sm text-gray-900">{base.nombre}</span>
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                              {formatos.find(f => f.id === base.id_formato)?.nombre || 'Sin formato'}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {showBaseDropdown && searchBase && basesFiltradas.length === 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                        No se encontraron bases
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bases seleccionadas */}
-                  {basesSeleccionadas.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Bases seleccionadas ({basesSeleccionadas.length})
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {basesSeleccionadas.map((base) => (
-                          <span
-                            key={base.id}
-                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800"
-                          >
-                            {base.nombre}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveBaseFromSelection(base.id)}
-                              className="ml-2 text-primary-600 hover:text-primary-900"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  {editingCampania ? 'Actualizar' : 'Crear'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Bases */}
-      {showBasesModal && selectedCampania && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Bases de la Campaña</h2>
-                <p className="text-sm text-gray-500">{selectedCampania.nombre}</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowBasesModal(false);
+      {/* ========== STATS ========== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {STATS.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <Card
+              key={stat.label}
+              className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 animate-scale-in"
+              style={{ animationDelay: `${(i + 1) * 100}ms` }}
+            >
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle at 30% 50%, ${stat.glow}, transparent 70%)`,
                 }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              />
+              <CardContent className="p-5 relative z-10">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                    <p className="text-3xl font-bold tracking-tight animate-count-up" style={{ animationDelay: `${(i + 1) * 150}ms` }}>
+                      {stat.value.toLocaleString()}
+                    </p>
+                    <Badge variant="secondary" className="text-[10px] font-semibold gap-1 px-2 py-0.5">
+                      <TrendingUp className="h-2.5 w-2.5" />
+                      {stat.change}
+                    </Badge>
+                  </div>
+                  <div
+                    className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${stat.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                    style={{ boxShadow: `0 8px 24px -4px ${stat.glow}` }}
+                  >
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* ========== SEARCH BAR ========== */}
+      <Card className="overflow-hidden animate-scale-in" style={{ animationDelay: '500ms' }}>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md group">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
+                <Search className="h-3 w-3 text-indigo-500 group-focus-within:text-cyan-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar campania..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
+                >
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
+              )}
             </div>
 
-            {/* Agregar nueva base */}
-            {basesNoAsignadas.length > 0 && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Agregar base</label>
-                <div className="flex space-x-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
+              <Badge variant="outline" className="gap-1 font-normal">
+                <Megaphone className="h-3 w-3" />
+                {filteredCampanias.length} campania{filteredCampanias.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ========== CAMPAIGNS TABLE ========== */}
+      <Card className="overflow-hidden animate-scale-in" style={{ animationDelay: '600ms' }}>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Nombre</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Descripcion</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Bases</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Plantillas</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Ejecuciones</TableHead>
+              <TableHead className="w-16" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredCampanias.map((campania) => (
+              <TableRow
+                key={campania.id}
+                className="table-row-premium group"
+              >
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center group-hover:from-indigo-500/20 group-hover:to-cyan-500/20 transition-colors">
+                      <Megaphone className="h-4 w-4 text-indigo-500" />
+                    </div>
+                    <span className="font-semibold text-sm text-foreground">{campania.nombre}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground max-w-[200px] truncate block">
+                    {campania.descripcion || '-'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewBases(campania)}
+                    className="gap-1.5 text-xs font-medium h-8 hover:bg-cyan-50 hover:text-cyan-700"
+                  >
+                    <Database className="h-3.5 w-3.5" />
+                    {campania.total_bases || 0} bases
+                  </Button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleViewPlantillas}
+                    className="gap-1.5 text-xs font-medium h-8 hover:bg-violet-50 hover:text-violet-700"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {plantillasDisponibles.length} plantillas
+                  </Button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewEjecuciones(campania)}
+                    className="gap-1.5 text-xs font-medium h-8 hover:bg-amber-50 hover:text-amber-700"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    {campania.total_ejecuciones || 0}
+                  </Button>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={() => handleEjecutar(campania)}
+                        disabled={ejecutando || campania.total_bases === 0}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Play className="h-4 w-4 text-emerald-500" />
+                        <span>Ejecutar</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleViewBases(campania)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Database className="h-4 w-4 text-cyan-500" />
+                        <span>Ver Bases</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleViewEjecuciones(campania)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <ClipboardList className="h-4 w-4 text-amber-500" />
+                        <span>Ver Ejecuciones</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={handleViewPlantillas}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <FileText className="h-4 w-4 text-violet-500" />
+                        <span>Ver Plantillas</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleEdit(campania)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span>Editar</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(campania.id)}
+                        className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Eliminar</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        {filteredCampanias.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center mb-4">
+              <Megaphone className="h-8 w-8 text-indigo-400" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">
+              {searchTerm ? 'Sin resultados' : 'No hay campanias'}
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              {searchTerm ? 'Intenta con otro termino de busqueda' : 'Crea tu primera campania para comenzar'}
+            </p>
+            {!searchTerm && (
+              <Button onClick={openNewModal} variant="outline" size="sm" className="gap-2">
+                <Plus className="h-3.5 w-3.5" />
+                Crear Campania
+              </Button>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {/* ========== MODAL: CREATE/EDIT CAMPAIGN ========== */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+                <Megaphone className="h-4 w-4 text-white" />
+              </div>
+              {editingCampania ? 'Editar Campania' : 'Nueva Campania'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCampania ? 'Modifica los datos de la campania' : 'Configura los datos de tu nueva campania'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                Nombre *
+              </label>
+              <input
+                type="text"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200"
+                placeholder="Nombre de la campania"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                Descripcion
+              </label>
+              <textarea
+                value={formData.descripcion}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                className="w-full px-3 py-2.5 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200 resize-none"
+                rows={2}
+                placeholder="Descripcion de la campania"
+              />
+            </div>
+
+            {/* Seccion de seleccion de bases (solo para nueva campania) */}
+            {!editingCampania && (
+              <>
+                <Separator />
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Formato (filtro)
+                  </label>
+                  <select
+                    value={formData.id_formato}
+                    onChange={(e) => setFormData({ ...formData, id_formato: e.target.value })}
+                    className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
+                  >
+                    <option value="">Todos los formatos</option>
+                    {formatos.map((formato) => (
+                      <option key={formato.id} value={formato.id}>{formato.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative space-y-1.5" ref={dropdownRef}>
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+                    Agregar Bases
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <input
+                      type="text"
+                      value={searchBase}
+                      onChange={(e) => {
+                        setSearchBase(e.target.value);
+                        setShowBaseDropdown(true);
+                      }}
+                      onFocus={() => setShowBaseDropdown(true)}
+                      placeholder="Buscar base por nombre..."
+                      className="w-full h-10 pl-9 pr-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200"
+                    />
+                  </div>
+
+                  {/* Dropdown de bases */}
+                  {showBaseDropdown && basesFiltradas.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {basesFiltradas.map((base) => (
+                        <button
+                          key={base.id}
+                          type="button"
+                          onClick={() => handleAddBaseToSelection(base)}
+                          className="w-full px-4 py-2.5 text-left hover:bg-muted/50 flex items-center justify-between transition-colors first:rounded-t-xl last:rounded-b-xl"
+                        >
+                          <span className="text-sm text-foreground">{base.nombre}</span>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {formatos.find(f => f.id === base.id_formato)?.nombre || 'Sin formato'}
+                          </Badge>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {showBaseDropdown && searchBase && basesFiltradas.length === 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-xl shadow-lg p-3 text-center text-muted-foreground text-sm">
+                      No se encontraron bases
+                    </div>
+                  )}
+                </div>
+
+                {/* Bases seleccionadas */}
+                {basesSeleccionadas.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Bases seleccionadas ({basesSeleccionadas.length})
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {basesSeleccionadas.map((base) => (
+                        <Badge
+                          key={base.id}
+                          variant="secondary"
+                          className="gap-1.5 pl-3 pr-1.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200/50"
+                        >
+                          {base.nombre}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBaseFromSelection(base.id)}
+                            className="ml-1 h-4 w-4 rounded-full bg-indigo-200/50 hover:bg-indigo-300/50 flex items-center justify-center transition-colors"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white gap-2"
+              >
+                {editingCampania ? 'Actualizar' : 'Crear Campania'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========== MODAL: BASES DE CAMPANIA ========== */}
+      <Dialog open={showBasesModal} onOpenChange={setShowBasesModal}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
+                <Database className="h-4 w-4 text-white" />
+              </div>
+              Bases de la Campania
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCampania?.nombre}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Agregar nueva base */}
+          {basesNoAsignadas.length > 0 && (
+            <Card className="bg-muted/30 border-dashed">
+              <CardContent className="p-4">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                  Agregar base
+                </label>
+                <div className="flex gap-2">
                   <select
                     id="addBaseSelect"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    className="flex-1 h-10 px-3 text-sm rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-colors border border-border"
                     defaultValue=""
                   >
                     <option value="" disabled>Seleccionar base...</option>
@@ -616,7 +867,7 @@ export default function CampaniasPage() {
                       </option>
                     ))}
                   </select>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       const select = document.getElementById('addBaseSelect');
@@ -625,193 +876,205 @@ export default function CampaniasPage() {
                         select.value = '';
                       }
                     }}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                    className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white gap-1.5"
                   >
+                    <Plus className="h-3.5 w-3.5" />
                     Agregar
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Lista de bases asignadas */}
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Seleccionar</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Base</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Formato</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Numeros</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Accion</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+          {/* Lista de bases asignadas */}
+          <div className="rounded-xl border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 w-16">Seleccionar</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Base</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Formato</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Numeros</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {basesAsignadas.map((base) => (
-                  <tr
+                  <TableRow
                     key={base.id}
-                    className={`hover:bg-gray-50 cursor-pointer ${baseSeleccionada === base.id_base_numero ? 'bg-primary-50' : ''}`}
+                    className={`table-row-premium cursor-pointer ${baseSeleccionada === base.id_base_numero ? 'bg-indigo-50/50' : ''}`}
                     onClick={() => setBaseSeleccionada(base.id_base_numero)}
                   >
-                    <td className="px-4 py-3">
-                      <input
-                        type="radio"
-                        name="baseSeleccionada"
-                        checked={baseSeleccionada === base.id_base_numero}
-                        onChange={() => setBaseSeleccionada(base.id_base_numero)}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{base.base_nombre}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="radio"
+                          name="baseSeleccionada"
+                          checked={baseSeleccionada === base.id_base_numero}
+                          onChange={() => setBaseSeleccionada(base.id_base_numero)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">{base.base_nombre}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200/50">
                         {base.formato_nombre || 'Sin formato'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{base.total_numeros || 0}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center text-sm text-muted-foreground">{base.total_numeros || 0}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveBase(base.id);
                         }}
-                        className="text-red-600 hover:text-red-900"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
 
             {basesAsignadas.length === 0 && (
-              <div className="text-center py-8 text-gray-500 text-sm">
-                No hay bases asignadas a esta campaña
+              <div className="flex flex-col items-center justify-center py-12">
+                <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No hay bases asignadas a esta campania</p>
               </div>
             )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal Ejecuciones */}
-      {showEjecucionesModal && selectedCampania && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Ejecuciones de Campaña</h2>
-                <p className="text-sm text-gray-500">{selectedCampania.nombre}</p>
+      {/* ========== MODAL: EJECUCIONES ========== */}
+      <Dialog open={showEjecucionesModal} onOpenChange={setShowEjecucionesModal}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-white" />
               </div>
-              <button
-                onClick={() => setShowEjecucionesModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+              Ejecuciones de Campania
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCampania?.nombre}
+            </DialogDescription>
+          </DialogHeader>
 
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Base</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Resultado</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha Registro</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha Inicio</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha Fin</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+          <div className="rounded-xl border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">ID</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Base</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Estado</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Resultado</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Registrado</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Inicio</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Fin</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {ejecuciones.map((ejecucion) => (
-                  <tr key={ejecucion.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-500">#{ejecucion.id}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{ejecucion.base_nombre}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.color || 'bg-gray-100 text-gray-800'}`}>
+                  <TableRow key={ejecucion.id} className="table-row-premium">
+                    <TableCell className="text-sm text-muted-foreground font-mono">#{ejecucion.id}</TableCell>
+                    <TableCell className="text-sm font-medium">{ejecucion.base_nombre}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] font-semibold ${ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.color || 'bg-gray-100 text-gray-800'}`}
+                      >
                         {ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.label || ejecucion.estado_ejecucion}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{ejecucion.resultado || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
+                      {ejecucion.resultado || '-'}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {ejecucion.fecha_registro ? new Date(ejecucion.fecha_registro).toLocaleString() : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {ejecucion.fecha_inicio ? new Date(ejecucion.fecha_inicio).toLocaleString() : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {ejecucion.fecha_fin ? new Date(ejecucion.fecha_fin).toLocaleString() : '-'}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
 
             {ejecuciones.length === 0 && (
-              <div className="text-center py-8 text-gray-500 text-sm">
-                No hay ejecuciones registradas para esta campaña
+              <div className="flex flex-col items-center justify-center py-12">
+                <ClipboardList className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campania</p>
               </div>
             )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal Plantillas */}
-      {showPlantillasModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Seleccionar Plantilla</h2>
-              <button
-                onClick={() => setShowPlantillasModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      {/* ========== MODAL: PLANTILLAS ========== */}
+      <Dialog open={showPlantillasModal} onOpenChange={setShowPlantillasModal}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-white" />
+              </div>
+              Seleccionar Plantilla
+            </DialogTitle>
+            <DialogDescription>
+              Elige la plantilla para la ejecucion de la campania
+            </DialogDescription>
+          </DialogHeader>
 
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Seleccionar</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+          <div className="rounded-xl border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-violet-500/70 w-16">Seleccionar</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-violet-500/70">Nombre</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {plantillasDisponibles.map((plantilla) => (
-                  <tr
+                  <TableRow
                     key={plantilla.id}
-                    className={`hover:bg-gray-50 cursor-pointer ${plantillaSeleccionada?.id === plantilla.id ? 'bg-primary-50' : ''}`}
+                    className={`table-row-premium cursor-pointer ${plantillaSeleccionada?.id === plantilla.id ? 'bg-violet-50/50' : ''}`}
                     onClick={() => setPlantillaSeleccionada(plantilla)}
                   >
-                    <td className="px-4 py-3">
-                      <input
-                        type="radio"
-                        name="plantillaSeleccionada"
-                        checked={plantillaSeleccionada?.id === plantilla.id}
-                        onChange={() => setPlantillaSeleccionada(plantilla)}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{plantilla.nombre}</td>
-                  </tr>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="radio"
+                          name="plantillaSeleccionada"
+                          checked={plantillaSeleccionada?.id === plantilla.id}
+                          onChange={() => setPlantillaSeleccionada(plantilla)}
+                          className="h-4 w-4 text-violet-600 focus:ring-violet-500 border-gray-300"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">{plantilla.nombre}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
 
             {plantillasDisponibles.length === 0 && (
-              <div className="text-center py-8 text-gray-500 text-sm">
-                No hay plantillas disponibles
+              <div className="flex flex-col items-center justify-center py-12">
+                <FileText className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No hay plantillas disponibles</p>
               </div>
             )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

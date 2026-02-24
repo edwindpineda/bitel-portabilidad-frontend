@@ -1,8 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
+import { Tags, Plus, Pencil, Trash2, ChevronRight, Check, X, TreePine } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const COLORES_PREDEFINIDOS = [
   { nombre: 'Rojo', valor: '#EF4444' },
@@ -32,23 +47,19 @@ export default function TipificacionesPage() {
     definicion: '',
     orden: 0,
     color: '#3B82F6',
-    flag_asesor: isAsesor,
-    flag_bot: isBot,
+    flag_asesor: false,
+    flag_bot: false,
     id_padre: null
   });
 
-  // Obtener tipificaciones padre (las que no tienen padre)
   const tipificacionesPadre = tipificaciones.filter(t => !t.id_padre);
 
-  // Obtener hijos de un padre específico
   const getHijosDePadre = (idPadre) => {
     return tipificaciones.filter(t => t.id_padre === idPadre);
   };
 
-  // Construir los niveles de dropdowns basados en la selección
   const construirNiveles = () => {
     const niveles = [{ opciones: tipificacionesPadre, seleccionado: nivelesSeleccionados[0] || null }];
-
     for (let i = 0; i < nivelesSeleccionados.length; i++) {
       const hijos = getHijosDePadre(nivelesSeleccionados[i]);
       if (hijos.length > 0) {
@@ -62,18 +73,13 @@ export default function TipificacionesPage() {
 
   const nivelesDropdown = construirNiveles();
 
-  // Manejar cambio de nivel
   const handleNivelChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesSeleccionados.slice(0, nivelIndex);
-
     if (nuevoValor) {
       nuevosNiveles.push(nuevoValor);
     }
-
     setNivelesSeleccionados(nuevosNiveles);
-
-    // El id_padre es el último nivel seleccionado
     const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
     setFormData(prev => ({ ...prev, id_padre: ultimoNivel }));
   };
@@ -97,12 +103,9 @@ export default function TipificacionesPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log(`Asesor: ${isAsesor}, Bot: ${isBot}`);
-      console.log(formData);
       if (editingTipificacion) {
-        await apiClient.put(`/crm/tipificaciones/${editingTipificacion.id}`, {...formData, flag_asesor: isAsesor, flag_bot: isBot});
+        await apiClient.put(`/crm/tipificaciones/${editingTipificacion.id}`, { ...formData, flag_asesor: isAsesor, flag_bot: isBot });
       } else {
-        // Asignar el siguiente orden disponible
         const maxOrden = tipificaciones.length > 0
           ? Math.max(...tipificaciones.map(t => t.orden || 0))
           : -1;
@@ -125,7 +128,6 @@ export default function TipificacionesPage() {
     setIsAsesor(tipificacion.flag_asesor || false);
     setIsBot(tipificacion.flag_bot || false);
 
-    // Construir la cadena de niveles desde el id_padre hacia arriba
     const niveles = [];
     if (tipificacion.id_padre) {
       let currentId = tipificacion.id_padre;
@@ -150,24 +152,16 @@ export default function TipificacionesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Esta seguro de eliminar esta tipificacion?')) {
+    if (confirm('¿Está seguro de eliminar esta tipificación?')) {
       try {
         await apiClient.delete(`/crm/tipificaciones/${id}`);
         loadData();
       } catch (error) {
         console.error('Error al eliminar tipificacion:', error);
-        alert('No se puede eliminar la tipificacion porque esta en uso');
+        alert('No se puede eliminar la tipificación porque está en uso');
       }
     }
   };
-
-  const handleCheckboxChange = (e) => {
-    if (e.target.id === "asesor") {
-      setIsAsesor(e.target.checked);
-    } else if (e.target.id === "bot") {
-      setIsBot(e.target.checked);
-    }
-  }
 
   const resetForm = () => {
     setFormData({
@@ -182,11 +176,13 @@ export default function TipificacionesPage() {
 
   const openNewModal = () => {
     setEditingTipificacion(null);
+    setIsAsesor(false);
+    setIsBot(false);
     resetForm();
     setShowModal(true);
   };
 
-  // Drag and Drop handlers
+  // Drag and Drop
   const handleDragStart = (e, index) => {
     setDraggedItem(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -215,13 +211,11 @@ export default function TipificacionesPage() {
       return;
     }
 
-    // Reordenar localmente
     const newTipificaciones = [...tipificaciones];
     const draggedItemData = newTipificaciones[draggedItem];
     newTipificaciones.splice(draggedItem, 1);
     newTipificaciones.splice(dropIndex, 0, draggedItemData);
 
-    // Actualizar orden en el estado local
     const updatedTipificaciones = newTipificaciones.map((item, index) => ({
       ...item,
       orden: index
@@ -231,14 +225,12 @@ export default function TipificacionesPage() {
     setDraggedItem(null);
     setDragOverItem(null);
 
-    // Guardar nuevo orden en el backend
     await saveNewOrder(updatedTipificaciones);
   };
 
   const saveNewOrder = async (items) => {
     setSavingOrder(true);
     try {
-      // Actualizar cada tipificacion con su nuevo orden
       const promises = items.map((item, index) =>
         apiClient.put(`/crm/tipificaciones/${item.id}`, {
           nombre: item.nombre,
@@ -253,7 +245,6 @@ export default function TipificacionesPage() {
       await Promise.all(promises);
     } catch (error) {
       console.error('Error al guardar orden:', error);
-      // Recargar datos si hay error
       loadData();
     } finally {
       setSavingOrder(false);
@@ -263,232 +254,223 @@ export default function TipificacionesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Breadcrumb */}
         <div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <Link href="/configuracion" className="hover:text-primary-600">Configuracion</Link>
-            <span>/</span>
-            <span className="text-gray-900">Tipificaciones</span>
+          <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
+            <Link href="/configuracion" className="hover:text-foreground transition-colors">Configuración</Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-medium">Tipificaciones</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Tipificaciones</h1>
-          <p className="text-gray-600 mt-1">Arrastra para cambiar el orden de las tipificaciones</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Link
-            href="/configuracion/tipificaciones/arbol"
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center space-x-2 border border-gray-300"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            <span>Vista Arbol</span>
-          </Link>
-          <button
-            onClick={openNewModal}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center space-x-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Nueva Tipificacion</span>
-          </button>
-        </div>
-      </div>
-
-      {savingOrder && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg flex items-center space-x-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          <span className="text-sm">Guardando orden...</span>
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-          <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-500 uppercase">
-            <div className="col-span-1 text-center">#</div>
-            <div className="col-span-2">Nombre</div>
-            <div className="col-span-2">Padre</div>
-            <div className="col-span-2">Definicion</div>
-            <div className="col-span-1 text-center">Color</div>
-            <div className="col-span-1 text-center">Asesor</div>
-            <div className="col-span-1 text-center">Bot</div>
-            <div className="col-span-2 text-center">Acciones</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Tipificaciones</h1>
+              <p className="text-muted-foreground">Arrastra para cambiar el orden de las tipificaciones</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/configuracion/tipificaciones/arbol">
+                  <TreePine className="h-4 w-4 mr-2" />
+                  Vista Árbol
+                </Link>
+              </Button>
+              <Button onClick={openNewModal}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Tipificación
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="divide-y divide-gray-200">
-          {tipificaciones.map((tipificacion, index) => (
-            <div
-              key={tipificacion.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragEnd={handleDragEnd}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDrop={(e) => handleDrop(e, index)}
-              className={`grid grid-cols-12 gap-4 px-4 py-6 items-center transition-all cursor-move hover:bg-gray-50 ${
-                dragOverItem === index ? 'bg-primary-50 border-t-2 border-primary-500' : ''
-              } ${draggedItem === index ? 'opacity-50' : ''}`}
-            >
-              {/* Drag Handle */}
-              {/* <div className="flex items-center justify-center space-x-1">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                </svg>
-              </div> */}
+        <Separator />
 
-              {/* Orden */}
-              <div className="col-span-1">
-                <p className="text-sm font-medium text-gray-500 text-center">{index + 1}</p>
-              </div>
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary" className="text-sm px-3 py-1">
+            {tipificaciones.length} {tipificaciones.length === 1 ? 'tipificación' : 'tipificaciones'}
+          </Badge>
+          {savingOrder && (
+            <Badge variant="outline" className="gap-1 animate-pulse">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+              Guardando orden...
+            </Badge>
+          )}
+        </div>
 
-              {/* Nombre */}
-              <div className="col-span-2 flex items-center space-x-2 gap-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: tipificacion.color || '#3B82F6' }}
-                >
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                </div>
-                <span className="text-sm font-medium text-gray-900 truncate">{tipificacion.nombre}</span>
-              </div>
-
-              {/* Padre */}
-              <div className="col-span-2">
-                <p className="text-sm text-gray-600 truncate">
-                  {tipificacion.id_padre
-                    ? tipificaciones.find(t => t.id === tipificacion.id_padre)?.nombre || '-'
-                    : <span className="text-gray-400 italic">Principal</span>
-                  }
-                </p>
-              </div>
-
-              {/* Definicion */}
-              <div className="col-span-2">
-                <p className="text-sm text-gray-600 truncate">
-                  {tipificacion.definicion || <span className="text-gray-400 italic">Sin definicion</span>}
-                </p>
-              </div>
-
-              {/* Color */}
-              <div className=" col-span-1 flex items-center justify-center">
-                <div
-                  className="w-6 h-6 rounded-full border border-gray-300"
-                  style={{ backgroundColor: tipificacion.color || '#3B82F6' }}
-                ></div>
-              </div>
-
-              {/* Flag Asesor */}
-              <div className="col-span-1 flex items-center justify-center">
-                {tipificacion.flag_asesor ? (
-                  <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                ) : (
-                  <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-
-              {/* Flag Bot */}
-              <div className="col-span-1 flex items-center justify-center">
-                {tipificacion.flag_bot ? (
-                  <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                ) : (
-                  <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-
-              {/* Acciones */}
-              <div className="col-span-2 flex items-center justify-center space-x-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleEdit(tipificacion); }}
-                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                  title="Editar"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(tipificacion.id); }}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Eliminar"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+        {/* Table */}
+        {tipificaciones.length > 0 ? (
+          <Card>
+            <div className="px-4 py-3 border-b bg-muted/40 rounded-t-lg">
+              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="col-span-1 text-center">#</div>
+                <div className="col-span-2">Nombre</div>
+                <div className="col-span-2">Padre</div>
+                <div className="col-span-2">Definición</div>
+                <div className="col-span-1 text-center">Color</div>
+                <div className="col-span-1 text-center">Asesor</div>
+                <div className="col-span-1 text-center">Bot</div>
+                <div className="col-span-2 text-center">Acciones</div>
               </div>
             </div>
-          ))}
-        </div>
 
-        {tipificaciones.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No hay tipificaciones registradas
-          </div>
+            <div className="divide-y">
+              {tipificaciones.map((tipificacion, index) => (
+                <div
+                  key={tipificacion.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className={`grid grid-cols-12 gap-4 px-4 py-4 items-center transition-all cursor-move hover:bg-muted/30 ${
+                    dragOverItem === index ? 'bg-primary/5 border-t-2 border-primary' : ''
+                  } ${draggedItem === index ? 'opacity-50' : ''}`}
+                >
+                  <div className="col-span-1">
+                    <p className="text-sm font-mono text-muted-foreground text-center">{index + 1}</p>
+                  </div>
+
+                  <div className="col-span-2 flex items-center gap-2">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: tipificacion.color || '#3B82F6' }}
+                    >
+                      <Tags className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium truncate">{tipificacion.nombre}</span>
+                  </div>
+
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {tipificacion.id_padre
+                        ? tipificaciones.find(t => t.id === tipificacion.id_padre)?.nombre || '-'
+                        : <span className="italic text-muted-foreground/50">Principal</span>
+                      }
+                    </p>
+                  </div>
+
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {tipificacion.definicion || <span className="italic text-muted-foreground/50">Sin definición</span>}
+                    </p>
+                  </div>
+
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div
+                      className="w-6 h-6 rounded-full border"
+                      style={{ backgroundColor: tipificacion.color || '#3B82F6' }}
+                    />
+                  </div>
+
+                  <div className="col-span-1 flex items-center justify-center">
+                    {tipificacion.flag_asesor ? (
+                      <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="h-3.5 w-3.5 text-green-600" />
+                      </span>
+                    ) : (
+                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="col-span-1 flex items-center justify-center">
+                    {tipificacion.flag_bot ? (
+                      <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="h-3.5 w-3.5 text-green-600" />
+                      </span>
+                    ) : (
+                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="col-span-2 flex items-center justify-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleEdit(tipificacion); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(tipificacion.id); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Eliminar</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Tags className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium">No hay tipificaciones registradas</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Crea una nueva tipificación para comenzar</p>
+              <Button onClick={openNewModal} variant="outline" className="mt-4">
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Tipificación
+              </Button>
+            </CardContent>
+          </Card>
         )}
-      </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {editingTipificacion ? 'Editar Tipificacion' : 'Nueva Tipificacion'}
-            </h2>
+        {/* Create/Edit Dialog */}
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingTipificacion ? 'Editar Tipificación' : 'Nueva Tipificación'}</DialogTitle>
+              <DialogDescription>
+                {editingTipificacion
+                  ? 'Modifica los datos de la tipificación'
+                  : 'Completa los datos para crear una nueva tipificación'}
+              </DialogDescription>
+            </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                <input
-                  type="text"
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nombre *</label>
+                <Input
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Nombre de la tipificación"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Definicion</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Definición</label>
                 <textarea
                   value={formData.definicion}
                   onChange={(e) => setFormData({ ...formData, definicion: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   rows={3}
-                  placeholder="Descripcion o definicion del motivo..."
+                  placeholder="Descripción o definición del motivo..."
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jerarquia de Padre</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Jerarquía de Padre</label>
                 <div className="flex flex-wrap gap-2 items-center">
                   {nivelesDropdown.map((nivel, index) => (
                     <div key={index} className="flex items-center gap-1">
-                      {index > 0 && <span className="text-gray-400 text-lg">/</span>}
+                      {index > 0 && <span className="text-muted-foreground text-lg">/</span>}
                       <select
                         value={nivel.seleccionado || ''}
                         onChange={(e) => handleNivelChange(index, e.target.value)}
-                        className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 min-w-[120px]"
+                        className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-w-[120px]"
                       >
                         <option value="">{index === 0 ? 'Sin padre' : 'Seleccionar...'}</option>
                         {nivel.opciones
@@ -502,90 +484,77 @@ export default function TipificacionesPage() {
                   ))}
                 </div>
                 {formData.id_padre && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Padre seleccionado: {tipificaciones.find(t => t.id === formData.id_padre)?.nombre}
                   </p>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Habilitar para: </label>
-                <div className='flex flex-col gap-3 py-4'>
-                  <div className="inline-flex items-center">
-                    <label className="relative flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isAsesor}
-                        onChange={handleCheckboxChange}
-                        className="h-5 w-5 cursor-pointer rounded border border-slate-300 checked:bg-slate-800 checked:border-slate-800 transition-all"
-                        id="asesor"
-                      />
-                    </label>
-                    <label htmlFor="asesor" className="ml-2 text-slate-600 cursor-pointer text-sm">Asesor</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Habilitar para:</label>
+                <div className="flex flex-col gap-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isAsesor}
+                      onChange={(e) => setIsAsesor(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
+                      id="asesor"
+                    />
+                    <label htmlFor="asesor" className="text-sm cursor-pointer">Asesor</label>
                   </div>
-
-                  <div className="inline-flex items-center">
-                    <label className="relative flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isBot}
-                        onChange={handleCheckboxChange}
-                        className="h-5 w-5 cursor-pointer rounded border border-slate-300 checked:bg-slate-800 checked:border-slate-800 transition-all"
-                        id="bot"
-                      />
-                    </label>
-                    <label htmlFor="bot" className="ml-2 text-slate-600 cursor-pointer text-sm">Bot</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isBot}
+                      onChange={(e) => setIsBot(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
+                      id="bot"
+                    />
+                    <label htmlFor="bot" className="text-sm cursor-pointer">Bot</label>
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                <div className="flex items-center space-x-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Color</label>
+                <div className="flex items-center gap-3">
                   <input
                     type="color"
                     value={formData.color}
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                    className="h-9 w-12 rounded border cursor-pointer"
                   />
-                  <input
-                    type="text"
+                  <Input
                     value={formData.color}
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     placeholder="#3B82F6"
+                    className="flex-1"
                   />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {COLORES_PREDEFINIDOS.map((color) => (
                     <button
                       key={color.valor}
                       type="button"
                       onClick={() => setFormData({ ...formData, color: color.valor })}
-                      className={`w-8 h-8 rounded-full border-2 ${formData.color === color.valor ? 'border-gray-900' : 'border-transparent'}`}
+                      className={`w-7 h-7 rounded-full border-2 transition-all ${formData.color === color.valor ? 'border-foreground scale-110' : 'border-transparent'}`}
                       style={{ backgroundColor: color.valor }}
                       title={color.nombre}
                     />
                   ))}
                 </div>
               </div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
+                </Button>
+                <Button type="submit">
                   {editingTipificacion ? 'Actualizar' : 'Crear'}
-                </button>
-              </div>
+                </Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }

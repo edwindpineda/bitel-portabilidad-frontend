@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "WebFetch(domain:json-server-two-pink.vercel.app)",
+      "Bash(git checkout:*)",
+      "Bash(ls:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx next lint:*)",
+      "Bash(dir:*)",
+      "Bash(set PGPASSWORD=2dcadb647e771cc6228d:*)",
+      "Bash(psql:*)",
+      "Bash(where:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:sperant.gitbook.io)",
+      "Bash(node -e \"const { Sequelize } = require\\(''sequelize''\\); const s = new Sequelize\\(''viva'',''postgres'',''2dcadb647e771cc6228d'',{host:''167.172.254.139'',port:5432,dialect:''postgres'',logging:false}\\); \\(async\\(\\)=>{try{const [cols]=await s.query\\(\"\"SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name=''prospecto'' ORDER BY ordinal_position\"\"\\); console.log\\(JSON.stringify\\(cols,null,2\\)\\);}catch\\(e\\){console.error\\(e.message\\);}finally{await s.close\\(\\);}}\\)\\(\\);\")",
+      "Bash(node -e \"const { Sequelize } = require\\(''sequelize''\\); const s = new Sequelize\\(''viva'',''postgres'',''2dcadb647e771cc6228d'',{host:''167.172.254.139'',port:5432,dialect:''postgres'',logging:false}\\); \\(async\\(\\)=>{try{const [estados]=await s.query\\(''SELECT * FROM estado_prospecto''\\); console.log\\(JSON.stringify\\(estados,null,2\\)\\);}catch\\(e\\){console.error\\(e.message\\);}finally{await s.close\\(\\);}}\\)\\(\\);\")",
+      "Bash(findstr:*)",
+      "Bash(npm install:*)",
+      "Bash(python:*)",
+      "Bash(python3 -c \"\nimport urllib.request, json\n\ntoken = ''ifAcyTLA6z4oi1oOhra9CajW9GozQNGO9Qqx5PGS''\nbase = ''https://api.eterniasoft.com/v3''\n\n# Get all projects \\(paginated\\)\nprojects = []\nurl = f''{base}/projects''\nwhile url:\n    req = urllib.request.Request\\(url, headers={''Authorization'': token}\\)\n    with urllib.request.urlopen\\(req, timeout=60\\) as resp:\n        data = json.loads\\(resp.read\\(\\)\\)\n        for p in data.get\\(''data'', []\\):\n            projects.append\\({''id'': p[''id''], ''name'': p[''attributes''][''name'']}\\)\n        url = data.get\\(''links'', {}\\).get\\(''next''\\)\n\nprint\\(f''Total proyectos: {len\\(projects\\)}''\\)\nprint\\(\\)\n\n# Get units count for each project\ntotal_units = 0\nfor p in projects:\n    try:\n        req = urllib.request.Request\\(f\"\"{base}/projects/{p[''id'']}/units\"\", headers={''Authorization'': token}\\)\n        with urllib.request.urlopen\\(req, timeout=60\\) as resp:\n            data = json.loads\\(resp.read\\(\\)\\)\n            count = data.get\\(''meta'', {}\\).get\\(''page'', {}\\).get\\(''total'', 0\\)\n            total_units += count\n            print\\(f\"\"  {p[''name'']}: {count} unidades\"\"\\)\n    except Exception as e:\n        print\\(f\"\"  {p[''name'']}: ERROR - {e}\"\"\\)\n\nprint\\(f''\\\\n=== TOTAL GENERAL: {len\\(projects\\)} proyectos, {total_units} unidades ===''\\)\n\")",
+      "Bash(python3:*)",
+      "WebFetch(domain:api.eterniasoft.com)",
+      "Bash(PGPASSWORD=2dcadb647e771cc6228d psql -h 167.172.254.139 -U postgres -d viva -c \"SELECT COUNT\\(*\\) as total FROM unidad;\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImVtYWlsIjoiYWRtaW4iLCJpYXQiOjE3NzEzNjQxMDUsImV4cCI6MTc3MTM2NzcwNX0.uD0pYqdiEXoZMox0rHx8v6rDI1QQGXanZQZDe9hQ4CM\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(wc:*)",
+      "Bash(node -e \":*)",
+      "Bash(node -e:*)",
+      "Bash(grep:*)",
+      "Bash(PGPASSWORD=2dcadb647e771cc6228d psql -h 167.172.254.139 -U postgres -d viva -c \"SELECT * FROM estado_prospecto WHERE estado_registro = 1 ORDER BY id_empresa, orden;\")",
+      "Bash(docker run:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

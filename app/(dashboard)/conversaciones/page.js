@@ -4,10 +4,42 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import useChatWebSocket from '@/hooks/useChatWebSocket';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Search,
+  Filter,
+  X,
+  ChevronDown,
+  Send,
+  MoreVertical,
+  Bot,
+  Phone,
+  Loader2,
+  MessageSquare,
+  Eye,
+  Pencil,
+  CheckCheck,
+  Smile,
+  Paperclip,
+  Mic,
+  ArrowLeft,
+  Wifi,
+  WifiOff,
+  Lock,
+} from 'lucide-react';
 
 const CONTACTS_PER_PAGE = 20;
 const SEARCH_DEBOUNCE_MS = 500;
 
+// WhatsApp wallpaper doodle pattern as inline SVG data URI
+const WA_WALLPAPER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 303 172'%3E%3Crect fill='%23f0ece4' width='303' height='172'/%3E%3Cg opacity='0.06' fill='%23e4dcd4'%3E%3Ccircle cx='58' cy='42' r='4'/%3E%3Ccircle cx='130' cy='28' r='3'/%3E%3Ccircle cx='195' cy='32' r='5'/%3E%3Ccircle cx='260' cy='38' r='3'/%3E%3Ccircle cx='42' cy='82' r='4'/%3E%3Ccircle cx='108' cy='88' r='3'/%3E%3Ccircle cx='170' cy='78' r='5'/%3E%3Ccircle cx='240' cy='80' r='4'/%3E%3Ccircle cx='20' cy='130' r='3'/%3E%3Ccircle cx='86' cy='132' r='4'/%3E%3Ccircle cx='150' cy='128' r='3'/%3E%3Ccircle cx='218' cy='126' r='5'/%3E%3Ccircle cx='280' cy='130' r='3'/%3E%3Cpath d='M26.4 38.6a3.1 3.1 0 01-2.2-.9l-2-2a3.1 3.1 0 010-4.4l2-2a3.1 3.1 0 014.4 0l2 2a3.1 3.1 0 010 4.4l-2 2a3.1 3.1 0 01-2.2.9z'/%3E%3Cpath d='M160 35l4-7h-8z'/%3E%3Cpath d='M290 30l3 6h-6z'/%3E%3Cpath d='M140 80l4-7h-8z'/%3E%3Cpath d='M270 76l3 6h-6z'/%3E%3Cpath d='M118 126l4-7h-8z'/%3E%3Cpath d='M248 124l3 6h-6z'/%3E%3C/g%3E%3C/svg%3E";
 // Funcion para formatear fecha relativa
 const formatRelativeTime = (dateString) => {
   if (!dateString) return '';
@@ -19,11 +51,13 @@ const formatRelativeTime = (dateString) => {
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return 'Ahora';
-  if (diffMins < 60) return `Hace ${diffMins}m`;
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffDays < 7) return `Hace ${diffDays}d`;
+  if (diffMins < 60) return `${diffMins} min`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays === 1) return 'Ayer';
+  if (diffDays < 7) return `${diffDays}d`;
   return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', timeZone: "America/Lima" });
 };
+
 export default function ConversacionesPage() {
   const { data: session } = useSession();
   const [contactos, setContactos] = useState([]);
@@ -52,22 +86,24 @@ export default function ConversacionesPage() {
   const [nivelesTipBot, setNivelesTipBot] = useState([]);
   const [nivelesTipAsesor, setNivelesTipAsesor] = useState([]);
 
-  // Estados para menu y edicion de prospecto
-  const [showMenu, setShowMenu] = useState(false);
-  const [showEditProspectoModal, setShowEditProspectoModal] = useState(false);
-  const [editingProspecto, setEditingProspecto] = useState(null);
+  // Estados para menu y edicion de persona
+  const [showEditPersonaModal, setShowEditPersonaModal] = useState(false);
+  const [editingPersona, setEditingPersona] = useState(null);
   const [nivelesEditTipAsesor, setNivelesEditTipAsesor] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [planes, setPlanes] = useState([]);
-  const [savingProspecto, setSavingProspecto] = useState(false);
+  const [savingPersona, setSavingPersona] = useState(false);
 
-  // Estados para modal de detalle de prospecto
+  // Estados para modal de detalle de persona
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [perfilamientoData, setPerfilamientoData] = useState([]);
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
 
   // Estado para mostrar/ocultar filtros desplegables
   const [showFilters, setShowFilters] = useState(false);
+
+  // Estado para busqueda activa en sidebar
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // Ref para el contenedor de mensajes y el final de mensajes
   const messagesContainerRef = useRef(null);
@@ -129,7 +165,6 @@ export default function ConversacionesPage() {
   // Scroll al final cuando cambian los mensajes y terminan de cargar
   useEffect(() => {
     if (chatMessages.length > 0 && !loadingMessages) {
-      // Ejecutar scroll con delays para asegurar que el DOM esté actualizado
       const timer1 = setTimeout(scrollToBottom, 50);
       const timer2 = setTimeout(scrollToBottom, 150);
       const timer3 = setTimeout(scrollToBottom, 300);
@@ -166,8 +201,6 @@ export default function ConversacionesPage() {
       const contactosArray = response.data || [];
       const total = response.total || 0;
 
-      console.log('Contactos cargados:', contactosArray);
-
       if (append) {
         setContactos(prev => [...prev, ...contactosArray]);
       } else {
@@ -189,11 +222,10 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Cargar estados y tipificaciones (sin usar apiClient para evitar logout en 401)
+  // Cargar estados y tipificaciones
   const loadFiltersData = async () => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3020/api';
 
-    // Obtener el token de la sesión
     let token = null;
     try {
       const { getSession } = await import('next-auth/react');
@@ -205,7 +237,6 @@ export default function ConversacionesPage() {
 
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-    // Cargar estados
     try {
       const response = await fetch(`${API_URL}/crm/estados`, { headers });
       if (response.ok) {
@@ -216,7 +247,6 @@ export default function ConversacionesPage() {
       console.error('Error al cargar estados:', err);
     }
 
-    // Cargar tipificaciones
     try {
       const response = await fetch(`${API_URL}/crm/tipificaciones`, { headers });
       if (response.ok) {
@@ -227,7 +257,6 @@ export default function ConversacionesPage() {
       console.error('Error al cargar tipificaciones:', err);
     }
 
-    // Cargar proveedores
     try {
       const response = await fetch(`${API_URL}/crm/leads/proveedores`, { headers });
       if (response.ok) {
@@ -238,7 +267,6 @@ export default function ConversacionesPage() {
       console.error('Error al cargar proveedores:', err);
     }
 
-    // Cargar planes
     try {
       const response = await fetch(`${API_URL}/crm/leads/catalogo`, { headers });
       if (response.ok) {
@@ -255,7 +283,6 @@ export default function ConversacionesPage() {
     loadConversations(0);
   }, []);
 
-  // Cargar mas contactos
   const handleLoadMore = () => {
     const newOffset = offset + CONTACTS_PER_PAGE;
     setOffset(newOffset);
@@ -266,7 +293,6 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Buscar contactos
   const searchContacts = async (query, currentOffset = 0, append = false, estadoId = selectedEstado, tipificacionId = selectedTipificacion, tipificacionAsesorId = selectedTipificacionAsesor) => {
     try {
       if (append) {
@@ -307,17 +333,14 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Manejar cambio en busqueda con debounce
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
 
-    // Limpiar timeout anterior
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
 
-    // Nuevo timeout para debounce
     const timeout = setTimeout(() => {
       setOffset(0);
       if (value.trim()) {
@@ -330,7 +353,6 @@ export default function ConversacionesPage() {
     setSearchTimeout(timeout);
   };
 
-  // Limpiar busqueda
   const clearSearch = () => {
     setSearchQuery('');
     setOffset(0);
@@ -340,7 +362,6 @@ export default function ConversacionesPage() {
     loadConversations(0);
   };
 
-  // Manejar cambio de filtros
   const handleFilterChange = (filterType, value) => {
     setOffset(0);
     const newEstado = filterType === 'estado' ? value : selectedEstado;
@@ -362,7 +383,6 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Limpiar todos los filtros
   const clearFilters = () => {
     setSelectedEstado('');
     setSelectedTipificacion('');
@@ -377,23 +397,17 @@ export default function ConversacionesPage() {
     loadConversations(0, false, '', '', '');
   };
 
-  // Obtener tipificaciones padre (sin padre) - solo flag_bot
   const tipificacionesPadreBot = tipificaciones.filter(t => !t.id_padre && t.flag_bot === 1);
-
-  // Obtener tipificaciones padre - solo flag_asesor
   const tipificacionesPadreAsesor = tipificaciones.filter(t => !t.id_padre && t.flag_asesor === 1);
 
-  // Obtener hijos de un padre para bot
   const getHijosBot = (idPadre) => {
     return tipificaciones.filter(t => t.id_padre === idPadre && t.flag_bot === 1);
   };
 
-  // Obtener hijos de un padre para asesor
   const getHijosAsesor = (idPadre) => {
     return tipificaciones.filter(t => t.id_padre === idPadre && t.flag_asesor === 1);
   };
 
-  // Construir niveles para tipificacion bot
   const construirNivelesBot = () => {
     const niveles = [{ opciones: tipificacionesPadreBot, seleccionado: nivelesTipBot[0] || null }];
     for (let i = 0; i < nivelesTipBot.length; i++) {
@@ -407,7 +421,6 @@ export default function ConversacionesPage() {
     return niveles;
   };
 
-  // Construir niveles para tipificacion asesor
   const construirNivelesAsesor = () => {
     const niveles = [{ opciones: tipificacionesPadreAsesor, seleccionado: nivelesTipAsesor[0] || null }];
     for (let i = 0; i < nivelesTipAsesor.length; i++) {
@@ -421,7 +434,6 @@ export default function ConversacionesPage() {
     return niveles;
   };
 
-  // Manejar cambio de nivel para tipificacion bot
   const handleNivelBotChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesTipBot.slice(0, nivelIndex);
@@ -433,7 +445,6 @@ export default function ConversacionesPage() {
     const tipId = ultimoNivel ? String(ultimoNivel) : '';
     setSelectedTipificacion(tipId);
 
-    // Aplicar filtro
     setOffset(0);
     if (searchQuery.trim()) {
       searchContacts(searchQuery.trim(), 0, false, selectedEstado, tipId, selectedTipificacionAsesor);
@@ -442,7 +453,6 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Manejar cambio de nivel para tipificacion asesor
   const handleNivelAsesorChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesTipAsesor.slice(0, nivelIndex);
@@ -454,7 +464,6 @@ export default function ConversacionesPage() {
     const tipId = ultimoNivel ? String(ultimoNivel) : '';
     setSelectedTipificacionAsesor(tipId);
 
-    // Aplicar filtro
     setOffset(0);
     if (searchQuery.trim()) {
       searchContacts(searchQuery.trim(), 0, false, selectedEstado, selectedTipificacion, tipId);
@@ -466,7 +475,6 @@ export default function ConversacionesPage() {
   const nivelesDropdownBot = construirNivelesBot();
   const nivelesDropdownAsesor = construirNivelesAsesor();
 
-  // Construir niveles para tipificacion asesor en modal de edicion
   const construirNivelesEditAsesor = () => {
     const niveles = [{ opciones: tipificacionesPadreAsesor, seleccionado: nivelesEditTipAsesor[0] || null }];
     for (let i = 0; i < nivelesEditTipAsesor.length; i++) {
@@ -480,7 +488,6 @@ export default function ConversacionesPage() {
     return niveles;
   };
 
-  // Manejar cambio de nivel para tipificacion asesor en modal de edicion
   const handleNivelEditAsesorChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesEditTipAsesor.slice(0, nivelIndex);
@@ -489,12 +496,11 @@ export default function ConversacionesPage() {
     }
     setNivelesEditTipAsesor(nuevosNiveles);
     const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
-    handleEditProspectoChange('id_tipificacion_asesor', ultimoNivel);
+    handleEditPersonaChange('id_tipificacion_asesor', ultimoNivel);
   };
 
   const nivelesDropdownEditAsesor = construirNivelesEditAsesor();
 
-  // Cargar mensajes del chat seleccionado desde tabla mensaje
   const handleSelectChat = async (contacto) => {
     setSelectedChat(contacto);
     setLoadingMessages(true);
@@ -502,11 +508,9 @@ export default function ConversacionesPage() {
     setNewMessage('');
 
     try {
-      // Cargar mensajes del endpoint /crm/contacto/{id}/mensajes
       const response = await apiClient.get(`/crm/contacto/${contacto.id}/mensajes`);
       const messagesData = response.data || [];
 
-      // Transformar mensajes a formato de chat
       const messages = messagesData.map(msg => ({
         id: msg.id,
         type: msg.direccion === 'in' ? 'client' : 'ai',
@@ -518,16 +522,13 @@ export default function ConversacionesPage() {
       }));
 
       setChatMessages(messages);
-      console.log('Mensajes cargados:', messages);
 
-      // Marcar ultimo mensaje como visto
       if (messages.length > 0) {
         const lastMessageId = Math.max(...messages.map(m => m.id));
         try {
           await apiClient.post(`/crm/contacto/${contacto.id}/mark-read`, {
             idMensaje: lastMessageId
           });
-          // Actualizar el contador de mensajes no leidos en la lista de contactos
           setContactos(prev => prev.map(c =>
             c.id === contacto.id ? { ...c, mensajes_no_leidos: 0 } : c
           ));
@@ -543,7 +544,6 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Enviar mensaje (usa WebSocket si esta conectado, sino API)
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedChat || sendingMessage || wsEnviando) return;
@@ -554,12 +554,10 @@ export default function ConversacionesPage() {
     try {
       let success = false;
 
-      // Intentar enviar por WebSocket primero
       if (wsConnected) {
         success = await wsEnviarMensaje(messageContent, selectedChat.celular);
       }
 
-      // Si WebSocket falla o no esta conectado, usar API
       if (!success) {
         await apiClient.post(`/crm/contacto/${selectedChat.id}/mensajes`, {
           contenido: messageContent
@@ -568,7 +566,6 @@ export default function ConversacionesPage() {
       }
 
       if (success) {
-        // Agregar mensaje al chat local
         const newMsg = {
           id: Date.now(),
           type: 'ai',
@@ -586,7 +583,6 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Toggle bot activo
   const handleToggleBot = async () => {
     if (!selectedChat || togglingBot) return;
 
@@ -595,10 +591,8 @@ export default function ConversacionesPage() {
       const response = await apiClient.patch(`/crm/contacto/${selectedChat.id}/toggle-bot`);
       const newBotActivo = response.data?.bot_activo;
 
-      // Actualizar el estado local del chat seleccionado
       setSelectedChat(prev => ({ ...prev, bot_activo: newBotActivo }));
 
-      // Actualizar en la lista de contactos
       setContactos(prev => prev.map(c =>
         c.id === selectedChat.id ? { ...c, bot_activo: newBotActivo } : c
       ));
@@ -610,11 +604,10 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Abrir modal de edicion de prospecto
-  const handleOpenEditProspecto = () => {
+  const handleOpenEditPersona = () => {
     if (!selectedChat) return;
-    setEditingProspecto({
-      id: selectedChat.id_prospecto || selectedChat.id,
+    setEditingPersona({
+      id: selectedChat.id_persona || selectedChat.id,
       nombre_completo: selectedChat.nombre_completo || '',
       dni: selectedChat.dni || '',
       celular: selectedChat.celular || '',
@@ -624,9 +617,7 @@ export default function ConversacionesPage() {
       id_plan: selectedChat.id_plan || '',
       id_tipificacion_asesor: selectedChat.id_tipificacion_asesor || null
     });
-    // Inicializar niveles si hay tipificacion asesor existente
     if (selectedChat.id_tipificacion_asesor) {
-      // Construir la cadena de niveles desde el id seleccionado hasta la raiz
       const buildNivelesFromId = (tipId) => {
         const niveles = [];
         let current = tipificaciones.find(t => t.id === tipId);
@@ -640,20 +631,17 @@ export default function ConversacionesPage() {
     } else {
       setNivelesEditTipAsesor([]);
     }
-    setShowEditProspectoModal(true);
-    setShowMenu(false);
+    setShowEditPersonaModal(true);
   };
 
-  // Abrir modal de detalle del prospecto
   const handleOpenDetailModal = async () => {
     if (!selectedChat) return;
     setShowDetailModal(true);
-    setShowMenu(false);
     setPerfilamientoData([]);
     setLoadingPerfilamiento(true);
     try {
-      const prospectoId = selectedChat.id_prospecto || selectedChat.id;
-      const response = await apiClient.get(`/crm/leads/${prospectoId}/perfilamiento`);
+      const personaId = selectedChat.id_persona || selectedChat.id;
+      const response = await apiClient.get(`/crm/leads/${personaId}/perfilamiento`);
       setPerfilamientoData(response.data || []);
     } catch (error) {
       console.error('Error al cargar perfilamiento:', error);
@@ -662,238 +650,216 @@ export default function ConversacionesPage() {
     }
   };
 
-  // Manejar cambios en el formulario de edicion
-  const handleEditProspectoChange = (field, value) => {
-    setEditingProspecto(prev => ({
+  const handleEditPersonaChange = (field, value) => {
+    setEditingPersona(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  // Guardar cambios del prospecto
-  const handleSaveProspecto = async () => {
-    if (!editingProspecto) return;
+  const handleSavePersona = async () => {
+    if (!editingPersona) return;
 
-    setSavingProspecto(true);
+    setSavingPersona(true);
     try {
-      await apiClient.put(`/crm/leads/${editingProspecto.id}`, editingProspecto);
+      await apiClient.put(`/crm/leads/${editingPersona.id}`, editingPersona);
 
-      // Actualizar el chat seleccionado con los nuevos datos
-      const tipificacionAsesor = tipificaciones.find(t => t.id == editingProspecto.id_tipificacion_asesor);
+      const tipificacionAsesor = tipificaciones.find(t => t.id == editingPersona.id_tipificacion_asesor);
       const updatedChat = {
         ...selectedChat,
-        nombre_completo: editingProspecto.nombre_completo,
-        dni: editingProspecto.dni,
-        celular: editingProspecto.celular,
-        direccion: editingProspecto.direccion,
-        id_estado: editingProspecto.id_estado,
-        id_provedor: editingProspecto.id_provedor,
-        id_plan: editingProspecto.id_plan,
-        id_tipificacion_asesor: editingProspecto.id_tipificacion_asesor,
-        estado_nombre: estados.find(e => e.id == editingProspecto.id_estado)?.nombre || selectedChat.estado_nombre,
-        estado_color: estados.find(e => e.id == editingProspecto.id_estado)?.color || selectedChat.estado_color,
+        nombre_completo: editingPersona.nombre_completo,
+        dni: editingPersona.dni,
+        celular: editingPersona.celular,
+        direccion: editingPersona.direccion,
+        id_estado: editingPersona.id_estado,
+        id_provedor: editingPersona.id_provedor,
+        id_plan: editingPersona.id_plan,
+        id_tipificacion_asesor: editingPersona.id_tipificacion_asesor,
+        estado_nombre: estados.find(e => e.id == editingPersona.id_estado)?.nombre || selectedChat.estado_nombre,
+        estado_color: estados.find(e => e.id == editingPersona.id_estado)?.color || selectedChat.estado_color,
         tipificacion_nombre: tipificacionAsesor?.nombre || selectedChat.tipificacion_nombre,
         tipificacion_color: tipificacionAsesor?.color || selectedChat.tipificacion_color
       };
 
       setSelectedChat(updatedChat);
 
-      // Actualizar en la lista de contactos
       setContactos(prev => prev.map(c =>
         c.id === selectedChat.id ? updatedChat : c
       ));
 
-      setShowEditProspectoModal(false);
-      setEditingProspecto(null);
+      setShowEditPersonaModal(false);
+      setEditingPersona(null);
     } catch (err) {
-      console.error('Error al guardar prospecto:', err);
+      console.error('Error al guardar persona:', err);
       alert('Error al guardar los cambios');
     } finally {
-      setSavingProspecto(false);
+      setSavingPersona(false);
     }
   };
 
+  const hasActiveFilters = selectedEstado || selectedTipificacion || selectedTipificacionAsesor;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando conversaciones...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-[#00a884] mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Cargando conversaciones...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
-            <p className="text-gray-600 mt-1">Gestiona tus conversaciones con clientes</p>
-          </div>
-          <div className="bg-primary-50 px-4 py-2 rounded-lg border border-primary-200 flex items-center gap-2">
-            <span className="text-sm text-primary-600 font-medium">Total:</span>
-            <span className="text-xl font-bold text-primary-700">{totalContactos}</span>
-          </div>
-        </div>
-      </div>
+    <div className="-m-6 h-[calc(100vh-4rem)] flex flex-col">
+      {/* WhatsApp-style container */}
+      <div className="flex-1 flex overflow-hidden bg-[#eae6df]">
 
-      {/* Main Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[calc(100%-5rem)] flex">
-        {/* Left Panel - Lista de Conversaciones */}
-        <div className="w-80 border-r border-gray-200 flex flex-col">
-          {/* Buscador */}
-          <div className="p-3 border-b border-gray-200">
-            <div className="relative">
+        {/* ============================================ */}
+        {/* LEFT SIDEBAR - WhatsApp Contact List */}
+        {/* ============================================ */}
+        <div className={`w-[420px] flex-shrink-0 flex flex-col bg-white border-r border-[#d1d7db] ${selectedChat ? 'hidden lg:flex' : 'flex w-full lg:w-[420px]'}`}>
+
+          {/* Sidebar Header - WhatsApp light style */}
+          <div className="h-[60px] flex items-center justify-between px-4 bg-[#f0f2f5] border-b border-[#e9edef]">
+            <div className="flex items-center gap-2">
+              <span className="text-[#111b21] font-bold text-[20px]">Chats</span>
+              <span className="text-[#667781] text-[13px]">({totalContactos})</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${
+                    hasActiveFilters ? 'bg-[#00a884]/10' : 'hover:bg-[#e9edef]'
+                  }`}
+                >
+                  <Filter className="h-5 w-5 text-[#54656f]" />
+                </button>
+                {hasActiveFilters && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-[#25d366] text-[10px] text-white font-bold flex items-center justify-center">
+                    {[selectedEstado, selectedTipificacion, selectedTipificacionAsesor].filter(Boolean).length}
+                  </span>
+                )}
+              </div>
+              <button className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors">
+                <MoreVertical className="h-5 w-5 text-[#54656f]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search Bar - WhatsApp style */}
+          <div className="px-2 py-1.5 bg-white">
+            <div className={`flex items-center rounded-lg transition-all duration-200 ${
+              searchFocused ? 'bg-white shadow-sm border border-[#00a884]' : 'bg-[#f0f2f5]'
+            }`}>
+              <div className="flex items-center justify-center w-12 h-[35px]">
+                {searchFocused || searchQuery ? (
+                  <ArrowLeft className="h-[18px] w-[18px] text-[#00a884] cursor-pointer" onClick={() => { setSearchFocused(false); if (searchQuery) clearSearch(); }} />
+                ) : (
+                  <Search className="h-[18px] w-[18px] text-[#54656f]" />
+                )}
+              </div>
               <input
                 type="text"
-                placeholder="Buscar por nombre o celular..."
+                placeholder="Buscar o iniciar un nuevo chat"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => !searchQuery && setSearchFocused(false)}
+                className="flex-1 bg-transparent py-[7px] pr-8 text-[13px] text-[#111b21] placeholder-[#667781] focus:outline-none"
               />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
               {searchQuery && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <button onClick={clearSearch} className="pr-3">
+                  <X className="h-4 w-4 text-[#667781]" />
                 </button>
               )}
             </div>
             {isSearching && (
-              <div className="flex items-center justify-center mt-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-                <span className="ml-2 text-xs text-gray-500">Buscando...</span>
+              <div className="flex items-center justify-center mt-1.5 pb-1">
+                <Loader2 className="h-3 w-3 animate-spin text-[#00a884]" />
+                <span className="ml-1.5 text-[11px] text-[#667781]">Buscando...</span>
               </div>
             )}
             {searchQuery && !isSearching && (
-              <p className="text-xs text-gray-500 mt-2">
-                {totalContactos} resultado{totalContactos !== 1 ? 's' : ''} para "{searchQuery}"
+              <p className="text-[11px] text-[#667781] mt-1 px-3 pb-1">
+                {totalContactos} resultado{totalContactos !== 1 ? 's' : ''}
               </p>
             )}
+          </div>
 
-            {/* Boton de Filtros Desplegable */}
-            <div className="mt-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  (selectedEstado || selectedTipificacion || selectedTipificacionAsesor)
-                    ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                }`}
+          {/* Filters Panel - Collapsible */}
+          {showFilters && (
+            <div className="px-3 py-2 bg-[#f0f2f5] border-b border-[#e9edef] space-y-2 animate-slide-in">
+              {/* Estado filter */}
+              <select
+                value={selectedEstado}
+                onChange={(e) => handleFilterChange('estado', e.target.value)}
+                className="w-full px-3 py-1.5 text-[12px] bg-white border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] text-[#111b21]"
               >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  <span>Filtros</span>
-                  {(selectedEstado || selectedTipificacion || selectedTipificacionAsesor) && (
-                    <span className="px-1.5 py-0.5 bg-primary-600 text-white text-xs rounded-full">
-                      {[selectedEstado, selectedTipificacion, selectedTipificacionAsesor].filter(Boolean).length}
-                    </span>
-                  )}
+                <option value="">Estado: Todos</option>
+                {estados.map((estado) => (
+                  <option key={estado.id} value={estado.id}>{estado.nombre}</option>
+                ))}
+              </select>
+
+              {/* Tipificacion Bot */}
+              <div className="bg-white rounded-lg p-2 border border-[#e9edef]">
+                <label className="block text-[11px] font-medium text-[#667781] mb-1">Tipificacion Bot</label>
+                <div className="flex flex-wrap gap-1 items-center">
+                  {nivelesDropdownBot.map((nivel, index) => (
+                    <div key={index} className="flex items-center gap-1">
+                      {index > 0 && <ChevronDown className="h-3 w-3 text-[#667781] rotate-[-90deg]" />}
+                      <select
+                        value={nivel.seleccionado || ''}
+                        onChange={(e) => handleNivelBotChange(index, e.target.value)}
+                        className="px-2 py-1 text-[11px] bg-[#f0f2f5] border border-[#e9edef] rounded focus:outline-none focus:border-[#00a884] text-[#111b21]"
+                      >
+                        <option value="">{index === 0 ? 'Todas' : 'Selec...'}</option>
+                        {nivel.opciones.map((t) => (
+                          <option key={t.id} value={t.id}>{t.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
                 </div>
-                <svg
-                  className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              </div>
+
+              {/* Tipificacion Asesor */}
+              <div className="bg-white rounded-lg p-2 border border-[#e9edef]">
+                <label className="block text-[11px] font-medium text-[#667781] mb-1">Tipificacion Asesor</label>
+                <div className="flex flex-wrap gap-1 items-center">
+                  {nivelesDropdownAsesor.map((nivel, index) => (
+                    <div key={index} className="flex items-center gap-1">
+                      {index > 0 && <ChevronDown className="h-3 w-3 text-[#667781] rotate-[-90deg]" />}
+                      <select
+                        value={nivel.seleccionado || ''}
+                        onChange={(e) => handleNivelAsesorChange(index, e.target.value)}
+                        className="px-2 py-1 text-[11px] bg-[#f0f2f5] border border-[#e9edef] rounded focus:outline-none focus:border-[#00a884] text-[#111b21]"
+                      >
+                        <option value="">{index === 0 ? 'Todas' : 'Selec...'}</option>
+                        {nivel.opciones.map((t) => (
+                          <option key={t.id} value={t.id}>{t.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="w-full py-1.5 text-[12px] text-[#e74c3c] hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-1"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Panel de Filtros Desplegable */}
-              {showFilters && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-                  {/* Filtro de Estado */}
-                  <select
-                    value={selectedEstado}
-                    onChange={(e) => handleFilterChange('estado', e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white truncate"
-                  >
-                    <option value="">Estado: Todos</option>
-                    {estados.map((estado) => (
-                      <option key={estado.id} value={estado.id}>
-                        {estado.nombre}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Tipificacion Bot - Por niveles */}
-                  <div className="bg-white rounded-lg p-2 border border-gray-200">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipificacion Bot</label>
-                    <div className="flex flex-wrap gap-1 items-center">
-                      {nivelesDropdownBot.map((nivel, index) => (
-                        <div key={index} className="flex items-center gap-1">
-                          {index > 0 && <span className="text-gray-400 text-xs font-bold">&gt;</span>}
-                          <select
-                            value={nivel.seleccionado || ''}
-                            onChange={(e) => handleNivelBotChange(index, e.target.value)}
-                            className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                          >
-                            <option value="">{index === 0 ? 'Todas' : 'Selec...'}</option>
-                            {nivel.opciones.map((t) => (
-                              <option key={t.id} value={t.id}>{t.nombre}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tipificacion Asesor - Por niveles */}
-                  <div className="bg-white rounded-lg p-2 border border-gray-200">
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipificacion Asesor</label>
-                    <div className="flex flex-wrap gap-1 items-center">
-                      {nivelesDropdownAsesor.map((nivel, index) => (
-                        <div key={index} className="flex items-center gap-1">
-                          {index > 0 && <span className="text-gray-400 text-xs font-bold">&gt;</span>}
-                          <select
-                            value={nivel.seleccionado || ''}
-                            onChange={(e) => handleNivelAsesorChange(index, e.target.value)}
-                            className="px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                          >
-                            <option value="">{index === 0 ? 'Todas' : 'Selec...'}</option>
-                            {nivel.opciones.map((t) => (
-                              <option key={t.id} value={t.id}>{t.nombre}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Boton limpiar filtros dentro del panel */}
-                  {(selectedEstado || selectedTipificacion || selectedTipificacionAsesor) && (
-                    <button
-                      onClick={clearFilters}
-                      className="w-full px-2 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-1 border border-red-200"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Limpiar filtros
-                    </button>
-                  )}
-                </div>
+                  <X className="h-3 w-3" />
+                  Limpiar filtros
+                </button>
               )}
             </div>
-          </div>
-          {/* Lista de Conversaciones */}
+          )}
+
+          {/* Contact List */}
           <div className="flex-1 overflow-y-auto">
             {contactos.length > 0 ? (
               <>
@@ -901,108 +867,107 @@ export default function ConversacionesPage() {
                   <div
                     key={contacto.id}
                     onClick={() => handleSelectChat(contacto)}
-                    className={`p-3 border-b border-gray-200 cursor-pointer transition-colors ${
+                    className={`flex items-center px-3 py-[10px] cursor-pointer transition-colors border-b border-[#e9edef] ${
                       selectedChat?.id === contacto.id
-                        ? 'bg-primary-50 border-l-4 border-l-primary-600'
+                        ? 'bg-[#f0f2f5]'
                         : contacto.mensajes_no_leidos > 0
-                        ? 'bg-blue-50/60 hover:bg-blue-100/60'
-                        : 'hover:bg-gray-50'
+                        ? 'bg-white hover:bg-[#f5f6f6]'
+                        : 'bg-white hover:bg-[#f5f6f6]'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <div className="relative flex-shrink-0">
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                            {(contacto.nombre_completo || contacto.celular || '?').charAt(0).toUpperCase()}
-                          </div>
-                          {/* Indicador de mensajes no leidos con conteo */}
-                          {contacto.mensajes_no_leidos > 0 && (
-                            <div
-                              className="absolute -top-1 -right-1 min-w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center"
-                              title={`${contacto.mensajes_no_leidos} mensaje${contacto.mensajes_no_leidos > 1 ? 's' : ''} no leído${contacto.mensajes_no_leidos > 1 ? 's' : ''}`}
-                            >
-                              <span className="text-xs font-bold text-white px-1">
-                                {contacto.mensajes_no_leidos > 99 ? '99+' : contacto.mensajes_no_leidos}
-                              </span>
-                            </div>
-                          )}
-                          {/* Indicador Bot Activo/Inactivo */}
-                          <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${
-                              contacto.bot_activo ? 'bg-green-500' : 'bg-red-500'
-                            }`}
-                            title={contacto.bot_activo ? 'Bot activo' : 'Bot inactivo'}
-                          >
-                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-900 truncate">
-                              {contacto.nombre_completo || contacto.celular}
-                            </h3>
-                            {contacto.ultimo_mensaje && (
-                              <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                                {formatRelativeTime(contacto.ultimo_mensaje)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-500 truncate">{contacto.celular}</p>
-
-                          {/* Badges de Estado y Tipificacion */}
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {contacto.estado_nombre && (
-                              <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium"
-                                style={{
-                                  backgroundColor: contacto.estado_color ? `${contacto.estado_color}20` : '#e5e7eb',
-                                  color: contacto.estado_color || '#374151'
-                                }}
-                              >
-                                {contacto.estado_nombre}
-                              </span>
-                            )}
-                            {contacto.tipificacion_nombre && (
-                              <span
-                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium"
-                                style={{
-                                  backgroundColor: contacto.tipificacion_color ? `${contacto.tipificacion_color}20` : '#fef3c7',
-                                  color: contacto.tipificacion_color || '#92400e'
-                                }}
-                              >
-                                {contacto.tipificacion_nombre}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                    {/* Avatar - WhatsApp default style */}
+                    <div className="relative flex-shrink-0 mr-3">
+                      <div className="w-[49px] h-[49px] rounded-full bg-[#dfe5e7] flex items-center justify-center overflow-hidden">
+                        <svg viewBox="0 0 212 212" className="w-[49px] h-[49px]">
+                          <path fill="#c3ccd3" d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 28c20.7 0 37.5 16.8 37.5 37.5S126.7 103 106 103 68.5 86.2 68.5 65.5 85.3 28 106 28zm0 154.4c-26.5 0-49.8-13.6-63.4-34.2 0.3-21 42.3-32.5 63.4-32.5s63.1 11.5 63.4 32.5c-13.6 20.6-36.9 34.2-63.4 34.2z"/>
+                        </svg>
                       </div>
+                      {/* Bot indicator - small dot */}
+                      <div
+                        className={`absolute bottom-0 right-0 w-[14px] h-[14px] rounded-full border-2 border-white flex items-center justify-center ${
+                          contacto.bot_activo ? 'bg-[#25d366]' : 'bg-[#667781]'
+                        }`}
+                      >
+                        <Bot className="h-2 w-2 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`text-[15px] truncate ${contacto.mensajes_no_leidos > 0 ? 'font-semibold text-[#111b21]' : 'text-[#111b21]'}`}>
+                          {contacto.nombre_completo || contacto.celular}
+                        </h3>
+                        <span className={`text-[12px] flex-shrink-0 ml-2 ${
+                          contacto.mensajes_no_leidos > 0 ? 'text-[#25d366] font-medium' : 'text-[#667781]'
+                        }`}>
+                          {formatRelativeTime(contacto.ultimo_mensaje)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                          {/* Double check for last msg */}
+                          <CheckCheck className="h-[16px] w-[16px] text-[#53bdeb] flex-shrink-0" />
+                          <p className="text-[13px] text-[#667781] truncate">
+                            {contacto.celular}
+                          </p>
+                        </div>
+                        {/* Unread Badge */}
+                        {contacto.mensajes_no_leidos > 0 && (
+                          <div className="min-w-[20px] h-[20px] bg-[#25d366] rounded-full flex items-center justify-center ml-1.5">
+                            <span className="text-[11px] font-bold text-white px-1">
+                              {contacto.mensajes_no_leidos > 99 ? '99+' : contacto.mensajes_no_leidos}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Mini badges for estado/tipificacion */}
+                      {(contacto.estado_nombre || contacto.tipificacion_nombre) && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {contacto.estado_nombre && (
+                            <span
+                              className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
+                              style={{
+                                backgroundColor: contacto.estado_color ? `${contacto.estado_color}15` : '#e9edef',
+                                color: contacto.estado_color || '#667781'
+                              }}
+                            >
+                              {contacto.estado_nombre}
+                            </span>
+                          )}
+                          {contacto.tipificacion_nombre && (
+                            <span
+                              className="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium"
+                              style={{
+                                backgroundColor: contacto.tipificacion_color ? `${contacto.tipificacion_color}15` : '#fef3c7',
+                                color: contacto.tipificacion_color || '#92400e'
+                              }}
+                            >
+                              {contacto.tipificacion_nombre}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
 
-                {/* Boton Cargar Mas */}
+                {/* Load More */}
                 {hasMore && (
-                  <div className="p-4 border-t border-gray-200">
+                  <div className="p-3">
                     <button
                       onClick={handleLoadMore}
                       disabled={loadingMore}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-[#008069] font-medium rounded-lg hover:bg-[#f0f2f5] transition-colors disabled:opacity-50"
                     >
                       {loadingMore ? (
                         <>
-                          <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           <span>Cargando...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          <ChevronDown className="h-4 w-4" />
                           <span>Cargar mas ({totalContactos - contactos.length} restantes)</span>
                         </>
                       )}
@@ -1011,319 +976,378 @@ export default function ConversacionesPage() {
                 )}
               </>
             ) : (
-              <div className="p-4 text-center text-gray-500">
-                <p className="text-sm">No hay contactos disponibles</p>
+              <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                <div className="h-16 w-16 rounded-full bg-[#f0f2f5] flex items-center justify-center mb-4">
+                  <MessageSquare className="h-8 w-8 text-[#8696a0]" />
+                </div>
+                <p className="text-[14px] text-[#667781]">No hay contactos disponibles</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Panel - Conversacion Activa */}
+        {/* ============================================ */}
+        {/* RIGHT PANEL - WhatsApp Chat Area */}
+        {/* ============================================ */}
         {selectedChat ? (
-          <div className="flex-1 flex flex-col">
-            {/* Header del Chat */}
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {(selectedChat.nombre_completo || selectedChat.celular).charAt(0)}
+          <div className={`flex-1 flex flex-col bg-[#efeae2] ${selectedChat ? 'flex' : 'hidden lg:flex'}`}>
+
+            {/* Chat Header - WhatsApp light style */}
+            <div className="h-[60px] flex items-center justify-between px-4 flex-shrink-0 bg-[#f0f2f5] border-b border-[#e9edef]">
+              <div className="flex items-center gap-3">
+                {/* Back button (mobile) */}
+                <button
+                  onClick={() => setSelectedChat(null)}
+                  className="lg:hidden h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5 text-[#54656f]" />
+                </button>
+
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-[#dfe5e7] flex items-center justify-center">
+                  <svg viewBox="0 0 212 212" className="w-10 h-10">
+                    <path fill="#c3ccd3" d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm0 28c20.7 0 37.5 16.8 37.5 37.5S126.7 103 106 103 68.5 86.2 68.5 65.5 85.3 28 106 28zm0 154.4c-26.5 0-49.8-13.6-63.4-34.2 0.3-21 42.3-32.5 63.4-32.5s63.1 11.5 63.4 32.5c-13.6 20.6-36.9 34.2-63.4 34.2z"/>
+                  </svg>
                 </div>
+
+                {/* Info */}
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-[16px] font-medium text-[#111b21] leading-tight">
                     {selectedChat.nombre_completo || selectedChat.celular}
                   </h2>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span>{selectedChat.celular}</span>
-                  </div>
-                  {/* Badges de Estado y Tipificacion en header */}
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] text-[#667781]">{selectedChat.celular}</span>
                     {selectedChat.estado_nombre && (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                        style={{
-                          backgroundColor: selectedChat.estado_color ? `${selectedChat.estado_color}20` : '#e5e7eb',
-                          color: selectedChat.estado_color || '#374151'
-                        }}
-                      >
-                        {selectedChat.estado_nombre}
-                      </span>
-                    )}
-                    {selectedChat.tipificacion_nombre && (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                        style={{
-                          backgroundColor: selectedChat.tipificacion_color ? `${selectedChat.tipificacion_color}20` : '#fef3c7',
-                          color: selectedChat.tipificacion_color || '#92400e'
-                        }}
-                      >
-                        {selectedChat.tipificacion_nombre}
-                      </span>
+                      <>
+                        <span className="text-[#667781]">·</span>
+                        <span
+                          className="text-[11px] font-medium px-1.5 py-0 rounded"
+                          style={{
+                            backgroundColor: selectedChat.estado_color ? `${selectedChat.estado_color}15` : '#e9edef',
+                            color: selectedChat.estado_color || '#667781'
+                          }}
+                        >
+                          {selectedChat.estado_nombre}
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                {/* Indicador de estado WebSocket */}
-                <div
-                  className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    wsConnected
-                      ? 'bg-green-100 text-green-700'
-                      : wsError
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}
-                  title={wsError ? wsError.message : connectionStatus}
-                >
-                  <div className={`w-2 h-2 rounded-full ${
-                    wsConnected ? 'bg-green-500' : wsError ? 'bg-red-500' : 'bg-yellow-500 animate-pulse'
-                  }`} />
-                  <span>{connectionStatus}</span>
+
+              {/* Right actions */}
+              <div className="flex items-center gap-0.5">
+                {/* Connection status */}
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium mr-1 ${
+                  wsConnected
+                    ? 'bg-[#d1f4cc] text-[#008069]'
+                    : wsError
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {wsConnected ? (
+                    <Wifi className="h-3 w-3" />
+                  ) : (
+                    <WifiOff className="h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">{connectionStatus}</span>
                 </div>
 
-                {/* Boton Toggle Bot */}
+                {/* Bot toggle */}
                 <button
                   onClick={handleToggleBot}
                   disabled={togglingBot}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`h-9 px-3 rounded-full flex items-center gap-1.5 transition-colors text-[12px] font-medium ${
                     selectedChat.bot_activo
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      ? 'bg-[#d1f4cc] text-[#008069] hover:bg-[#b8edb0]'
+                      : 'bg-[#e9edef] text-[#667781] hover:bg-[#d1d7db]'
+                  } disabled:opacity-50`}
                   title={selectedChat.bot_activo ? 'Bot activo - Click para desactivar' : 'Bot inactivo - Click para activar'}
                 >
                   {togglingBot ? (
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                    </svg>
+                    <Bot className="h-4 w-4" />
                   )}
-                  <span>{selectedChat.bot_activo ? 'Bot Activo' : 'Bot Inactivo'}</span>
+                  <span className="hidden sm:inline">{selectedChat.bot_activo ? 'Bot ON' : 'Bot OFF'}</span>
                 </button>
 
-                {/* Boton Menu con Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMenu(!showMenu)}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    title="Opciones"
-                  >
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
+                {/* Search icon */}
+                <button className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors">
+                  <Search className="h-5 w-5 text-[#54656f]" />
+                </button>
 
-                  {/* Dropdown Menu */}
-                  {showMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowMenu(false)}
-                      />
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-                        <button
-                          onClick={handleOpenDetailModal}
-                          className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span>Ver Detalle</span>
-                        </button>
-                        <button
-                          onClick={handleOpenEditProspecto}
-                          className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>Editar Prospecto</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                {/* Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors">
+                      <MoreVertical className="h-5 w-5 text-[#54656f]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52" sideOffset={4}>
+                    <DropdownMenuItem onClick={handleOpenDetailModal} className="cursor-pointer gap-2 py-2.5">
+                      <Eye className="h-4 w-4" />
+                      Ver Detalle
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleOpenEditPersona} className="cursor-pointer gap-2 py-2.5">
+                      <Pencil className="h-4 w-4" />
+                      Editar Persona
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
-            {/* Mensajes */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+            {/* Chat Messages Area - WhatsApp wallpaper */}
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto px-[5%] lg:px-[10%] py-4"
+              style={{
+                backgroundImage: `url('${WA_WALLPAPER_SVG}')`,
+                backgroundSize: '412px 234px',
+                backgroundColor: '#efeae2',
+              }}
+            >
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-600">Cargando mensajes...</p>
+                  <div className="bg-white/90 rounded-lg px-5 py-3 shadow-sm flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-[#00a884]" />
+                    <span className="text-[13px] text-[#667781]">Cargando mensajes...</span>
                   </div>
                 </div>
               ) : chatMessages.length > 0 ? (
                 <>
-                  {chatMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.type === 'ai' ? 'justify-start' : 'justify-end'} mb-2`}
-                    >
-                      <div className={`flex flex-col ${message.type === 'ai' ? 'items-start' : 'items-end'} max-w-xs lg:max-w-md`}>
-                        {/* Badge IA Bot - solo para mensajes de IA */}
-                        {message.type === 'ai' && (
-                          <div className="flex items-center space-x-1 mb-1 px-3">
-                            <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                            </svg>
-                            <span className="text-xs font-semibold text-purple-700">AI Bot</span>
-                          </div>
-                        )}
-
-                        {/* Mensaje */}
-                        <div
-                          className={`px-4 py-2 rounded-2xl break-words ${
-                            message.type === 'ai'
-                              ? 'bg-gray-200 text-gray-900 rounded-bl-none'
-                              : 'bg-primary-600 text-white rounded-br-none'
-                          }`}
-                        >
-                          <p className="text-sm leading-relaxed">{message.text}</p>
-                          {message.file && (
-                            <p className="text-xs mt-1 opacity-75">[Archivo adjunto]</p>
-                          )}
-                        </div>
-
-                        {/* Timestamp */}
-                        <span className={`text-xs text-gray-500 mt-1 ${message.type === 'ai' ? 'text-left' : 'text-right'}`}>
-                          {message.timestamp}
-                        </span>
-                      </div>
+                  {/* Encryption notice */}
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-[#ffecd2] rounded-lg px-3 py-1.5 shadow-sm flex items-center gap-1.5 max-w-md">
+                      <Lock className="h-3 w-3 text-[#8c6e3c] flex-shrink-0" />
+                      <span className="text-[11.5px] text-[#8c6e3c] text-center">
+                        Los mensajes estan cifrados de extremo a extremo. Ni siquiera nosotros podemos leerlos.
+                      </span>
                     </div>
-                  ))}
+                  </div>
+
+                  {chatMessages.map((message) => {
+                    // ai = outgoing (sent by CRM/bot) -> RIGHT side, green bubble
+                    // client = incoming (from customer) -> LEFT side, white bubble
+                    const isOutgoing = message.type === 'ai';
+                    return (
+                      <div
+                        key={message.id}
+                        className={`flex mb-[2px] ${isOutgoing ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`relative max-w-[65%] px-[9px] pt-[6px] pb-[8px] rounded-lg shadow-sm ${
+                            isOutgoing
+                              ? 'bg-[#d9fdd3] rounded-tr-none'
+                              : 'bg-white rounded-tl-none'
+                          }`}
+                          style={{ minWidth: '80px' }}
+                        >
+                          {/* Bubble tail */}
+                          <div
+                            className={`absolute top-0 w-[8px] h-[13px] ${
+                              isOutgoing ? '-right-[8px]' : '-left-[8px]'
+                            }`}
+                            style={{
+                              background: isOutgoing ? '#d9fdd3' : 'white',
+                              clipPath: isOutgoing
+                                ? 'polygon(0 0, 0 100%, 100% 0)'
+                                : 'polygon(100% 0, 0 0, 100% 100%)'
+                            }}
+                          />
+
+                          {/* AI Bot label - on outgoing bot messages */}
+                          {isOutgoing && (
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <Bot className="h-3 w-3 text-[#6366f1]" />
+                              <span className="text-[11px] font-semibold text-[#6366f1]">AI Bot</span>
+                            </div>
+                          )}
+
+                          {/* Message text */}
+                          <p className="text-[14.2px] text-[#111b21] leading-[19px] whitespace-pre-wrap break-words">
+                            {message.text}
+                            {/* Invisible spacer for timestamp */}
+                            <span className={`inline-block ${isOutgoing ? 'w-[75px]' : 'w-[52px]'}`} />
+                          </p>
+                          {message.file && (
+                            <div className="flex items-center gap-1 mt-1 px-2 py-1 bg-black/5 rounded text-[12px] text-[#667781]">
+                              <Paperclip className="h-3 w-3" />
+                              Archivo adjunto
+                            </div>
+                          )}
+
+                          {/* Timestamp + checks */}
+                          <div className="absolute bottom-[5px] right-[7px] flex items-center gap-0.5">
+                            <span className={`text-[11px] leading-none ${isOutgoing ? 'text-[#667781]' : 'text-[#667781]'}`}>{message.timestamp}</span>
+                            {isOutgoing && (
+                              <CheckCheck className="h-[15px] w-[15px] text-[#53bdeb] ml-0.5" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                   <div ref={messagesEndRef} />
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-gray-500">
-                    <p className="text-sm">No hay mensajes en este chat</p>
+                  <div className="bg-[#ffecd2] rounded-lg px-5 py-3 shadow-sm text-center">
+                    <p className="text-[13px] text-[#8c6e3c]">No hay mensajes en este chat</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Input para enviar mensaje */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white">
+            {/* Message Input - WhatsApp style */}
+            <div className="flex-shrink-0 px-3 py-2" style={{ background: '#f0f2f5' }}>
               {selectedChat.bot_activo ? (
-                <div className="flex items-center justify-center space-x-2 py-2 px-4 bg-green-50 border border-green-200 rounded-lg">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                  </svg>
-                  <span className="text-green-700 font-medium">Bot activo - Desactiva el bot para enviar mensajes manualmente</span>
+                <div className="flex items-center justify-center gap-2 py-3 px-4 bg-[#d1f4cc] rounded-lg">
+                  <Bot className="h-5 w-5 text-[#008069]" />
+                  <span className="text-[13px] text-[#008069] font-medium">Bot activo - Desactiva el bot para enviar mensajes</span>
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Escribe un mensaje..."
-                    disabled={sendingMessage}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newMessage.trim() || sendingMessage}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    {sendingMessage ? (
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                    )}
-                    <span>{sendingMessage ? 'Enviando...' : 'Enviar'}</span>
+                <form onSubmit={handleSendMessage} className="flex items-center gap-[6px]">
+                  {/* Plus/attach button */}
+                  <button type="button" className="h-[42px] w-[42px] flex-shrink-0 flex items-center justify-center rounded-full hover:bg-[#e9edef] transition-colors">
+                    <Paperclip className="h-[24px] w-[24px] text-[#54656f] rotate-45" />
                   </button>
-                </div>
+                  {/* Input container */}
+                  <div className="flex-1 flex items-center bg-white rounded-[8px]">
+                    <button type="button" className="h-[42px] w-[42px] flex items-center justify-center hover:bg-[#f5f6f6] rounded-l-[8px] transition-colors flex-shrink-0">
+                      <Smile className="h-[24px] w-[24px] text-[#54656f]" />
+                    </button>
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Escribe un mensaje"
+                      disabled={sendingMessage}
+                      className="flex-1 py-[9px] px-1 bg-transparent text-[15px] text-[#111b21] placeholder-[#667781] focus:outline-none disabled:opacity-50"
+                    />
+                  </div>
+                  {/* Send / Mic button */}
+                  {newMessage.trim() ? (
+                    <button
+                      type="submit"
+                      disabled={sendingMessage}
+                      className="h-[42px] w-[42px] flex-shrink-0 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors disabled:opacity-50"
+                    >
+                      {sendingMessage ? (
+                        <Loader2 className="h-[24px] w-[24px] animate-spin text-[#54656f]" />
+                      ) : (
+                        <Send className="h-[24px] w-[24px] text-[#54656f]" />
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="h-[42px] w-[42px] flex-shrink-0 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors"
+                    >
+                      <Mic className="h-[24px] w-[24px] text-[#54656f]" />
+                    </button>
+                  )}
+                </form>
               )}
-            </form>
+            </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">Selecciona una conversacion</h3>
-              <p className="text-gray-600">Elige una conversacion de la lista para comenzar a chatear</p>
+          /* Default empty state - WhatsApp style */
+          <div className="flex-1 hidden lg:flex flex-col items-center justify-center" style={{ background: '#f0f2f5' }}>
+            <div className="text-center max-w-md">
+              {/* WhatsApp-style illustration */}
+              <div className="relative mx-auto mb-8">
+                <div className="h-[260px] w-[260px] mx-auto rounded-full bg-gradient-to-b from-[#00a884]/10 to-transparent flex items-center justify-center">
+                  <div className="h-[180px] w-[180px] rounded-full bg-gradient-to-b from-[#00a884]/15 to-transparent flex items-center justify-center">
+                    <MessageSquare className="h-20 w-20 text-[#00a884]/40" />
+                  </div>
+                </div>
+              </div>
+              <h1 className="text-[28px] font-light text-[#41525d] mb-3">Chat</h1>
+              <p className="text-[14px] text-[#667781] leading-relaxed">
+                Envia y recibe mensajes de tus clientes.<br />
+                Selecciona una conversacion para comenzar.
+              </p>
+              <div className="flex items-center justify-center gap-1.5 mt-8 text-[12px] text-[#8696a0]">
+                <Lock className="h-3 w-3" />
+                <span>Conversaciones gestionadas</span>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal Editar Prospecto */}
-      {showEditProspectoModal && editingProspecto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Editar Prospecto</h2>
+      {/* ============================================ */}
+      {/* MODAL: Editar Persona */}
+      {/* ============================================ */}
+      {showEditPersonaModal && editingPersona && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-scale-in">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-[#e9edef]">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: '#008069' }}>
+                  <Pencil className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-[#111b21]">Editar Persona</h2>
+              </div>
               <button
                 onClick={() => {
-                  setShowEditProspectoModal(false);
-                  setEditingProspecto(null);
+                  setShowEditPersonaModal(false);
+                  setEditingPersona(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="h-9 w-9 rounded-full hover:bg-[#f0f2f5] flex items-center justify-center transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-5 w-5 text-[#54656f]" />
               </button>
             </div>
 
-            <div className="p-4 space-y-4">
+            {/* Form */}
+            <div className="p-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Nombre Completo</label>
                   <input
                     type="text"
-                    value={editingProspecto.nombre_completo || ''}
-                    onChange={(e) => handleEditProspectoChange('nombre_completo', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.nombre_completo || ''}
+                    onChange={(e) => handleEditPersonaChange('nombre_completo', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">DNI</label>
                   <input
                     type="text"
-                    value={editingProspecto.dni || ''}
-                    onChange={(e) => handleEditProspectoChange('dni', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.dni || ''}
+                    onChange={(e) => handleEditPersonaChange('dni', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Celular</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Celular</label>
                   <input
                     type="text"
-                    value={editingProspecto.celular || ''}
-                    onChange={(e) => handleEditProspectoChange('celular', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.celular || ''}
+                    onChange={(e) => handleEditPersonaChange('celular', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Direccion</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Direccion</label>
                   <input
                     type="text"
-                    value={editingProspecto.direccion || ''}
-                    onChange={(e) => handleEditProspectoChange('direccion', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.direccion || ''}
+                    onChange={(e) => handleEditPersonaChange('direccion', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Estado</label>
                   <select
-                    value={editingProspecto.id_estado || ''}
-                    onChange={(e) => handleEditProspectoChange('id_estado', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.id_estado || ''}
+                    onChange={(e) => handleEditPersonaChange('id_estado', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   >
                     <option value="">Seleccionar estado</option>
                     {estados.map(estado => (
@@ -1331,17 +1355,17 @@ export default function ConversacionesPage() {
                     ))}
                   </select>
                 </div>
-                {/* Tipificacion Asesor - Por niveles */}
+                {/* Tipificacion Asesor */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipificacion Asesor</label>
-                  <div className="flex flex-wrap gap-2 items-center p-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Tipificacion Asesor</label>
+                  <div className="flex flex-wrap gap-2 items-center p-2.5 bg-[#f0f2f5] rounded-lg border border-[#e9edef]">
                     {nivelesDropdownEditAsesor.map((nivel, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        {index > 0 && <span className="text-gray-400 font-bold">&gt;</span>}
+                        {index > 0 && <ChevronDown className="h-3 w-3 text-[#667781] rotate-[-90deg]" />}
                         <select
                           value={nivel.seleccionado || ''}
                           onChange={(e) => handleNivelEditAsesorChange(index, e.target.value)}
-                          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white"
+                          className="px-3 py-2 text-[13px] bg-white border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] text-[#111b21]"
                         >
                           <option value="">{index === 0 ? 'Seleccionar...' : 'Selec...'}</option>
                           {nivel.opciones.map((t) => (
@@ -1355,24 +1379,22 @@ export default function ConversacionesPage() {
                         type="button"
                         onClick={() => {
                           setNivelesEditTipAsesor([]);
-                          handleEditProspectoChange('id_tipificacion_asesor', null);
+                          handleEditPersonaChange('id_tipificacion_asesor', null);
                         }}
-                        className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                        className="ml-2 p-1.5 text-[#667781] hover:text-red-500 rounded-full hover:bg-red-50 transition-colors"
                         title="Limpiar tipificacion"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Proveedor</label>
                   <select
-                    value={editingProspecto.id_provedor || ''}
-                    onChange={(e) => handleEditProspectoChange('id_provedor', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.id_provedor || ''}
+                    onChange={(e) => handleEditPersonaChange('id_provedor', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   >
                     <option value="">Seleccionar proveedor</option>
                     {proveedores.map(proveedor => (
@@ -1381,11 +1403,11 @@ export default function ConversacionesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Plan</label>
                   <select
-                    value={editingProspecto.id_plan || ''}
-                    onChange={(e) => handleEditProspectoChange('id_plan', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    value={editingPersona.id_plan || ''}
+                    onChange={(e) => handleEditPersonaChange('id_plan', e.target.value)}
+                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
                   >
                     <option value="">Seleccionar plan</option>
                     {planes.map(plan => (
@@ -1396,171 +1418,172 @@ export default function ConversacionesPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-200">
-              <button
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-[#e9edef]">
+              <Button
+                variant="ghost"
                 onClick={() => {
-                  setShowEditProspectoModal(false);
-                  setEditingProspecto(null);
+                  setShowEditPersonaModal(false);
+                  setEditingPersona(null);
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="text-[#667781] hover:bg-[#f0f2f5]"
               >
                 Cancelar
-              </button>
-              <button
-                onClick={handleSaveProspecto}
-                disabled={savingProspecto}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              </Button>
+              <Button
+                onClick={handleSavePersona}
+                disabled={savingPersona}
+                className="text-white gap-2"
+                style={{ background: '#008069' }}
               >
-                {savingProspecto ? (
+                {savingPersona ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Guardando...</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Guardando...
                   </>
                 ) : (
-                  <span>Guardar Cambios</span>
+                  'Guardar Cambios'
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Detalle del Prospecto */}
+      {/* ============================================ */}
+      {/* MODAL: Detalle de la Persona */}
+      {/* ============================================ */}
       {showDetailModal && selectedChat && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Detalle del Prospecto
-              </h3>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-scale-in">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-[#e9edef] sticky top-0 bg-white rounded-t-xl z-10">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: '#008069' }}>
+                  <Eye className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-[#111b21]">Detalle de la Persona</h3>
+              </div>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="h-9 w-9 rounded-full hover:bg-[#f0f2f5] flex items-center justify-center transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-5 w-5 text-[#54656f]" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
-              {/* Nombre Completo */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Nombre Completo</span>
-                <span className="col-span-2 text-sm text-gray-900">{selectedChat.nombre_completo || '-'}</span>
+
+            {/* Content */}
+            <div className="p-5">
+              {/* Profile header card */}
+              <div className="flex items-center gap-4 p-4 rounded-xl mb-5" style={{ background: '#008069' }}>
+                <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-semibold">
+                  {(selectedChat.nombre_completo || selectedChat.celular || '?').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold text-[16px]">{selectedChat.nombre_completo || '-'}</h4>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Phone className="h-3 w-3 text-white/60" />
+                    <span className="text-white/70 text-[13px]">{selectedChat.celular || '-'}</span>
+                  </div>
+                </div>
               </div>
 
-              {/* DNI */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">DNI</span>
-                <span className="col-span-2 text-sm text-gray-900">{selectedChat.dni || '-'}</span>
-              </div>
+              {/* Info grid */}
+              <div className="space-y-0">
+                {[
+                  { label: 'DNI', value: selectedChat.dni },
+                  { label: 'Direccion', value: selectedChat.direccion },
+                  { label: 'Proveedor', value: proveedores.find(p => p.id == selectedChat.id_provedor)?.nombre },
+                  { label: 'Plan Tarifario', value: planes.find(p => p.id == selectedChat.id_plan)?.nombre },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center py-3 border-b border-[#e9edef]">
+                    <span className="w-1/3 text-[13px] text-[#667781]">{item.label}</span>
+                    <span className="flex-1 text-[14px] text-[#111b21]">{item.value || '-'}</span>
+                  </div>
+                ))}
 
-              {/* Celular */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Celular</span>
-                <span className="col-span-2 text-sm text-gray-900">{selectedChat.celular || '-'}</span>
-              </div>
+                {/* Estado */}
+                <div className="flex items-center py-3 border-b border-[#e9edef]">
+                  <span className="w-1/3 text-[13px] text-[#667781]">Estado</span>
+                  <div className="flex-1">
+                    {selectedChat.estado_nombre ? (
+                      <span
+                        className="px-3 py-1 text-[11px] font-semibold rounded-full text-white"
+                        style={{ backgroundColor: selectedChat.estado_color || '#667781' }}
+                      >
+                        {selectedChat.estado_nombre}
+                      </span>
+                    ) : (
+                      <span className="text-[14px] text-[#8696a0]">-</span>
+                    )}
+                  </div>
+                </div>
 
-              {/* Direccion */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Direccion</span>
-                <span className="col-span-2 text-sm text-gray-900">{selectedChat.direccion || '-'}</span>
-              </div>
+                {/* Tipificacion */}
+                <div className="flex items-center py-3 border-b border-[#e9edef]">
+                  <span className="w-1/3 text-[13px] text-[#667781]">Tipificacion</span>
+                  <div className="flex-1">
+                    {selectedChat.tipificacion_nombre ? (
+                      <span
+                        className="px-3 py-1 text-[11px] font-semibold rounded-full text-white"
+                        style={{ backgroundColor: selectedChat.tipificacion_color || '#667781' }}
+                      >
+                        {selectedChat.tipificacion_nombre}
+                      </span>
+                    ) : (
+                      <span className="text-[14px] text-[#8696a0]">-</span>
+                    )}
+                  </div>
+                </div>
 
-              {/* Estado */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Estado</span>
-                <div className="col-span-2">
-                  {selectedChat.estado_nombre ? (
-                    <span
-                      className="px-3 py-1 text-xs font-semibold rounded-full text-white"
-                      style={{ backgroundColor: selectedChat.estado_color || '#6B7280' }}
+                {/* Bot */}
+                <div className="flex items-center py-3 border-b border-[#e9edef]">
+                  <span className="w-1/3 text-[13px] text-[#667781]">Bot Activo</span>
+                  <div className="flex-1">
+                    <Badge variant={selectedChat.bot_activo ? 'default' : 'secondary'}
+                      className={selectedChat.bot_activo ? 'bg-[#25d366] hover:bg-[#25d366] text-white' : ''}
                     >
-                      {selectedChat.estado_nombre}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
-                  )}
+                      {selectedChat.bot_activo ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              {/* Tipificacion */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Tipificacion</span>
-                <div className="col-span-2">
-                  {selectedChat.tipificacion_nombre ? (
-                    <span
-                      className="px-3 py-1 text-xs font-semibold rounded-full text-white"
-                      style={{ backgroundColor: selectedChat.tipificacion_color || '#6B7280' }}
-                    >
-                      {selectedChat.tipificacion_nombre}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Proveedor */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Proveedor</span>
-                <span className="col-span-2 text-sm text-gray-900">
-                  {proveedores.find(p => p.id == selectedChat.id_provedor)?.nombre || '-'}
-                </span>
-              </div>
-
-              {/* Plan */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Plan Tarifario</span>
-                <span className="col-span-2 text-sm text-gray-900">
-                  {planes.find(p => p.id == selectedChat.id_plan)?.nombre || '-'}
-                </span>
-              </div>
-
-              {/* Bot Activo */}
-              <div className="grid grid-cols-3 gap-4 py-2 border-b border-gray-100">
-                <span className="text-sm font-medium text-gray-500">Bot Activo</span>
-                <div className="col-span-2">
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                    selectedChat.bot_activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {selectedChat.bot_activo ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Seccion de Perfilamiento */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Preguntas de Perfilamiento</h4>
+              {/* Perfilamiento Section */}
+              <div className="mt-6">
+                <h4 className="text-[14px] font-semibold text-[#111b21] mb-3 flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-[#00a884]" />
+                  Preguntas de Perfilamiento
+                </h4>
                 {loadingPerfilamiento ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-                    <span className="ml-2 text-sm text-gray-500">Cargando...</span>
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-[#00a884]" />
+                    <span className="ml-2 text-[13px] text-[#667781]">Cargando...</span>
                   </div>
                 ) : perfilamientoData.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {perfilamientoData.map((item, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm font-medium text-gray-700">{item.pregunta}</p>
-                        <p className="text-sm text-gray-900 mt-1">{item.respuesta || '-'}</p>
+                      <div key={index} className="bg-[#f0f2f5] rounded-lg p-3">
+                        <p className="text-[12px] font-medium text-[#667781]">{item.pregunta}</p>
+                        <p className="text-[14px] text-[#111b21] mt-1">{item.respuesta || '-'}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 italic py-2">Sin respuestas de perfilamiento</p>
+                  <p className="text-[13px] text-[#8696a0] italic py-3">Sin respuestas de perfilamiento</p>
                 )}
               </div>
             </div>
-            <div className="flex justify-end space-x-3 p-4 border-t sticky bottom-0 bg-white">
-              <button
+
+            {/* Footer */}
+            <div className="flex justify-end p-5 border-t border-[#e9edef] sticky bottom-0 bg-white rounded-b-xl">
+              <Button
+                variant="ghost"
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="text-[#667781] hover:bg-[#f0f2f5]"
               >
                 Cerrar
-              </button>
+              </Button>
             </div>
           </div>
         </div>
