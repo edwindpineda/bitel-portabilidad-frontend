@@ -354,7 +354,7 @@ export default function CampaniasPage() {
 
           resultados.forEach((resultado, index) => {
             const telefono = numeros[index].telefono;
-            if (resultado.success) {
+            if (resultado.status === "fulfilled" && resultado.value?.data.success ) {
               console.log(`Numero ${telefono} realizado con exito`);
             } else {
               console.log(`Error al llamar al numero ${telefono}`);
@@ -367,19 +367,19 @@ export default function CampaniasPage() {
       }
     }
 
-    // setEjecutando(true);
-    // try {
-    //   const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
-    //     id_campania: campania.id
-    //   });
-    //   alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
-    //   loadData();
-    // } catch (error) {
-    //   console.error('Error al ejecutar campania:', error);
-    //   alert(error.msg || 'Error al ejecutar campania');
-    // } finally {
-    //   setEjecutando(false);
-    // }
+    setEjecutando(true);
+    try {
+      const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
+        id_campania: campania.id
+      });
+      alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
+      loadData();
+    } catch (error) {
+      console.error('Error al ejecutar campania:', error);
+      alert(error.msg || 'Error al ejecutar campania');
+    } finally {
+      setEjecutando(false);
+    }
   };
 
   // ===== PERSONAS POR EJECUCION =====
