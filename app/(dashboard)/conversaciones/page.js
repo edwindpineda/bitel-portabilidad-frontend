@@ -90,7 +90,6 @@ export default function ConversacionesPage() {
   const [showEditPersonaModal, setShowEditPersonaModal] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
   const [nivelesEditTipAsesor, setNivelesEditTipAsesor] = useState([]);
-  const [proveedores, setProveedores] = useState([]);
   const [planes, setPlanes] = useState([]);
   const [savingPersona, setSavingPersona] = useState(false);
 
@@ -255,16 +254,6 @@ export default function ConversacionesPage() {
       }
     } catch (err) {
       console.error('Error al cargar tipificaciones:', err);
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/crm/leads/proveedores`, { headers });
-      if (response.ok) {
-        const data = await response.json();
-        setProveedores(data.data || []);
-      }
-    } catch (err) {
-      console.error('Error al cargar proveedores:', err);
     }
 
     try {
@@ -1390,19 +1379,6 @@ export default function ConversacionesPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Proveedor</label>
-                  <select
-                    value={editingPersona.id_provedor || ''}
-                    onChange={(e) => handleEditPersonaChange('id_provedor', e.target.value)}
-                    className="w-full px-3 py-2.5 text-[14px] bg-[#f0f2f5] border border-[#e9edef] rounded-lg focus:outline-none focus:border-[#00a884] focus:bg-white transition-all text-[#111b21]"
-                  >
-                    <option value="">Seleccionar proveedor</option>
-                    {proveedores.map(proveedor => (
-                      <option key={proveedor.id} value={proveedor.id}>{proveedor.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
                   <label className="block text-[13px] font-medium text-[#111b21] mb-1.5">Plan</label>
                   <select
                     value={editingPersona.id_plan || ''}
@@ -1493,7 +1469,6 @@ export default function ConversacionesPage() {
                 {[
                   { label: 'DNI', value: selectedChat.dni },
                   { label: 'Direccion', value: selectedChat.direccion },
-                  { label: 'Proveedor', value: proveedores.find(p => p.id == selectedChat.id_provedor)?.nombre },
                   { label: 'Plan Tarifario', value: planes.find(p => p.id == selectedChat.id_plan)?.nombre },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center py-3 border-b border-[#e9edef]">

@@ -17,7 +17,6 @@ import {
   ChevronRight,
   Shield,
   Package,
-  Truck,
   Monitor,
   ClipboardList,
   FileText,
@@ -30,7 +29,6 @@ const gestionUsuario = [
   { title: 'Usuarios', description: 'Gestionar usuarios del sistema', href: '/configuracion/usuarios', icon: Users, gradient: 'from-blue-500 to-indigo-500', glow: 'rgba(59,130,246,0.15)' },
   { title: 'Equipos', description: 'Ver coordinadores y sus asesores', href: '/configuracion/equipos', icon: UsersRound, gradient: 'from-amber-500 to-orange-500', glow: 'rgba(245,158,11,0.15)' },
   { title: 'Sucursales', description: 'Gestionar sucursales', href: '/configuracion/sucursales', icon: Building2, gradient: 'from-orange-500 to-red-500', glow: 'rgba(249,115,22,0.15)' },
-  { title: 'Proveedores', description: 'Gestionar proveedores', href: '/configuracion/proveedores', icon: Truck, gradient: 'from-cyan-500 to-blue-500', glow: 'rgba(6,182,212,0.15)' },
 ];
 
 const gestionWhatsApp = [
@@ -54,7 +52,7 @@ const sections = [
   {
     id: 'usuarios',
     title: 'Gestión de Usuario',
-    description: 'Usuarios, equipos, roles, módulos, sucursales y proveedores',
+    description: 'Usuarios, equipos, roles, módulos y sucursales',
     icon: Shield,
     gradient: 'from-blue-500 to-indigo-500',
     items: gestionUsuario,
