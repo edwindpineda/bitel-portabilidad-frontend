@@ -312,45 +312,54 @@ export default function CampaniasPage() {
   const handleEjecutar = async (campania) => {
     if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
       try {
-        const reponse = await apiClient.get(`/crm/bases-numeros/${baseSeleccionada}/detalles`);
-        const numeros = reponse?.data;
+        const [response, tipificacionRes] = await Promise.all([
+          apiClient.get(`/crm/bases-numeros/${baseSeleccionada}/detalles`),
+          apiClient.get('/crm/tipificacion-llamada'),
+        ]);
+        const numeros = response?.data;
+        const tipificaciones = tipificacionRes?.data || [];
         if (numeros) {
-          // numeros.data.forEach(async (num) => {
-          //   const llamada = await apiClient.post("http://64.23.133.231:3302/api/calls/ultravox",
-          //     {
-          //       destination: "51" + num.telefono,
-          //       systemPrompt: plantillaSeleccionada.prompt_sistema + plantillaSeleccionada.prompt_flujo + plantillaSeleccionada.prompt_cierre,
-          //       greeting: plantillaSeleccionada.prompt_inicio.replace("{{nombre}}", num.nombre)
-          //     }
-          //   )
-          //   if (llamada?.data.success) {
-          //     console.log(`Numero ${num.telefono} realizado con exito`);
-          //   }
-          //   else {
-          //     console.log(`Error al llamar al numero ${num.telefono}`);
-          //   }
-          // });
-          const numero = numeros[0].telefono
-          const nombre = numeros[0].nombre
-          const dni = numeros[0].numero_documento
+          const formatearTelefono = (telefono) => {
+            const limpio = String(telefono).replace(/\D/g, '');
+            return limpio.startsWith('51') ? limpio : `51${limpio}`;
+          };
 
-          let nuevaPlantilla
-          if (nombre) {
-            nuevaPlantilla = plantillaSeleccionada.prompt_flujo.replaceAll("{{nombre}}", nombre)
-          }
-          const llamada = await apiClient.post("http://64.23.133.231:3302/api/calls/ultravox",
-            {
-              destination: "51" + numero,
-              systemPrompt: plantillaSeleccionada.prompt_sistema + nuevaPlantilla.replaceAll("{{telefono}}", numero) + plantillaSeleccionada.prompt_cierre,
-              greeting: plantillaSeleccionada.prompt_inicio.replace("{{nombre}}", nombre)
-            }
+          const resultados = await Promise.allSettled(
+            numeros.data.map(async (num) => {
+              const telefonoFormateado = formatearTelefono(num.telefono);
+              const personaRes = await apiClient.post('/crm/persona', {
+                celular: telefonoFormateado,
+                id_estado: 1,
+              });
+              const body = {
+                destination: telefonoFormateado,
+                data: {
+                  id: personaRes?.data?.id,
+                  nombre_completo: num.nombre,
+                  celular: telefonoFormateado,
+                  ...num.json_adicional
+                },
+                extras: {
+                  voice: "bacfa559-a200-4377-9d0e-fcae7c766a1f",
+                  tipificaciones,
+                  empresa: {
+                    id: num.id_empresa,
+                    nombre: num.nombre_comercial
+                  }
+                }
+              };
+              return apiClient.post("https://bot.ai-you.io/api/calls/ultravox", body);
+            })
           );
-          if (llamada?.data.success) {
-            console.log(`Numero ${numero} realizado con exito`);
-          }
-          else {
-            console.log(`Error al llamar al numero ${numero}`);
-          }
+
+          resultados.forEach((resultado, index) => {
+            const telefono = numeros[index].telefono;
+            if (resultado.success) {
+              console.log(`Numero ${telefono} realizado con exito`);
+            } else {
+              console.log(`Error al llamar al numero ${telefono}`);
+            }
+          });
         }
       }
       catch (err) {
@@ -358,19 +367,19 @@ export default function CampaniasPage() {
       }
     }
 
-    setEjecutando(true);
-    try {
-      const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
-        id_campania: campania.id
-      });
-      alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
-      loadData();
-    } catch (error) {
-      console.error('Error al ejecutar campania:', error);
-      alert(error.msg || 'Error al ejecutar campania');
-    } finally {
-      setEjecutando(false);
-    }
+    // setEjecutando(true);
+    // try {
+    //   const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
+    //     id_campania: campania.id
+    //   });
+    //   alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
+    //   loadData();
+    // } catch (error) {
+    //   console.error('Error al ejecutar campania:', error);
+    //   alert(error.msg || 'Error al ejecutar campania');
+    // } finally {
+    //   setEjecutando(false);
+    // }
   };
 
   // ===== PERSONAS POR EJECUCION =====
