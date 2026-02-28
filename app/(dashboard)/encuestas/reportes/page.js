@@ -114,20 +114,20 @@ export default function ReportesPage() {
   }, [filtros.prioridad]);
 
   // Extraer departamentos unicos de las encuestas cargadas
-  const departamentos = [...new Set(encuestas.map(e => e.departamento).filter(d => d && d.trim() !== ''))].sort();
+  const departamentos = [...new Set(encuestas.map(e => e.departamento_base).filter(d => d && d.trim() !== ''))].sort();
 
   // Extraer municipios unicos (filtrados por departamento si hay uno seleccionado)
   const municipios = [...new Set(
     encuestas
-      .filter(e => !filtros.departamento || e.departamento === filtros.departamento)
-      .map(e => e.municipio)
+      .filter(e => !filtros.departamento || e.departamento_base === filtros.departamento)
+      .map(e => e.municipio_base)
       .filter(m => m && m.trim() !== '')
   )].sort();
 
   // Filtrar encuestas por departamento, municipio y participacion
   const encuestasFiltradas = encuestas.filter(e => {
-    if (filtros.departamento && e.departamento !== filtros.departamento) return false;
-    if (filtros.municipio && e.municipio !== filtros.municipio) return false;
+    if (filtros.departamento && e.departamento_base !== filtros.departamento) return false;
+    if (filtros.municipio && e.municipio_base !== filtros.municipio) return false;
     if (filtros.participacion && filtros.participacion !== 'todos') {
       const participacion = String(e.participacion || '').toLowerCase();
       if (filtros.participacion === 'acepto' && !participacion.includes('acept')) return false;
@@ -239,7 +239,6 @@ export default function ReportesPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="todos">Todas las prioridades</option>
-              <option value="0">Sin prioridad</option>
               <option value="1">Prioridad 1</option>
               <option value="2">Prioridad 2</option>
               <option value="3">Prioridad 3</option>

@@ -50,7 +50,6 @@ export default function PersonasPage() {
   const [estadoFilter, setEstadoFilter] = useState('todos');
   const [prioridadFilter, setPrioridadFilter] = useState('todos');
   const [stats, setStats] = useState(null);
-  const [statsPrioridadFilter, setStatsPrioridadFilter] = useState('todos');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPersona, setNewPersona] = useState({ telefono: '', nombre: '', apellido: '', departamento: '', municipio: '', referente: '' });
   const [saving, setSaving] = useState(false);
@@ -114,7 +113,7 @@ export default function PersonasPage() {
   };
 
   // Cargar estadisticas
-  const fetchStats = async (prioridad = statsPrioridadFilter) => {
+  const fetchStats = async (prioridad = prioridadFilter) => {
     try {
       const params = new URLSearchParams();
       if (prioridad && prioridad !== 'todos') {
@@ -137,12 +136,8 @@ export default function PersonasPage() {
   useEffect(() => {
     setCurrentPage(1);
     fetchPersonas(1, estadoFilter, searchTerm, prioridadFilter);
+    fetchStats(prioridadFilter);
   }, [estadoFilter, prioridadFilter]);
-
-  // Recargar estadisticas cuando cambia el filtro de prioridad de stats
-  useEffect(() => {
-    fetchStats(statsPrioridadFilter);
-  }, [statsPrioridadFilter]);
 
   // Recargar cuando cambia la búsqueda (con debounce)
   useEffect(() => {
@@ -397,17 +392,6 @@ export default function PersonasPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-700">Indicadores</h3>
-            <select
-              value={statsPrioridadFilter}
-              onChange={(e) => setStatsPrioridadFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="todos">Todas las prioridades</option>
-              <option value="0">Sin prioridad</option>
-              <option value="1">Prioridad 1</option>
-              <option value="2">Prioridad 2</option>
-              <option value="3">Prioridad 3</option>
-            </select>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -476,7 +460,6 @@ export default function PersonasPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="todos">Todas las prioridades</option>
-              <option value="0">Sin prioridad</option>
               <option value="1">Prioridad 1</option>
               <option value="2">Prioridad 2</option>
               <option value="3">Prioridad 3</option>
