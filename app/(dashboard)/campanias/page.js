@@ -61,8 +61,6 @@ const ESTADOS_EJECUCION = {
   cancelado: { label: 'Cancelado', color: 'bg-gray-100 text-gray-800' },
 };
 
-const numsString = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
-
 export default function CampaniasPage() {
   const [campanias, setCampanias] = useState([]);
   const [basesDisponibles, setBasesDisponibles] = useState([]);
@@ -352,10 +350,14 @@ export default function CampaniasPage() {
             })
           );
 
-          resultados.forEach((resultado, index) => {
+          resultados.forEach(async (resultado, index) => {
             const telefono = numeros[index].telefono;
             if (resultado.status === "fulfilled" && resultado.value?.data.success ) {
               console.log(`Numero ${telefono} realizado con exito`);
+              // await apiClient.post("/crm/llamadas", {
+              //   id_campania: campania.id,
+
+              // })
             } else {
               console.log(`Error al llamar al numero ${telefono}`);
             }
