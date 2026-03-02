@@ -156,7 +156,7 @@ export default function PerfilPage() {
     try {
       const [convRes, leadsRes] = await Promise.allSettled([
         apiClient.get('/crm/conversaciones?limit=1'),
-        apiClient.get('/crm/leads?limit=1'),
+        apiClient.get('/crm/personas?limit=1'),
       ]);
       setStats({
         conversaciones: convRes.status === 'fulfilled' ? (convRes.value?.total || convRes.value?.data?.length || 0) : 0,

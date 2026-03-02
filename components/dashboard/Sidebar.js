@@ -25,6 +25,7 @@ import {
   UserCheck,
   BarChart3,
   Megaphone,
+  Phone,
   Building2,
   Package,
   Settings,
@@ -54,6 +55,10 @@ const BASE_MENU = [
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
   { name: 'Leads', icon: Users, path: '/leads', badge: null },
   { name: 'Clientes', icon: UserCheck, path: '/clientes', badge: null },
+  { name: 'Llamadas', icon: Phone, path: '/llamadas', badge: null, submenu: [
+    { name: 'Lista', path: '/llamadas' },
+    { name: 'Indicadores', path: '/llamadas/indicadores' },
+  ]},
   { name: 'Reportes', icon: BarChart3, path: '/reportes', badge: null },
   { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null },
   { name: 'Configuración', icon: Settings, path: '/configuracion', badge: null },

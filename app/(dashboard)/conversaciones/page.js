@@ -257,7 +257,7 @@ export default function ConversacionesPage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/crm/leads/catalogo`, { headers });
+      const response = await fetch(`${API_URL}/crm/catalogo`, { headers });
       if (response.ok) {
         const data = await response.json();
         setPlanes(data.data || []);
@@ -630,7 +630,7 @@ export default function ConversacionesPage() {
     setLoadingPerfilamiento(true);
     try {
       const personaId = selectedChat.id_persona || selectedChat.id;
-      const response = await apiClient.get(`/crm/leads/${personaId}/perfilamiento`);
+      const response = await apiClient.get(`/crm/persona/${personaId}/perfilamiento`);
       setPerfilamientoData(response.data || []);
     } catch (error) {
       console.error('Error al cargar perfilamiento:', error);
@@ -651,7 +651,7 @@ export default function ConversacionesPage() {
 
     setSavingPersona(true);
     try {
-      await apiClient.put(`/crm/leads/${editingPersona.id}`, editingPersona);
+      await apiClient.put(`/crm/persona/${editingPersona.id}`, editingPersona);
 
       const tipificacionAsesor = tipificaciones.find(t => t.id == editingPersona.id_tipificacion_asesor);
       const updatedChat = {

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Center Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --card: #111827;
+  --border: #1e293b;
+  --accent: #06d6a0;
+  --accent-dim: rgba(6,214,160,0.15);
+  --warning: #fbbf24;
+  --warning-dim: rgba(251,191,36,0.15);
+  --danger: #ef4444;
+  --danger-dim: rgba(239,68,68,0.15);
+  --info: #38bdf8;
+  --info-dim: rgba(56,189,248,0.15);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.15);
+  --orange: #fb923c;
+  --orange-dim: rgba(251,146,60,0.15);
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', 'Segoe UI', sans-serif; min-height: 100vh; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+.header {
+  background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; z-index: 10; backdrop-filter: blur(20px);
+}
+.header-logo {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, #06d6a0, #38bdf8);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.header-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.header-title span { color: var(--accent); }
+.header-sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+
+.tabs { display: flex; align-items: center; gap: 8px; }
+.tab-btn {
+  padding: 8px 18px; border-radius: 10px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  background: transparent; color: var(--text-muted);
+}
+.tab-btn.active { background: var(--accent); color: var(--bg); }
+.live-badge {
+  margin-left: 12px; display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 10px; background: var(--accent-dim);
+  border: 1px solid rgba(6,214,160,0.2); color: var(--accent);
+  font-size: 12px; font-weight: 600;
+}
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+
+.content { padding: 24px 32px; max-width: 1480px; margin: 0 auto; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; animation: slideUp 0.5s ease; }
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px 22px; display: flex; align-items: center; gap: 14px;
+  position: relative; overflow: hidden;
+}
+.kpi-glow {
+  position: absolute; top: -20px; right: -20px; width: 80px; height: 80px;
+  border-radius: 50%; filter: blur(20px); pointer-events: none;
+}
+.kpi-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.kpi-label { color: var(--text-muted); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 3px; }
+.kpi-value { color: var(--text); font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.kpi-change {
+  display: flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+}
+.kpi-change.up { background: var(--accent-dim); color: var(--accent); }
+.kpi-change.down { background: var(--danger-dim); color: var(--danger); }
+
+/* Cards */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+.section-title {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600;
+}
+.section-title svg { color: var(--accent); }
+
+/* Grids */
+.row-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; animation: slideUp 0.6s ease; }
+.row-1-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; animation: slideUp 0.7s ease; }
+
+/* Chart containers */
+.chart-area { width: 100%; height: 280px; position: relative; }
+.bar-group { display: flex; align-items: flex-end; gap: 3px; height: 100%; }
+
+/* Pie chart */
+.pie-legend { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.pie-legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.pie-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pie-legend-val { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.pie-legend-pct { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+/* Heatmap */
+.heatmap-grid { display: grid; gap: 3px; min-width: 600px; }
+.heatmap-cell {
+  border-radius: 4px; height: 32px; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  cursor: default; transition: all 0.15s; border: 2px solid transparent;
+}
+.heatmap-cell:hover { transform: scale(1.15); z-index: 2; border-color: var(--text); }
+.heatmap-label { display: flex; align-items: center; font-size: 12px; font-weight: 600; padding-right: 8px; }
+.heatmap-header { text-align: center; font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; padding-bottom: 6px; }
+.heatmap-legend { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+.heatmap-legend span { font-size: 10px; color: var(--text-dim); }
+.heatmap-legend-box { width: 14px; height: 14px; border-radius: 3px; }
+
+/* Agent table */
+.agent-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+.agent-table th {
+  padding: 8px 12px; font-size: 10px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.agent-table th:first-child { text-align: left; }
+.agent-table td { padding: 12px; text-align: center; font-size: 13px; }
+.agent-table td:first-child { text-align: left; }
+.agent-avatar {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; vertical-align: middle;
+  margin-right: 10px;
+}
+.mono { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+.badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.rate-badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+/* Mini heatmap */
+.mini-heatmap { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(7, 1fr); gap: 2px; min-width: 160px; }
+.mini-cell { border-radius: 2px; height: 8px; }
+
+/* SVG Charts */
+.chart-svg { width: 100%; overflow: visible; }
+.chart-gridline { stroke: var(--border); stroke-dasharray: 3 3; }
+.chart-axis-label { fill: var(--text-dim); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+.chart-tooltip {
+  position: absolute; background: #1a2235; border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  pointer-events: none; z-index: 20; font-size: 12px; white-space: nowrap; display: none;
+}
+.chart-tooltip.show { display: block; }
+.tooltip-title { color: var(--text-muted); font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+.tooltip-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.tooltip-label { color: var(--text-muted); }
+.tooltip-val { font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+
+.footer { text-align: center; padding: 20px 0 8px; color: var(--text-dim); font-size: 11px; }
+
+/* Donut */
+.donut-container { position: relative; width: 180px; height: 180px; margin: 0 auto; }
+
+@media (max-width: 900px) {
+  .row-2-1, .row-1-1 { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .header { padding: 16px; flex-wrap: wrap; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="header-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a0e1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Call Center <span>Dashboard</span></div>
+      <div class="header-sub">Resultados de llamadas en tiempo real</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab(this)">Hoy</button>
+    <button class="tab-btn" onclick="setTab(this)">Semana</button>
+    <button class="tab-btn" onclick="setTab(this)">Mes</button>
+    <div class="live-badge"><div class="live-dot"></div>EN VIVO</div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpis"></div>
+
+  <!-- Row 1: Area chart + Pie -->
+  <div class="row-2-1">
+    <div class="card">
+      <div class="section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 9 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        Volumen por Hora
+      </div>
+      <div style="position:relative;width:100%;height:300px" id="areaChartContainer">
+        <canvas id="areaChart" style="width:100%;height:100%"></canvas>
+        <div class="chart-tooltip" id="areaTooltip"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="17" y2="7"/><line x1="17" y1="1" x2="23" y2="7"/></svg>
+        Resultado de Llamadas
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <canvas id="donutChart" width="180" height="180" style="margin-bottom:8px"></canvas>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Weekly bars + Heatmap -->
+  <div class="row-1-1">
+    <div class="card">
+      <div class="section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        Rendimiento Semanal
+      </div>
+      <div style="position:relative;width:100%;height:280px" id="barChartContainer">
+        <canvas id="barChart" style="width:100%;height:100%"></canvas>
+        <div class="chart-tooltip" id="barTooltip"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Mapa de Calor — Llamadas por Día y Hora
+      </div>
+      <div style="overflow-x:auto" id="heatmapContainer"></div>
+    </div>
+  </div>
+
+  <!-- Minutes Consumed Per Day -->
+  <div class="card" style="animation:slideUp 0.75s ease;margin-bottom:16px">
+    <div class="section-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Minutos Consumidos por Día
+    </div>
+    <div style="position:relative;width:100%;height:320px" id="minutesChartContainer">
+      <canvas id="minutesChart" style="width:100%;height:100%"></canvas>
+      <div class="chart-tooltip" id="minutesTooltip"></div>
+    </div>
+    <div id="minutesSummary" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px"></div>
+  </div>
+
+  <!-- Agents -->
+  <div class="card" style="animation:slideUp 0.8s ease;margin-bottom:16px">
+    <div class="section-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Rendimiento de Agentes
+    </div>
+    <div style="overflow-x:auto">
+      <table class="agent-table" id="agentTable"></table>
+    </div>
+  </div>
+
+  <div class="footer" id="footerTime"></div>
+</div>
+
+<script>
+// ─── DATA ───
+const HOURS = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"];
+const DAYS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const CHART_COLORS = ["#06d6a0","#38bdf8","#fbbf24","#ef4444","#a78bfa","#fb923c"];
+
+const hourlyData = [
+  {hour:"08:00",entrantes:45,salientes:32,buzon:8,cortadas:3},
+  {hour:"09:00",entrantes:78,salientes:45,buzon:14,cortadas:5},
+  {hour:"10:00",entrantes:112,salientes:67,buzon:19,cortadas:8},
+  {hour:"11:00",entrantes:134,salientes:78,buzon:22,cortadas:11},
+  {hour:"12:00",entrantes:98,salientes:56,buzon:16,cortadas:6},
+  {hour:"13:00",entrantes:67,salientes:43,buzon:11,cortadas:4},
+  {hour:"14:00",entrantes:89,salientes:52,buzon:13,cortadas:5},
+  {hour:"15:00",entrantes:125,salientes:71,buzon:20,cortadas:9},
+  {hour:"16:00",entrantes:143,salientes:82,buzon:24,cortadas:12},
+  {hour:"17:00",entrantes:118,salientes:64,buzon:18,cortadas:7},
+  {hour:"18:00",entrantes:76,salientes:38,buzon:10,cortadas:4},
+  {hour:"19:00",entrantes:42,salientes:21,buzon:6,cortadas:2},
+];
+
+const resultados = [
+  {name:"Contestadas",value:847,color:"#06d6a0"},
+  {name:"No Contestadas",value:156,color:"#ef4444"},
+  {name:"Buzón de Voz",value:181,color:"#fbbf24"},
+  {name:"Cortadas",value:76,color:"#fb923c"},
+  {name:"Ocupado",value:45,color:"#38bdf8"},
+  {name:"Transferidas",value:63,color:"#a78bfa"},
+];
+const totalLlamadas = resultados.reduce((s,r)=>s+r.value,0);
+
+const weeklyData = [
+  {day:"Lun",llamadas:312,resueltas:278,buzon:42,cortadas:18},
+  {day:"Mar",llamadas:345,resueltas:301,buzon:38,cortadas:15},
+  {day:"Mié",llamadas:298,resueltas:265,buzon:45,cortadas:21},
+  {day:"Jue",llamadas:367,resueltas:332,buzon:36,cortadas:12},
+  {day:"Vie",llamadas:389,resueltas:348,buzon:40,cortadas:16},
+  {day:"Sáb",llamadas:198,resueltas:176,buzon:28,cortadas:8},
+  {day:"Dom",llamadas:112,resueltas:101,buzon:15,cortadas:5},
+];
+
+const agentes = [
+  {nombre:"María García",llamadas:87,contestadas:82,buzon:12,cortadas:3,tiempo:"3:24",estado:"activo"},
+  {nombre:"Carlos López",llamadas:76,contestadas:69,buzon:18,cortadas:7,tiempo:"4:12",estado:"activo"},
+  {nombre:"Ana Martínez",llamadas:92,contestadas:88,buzon:8,cortadas:2,tiempo:"2:58",estado:"en_llamada"},
+  {nombre:"Pedro Sánchez",llamadas:64,contestadas:57,buzon:22,cortadas:9,tiempo:"5:01",estado:"pausa"},
+  {nombre:"Laura Torres",llamadas:81,contestadas:77,buzon:10,cortadas:4,tiempo:"3:45",estado:"activo"},
+  {nombre:"Diego Ramírez",llamadas:70,contestadas:63,buzon:15,cortadas:6,tiempo:"4:33",estado:"en_llamada"},
+];
+
+function genHeatmap(base, variance) {
+  const data = [];
+  DAYS.forEach((day, di) => {
+    HOURS.forEach((hour, hi) => {
+      const isW = di >= 5, isP = (hi>=2&&hi<=4)||(hi>=7&&hi<=9);
+      let v = isW ? base*0.4 : isP ? base*1.4 : base;
+      v += Math.floor((Math.sin(di*3+hi*7)*0.5+0.5)*variance - variance/2);
+      data.push({day,hour,value:Math.max(2,Math.round(v)),di,hi});
+    });
+  });
+  return data;
+}
+const callHeatmap = genHeatmap(18, 20);
+
+function genAgentHeatmap(a, ai) {
+  const data = [];
+  DAYS.forEach((day, di) => {
+    HOURS.forEach((hour, hi) => {
+      const isW = di>=5, isP = (hi>=2&&hi<=4)||(hi>=7&&hi<=9);
+      let b = isW ? 2 : isP ? Math.floor(a.llamadas/8) : Math.floor(a.llamadas/14);
+      b += Math.floor(Math.sin(ai*5+di*3+hi*2)*2);
+      data.push({day,hour,value:Math.max(0,b),di,hi});
+    });
+  });
+  return data;
+}
+
+// ─── TAB ───
+function setTab(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─── KPIs ───
+const totalBuzon = hourlyData.reduce((s,r)=>s+r.buzon,0);
+const totalCortadas = hourlyData.reduce((s,r)=>s+r.cortadas,0);
+const kpis = [
+  {icon:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 3 5.09 2 2 0 0 1 5.09 3h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.66 2.35a2 2 0 0 1-.45 2.11L8.91 10.6a16 16 0 0 0 6.49 6.49l1.42-1.42a2 2 0 0 1 2.11-.45c.75.3 1.54.53 2.35.66A2 2 0 0 1 22 16.92z"/>',label:"Total Llamadas",value:"1,368",change:"12.5%",up:true,color:"var(--accent)",dim:"var(--accent-dim)"},
+  {icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',label:"Contestadas",value:"847",change:"3.2%",up:true,color:"var(--info)",dim:"var(--info-dim)"},
+  {icon:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M6 16l2-2M18 16l-2-2"/>',label:"Buzón de Voz",value:totalBuzon,change:"5.4%",up:true,color:"var(--warning)",dim:"var(--warning-dim)"},
+  {icon:'<path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 5.07 2 2 0 0 1 4.11 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 10.91"/><line x1="23" y1="1" x2="17" y2="7"/><line x1="17" y1="1" x2="23" y2="7"/>',label:"Cortadas",value:totalCortadas,change:"1.8%",up:false,color:"var(--orange)",dim:"var(--orange-dim)"},
+  {icon:'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',label:"No Contestadas",value:"156",change:"2.1%",up:false,color:"var(--danger)",dim:"var(--danger-dim)"},
+  {icon:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',label:"T. Promedio",value:"3:42",change:"8s",up:false,color:"var(--purple)",dim:"var(--purple-dim)"},
+];
+
+document.getElementById('kpis').innerHTML = kpis.map(k => `
+  <div class="kpi-card">
+    <div class="kpi-glow" style="background:${k.dim}"></div>
+    <div class="kpi-icon" style="background:${k.dim}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${k.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${k.icon}</svg>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+    </div>
+    <div class="kpi-change ${k.up?'up':'down'}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        ${k.up?'<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>':'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>'}
+      </svg>
+      ${k.change}
+    </div>
+  </div>
+`).join('');
+
+// ─── AREA CHART (Canvas) ───
+function drawAreaChart() {
+  const canvas = document.getElementById('areaChart');
+  const container = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = container.clientWidth * dpr;
+  canvas.height = container.clientHeight * dpr;
+  canvas.style.width = container.clientWidth + 'px';
+  canvas.style.height = container.clientHeight + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = container.clientWidth, H = container.clientHeight;
+  const pad = {t:20,r:20,b:36,l:44};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+
+  const maxVal = Math.max(...hourlyData.map(d => Math.max(d.entrantes, d.salientes)));
+  const series = [
+    {key:'entrantes',name:'Entrantes',color:'#06d6a0',fill:'rgba(6,214,160,0.15)'},
+    {key:'salientes',name:'Salientes',color:'#38bdf8',fill:'rgba(56,189,248,0.12)'},
+    {key:'buzon',name:'Buzón',color:'#fbbf24',fill:null,dash:[5,5]},
+    {key:'cortadas',name:'Cortadas',color:'#fb923c',fill:null,dash:[3,3]},
+  ];
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (ch/5)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '11px JetBrains Mono';
+    ctx.textAlign = 'right'; ctx.fillText(Math.round(maxVal*(1-i/5)), pad.l-8, y+4);
+  }
+  ctx.setLineDash([]);
+
+  // X labels
+  hourlyData.forEach((d,i) => {
+    const x = pad.l + (cw/(hourlyData.length-1))*i;
+    ctx.fillStyle = '#64748b'; ctx.font = '11px JetBrains Mono';
+    ctx.textAlign = 'center'; ctx.fillText(d.hour, x, H-pad.b+20);
+  });
+
+  // Draw series
+  series.forEach(s => {
+    const pts = hourlyData.map((d,i) => ({
+      x: pad.l + (cw/(hourlyData.length-1))*i,
+      y: pad.t + ch - (d[s.key]/maxVal)*ch
+    }));
+
+    if (s.fill) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pad.t+ch);
+      pts.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(pts[pts.length-1].x, pad.t+ch);
+      ctx.closePath();
+      ctx.fillStyle = s.fill; ctx.fill();
+    }
+
+    ctx.beginPath();
+    if (s.dash) ctx.setLineDash(s.dash);
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2.5;
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Tooltip interaction
+  const tooltip = document.getElementById('areaTooltip');
+  canvas.onmousemove = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const idx = Math.round((mx - pad.l) / (cw / (hourlyData.length-1)));
+    if (idx < 0 || idx >= hourlyData.length) { tooltip.classList.remove('show'); return; }
+    const d = hourlyData[idx];
+    tooltip.classList.add('show');
+    tooltip.style.left = (pad.l + (cw/(hourlyData.length-1))*idx + 10) + 'px';
+    tooltip.style.top = '20px';
+    tooltip.innerHTML = `<div class="tooltip-title">${d.hour}</div>` +
+      series.map(s => `<div class="tooltip-row"><span class="tooltip-dot" style="background:${s.color}"></span><span class="tooltip-label">${s.name}:</span><span class="tooltip-val">${d[s.key]}</span></div>`).join('');
+  };
+  canvas.onmouseleave = () => tooltip.classList.remove('show');
+}
+
+// ─── DONUT CHART ───
+function drawDonut() {
+  const canvas = document.getElementById('donutChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = 180 * dpr; canvas.height = 180 * dpr;
+  ctx.scale(dpr, dpr);
+  const cx = 90, cy = 90, outer = 78, inner = 48;
+  let startAngle = -Math.PI / 2;
+
+  resultados.forEach(r => {
+    const slice = (r.value / totalLlamadas) * Math.PI * 2;
+    const gap = 0.03;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outer, startAngle + gap, startAngle + slice - gap);
+    ctx.arc(cx, cy, inner, startAngle + slice - gap, startAngle + gap, true);
+    ctx.closePath();
+    ctx.fillStyle = r.color;
+    ctx.fill();
+    startAngle += slice;
+  });
+
+  // Center text
+  ctx.fillStyle = '#f1f5f9'; ctx.font = 'bold 22px JetBrains Mono';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(totalLlamadas.toLocaleString(), cx, cy - 8);
+  ctx.fillStyle = '#64748b'; ctx.font = '11px DM Sans';
+  ctx.fillText('Total', cx, cy + 12);
+
+  // Legend
+  document.getElementById('pieLegend').innerHTML = resultados.map(r => `
+    <div class="pie-legend-item">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="pie-legend-dot" style="background:${r.color}"></span>
+        <span style="color:var(--text-muted)">${r.name}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pie-legend-val">${r.value}</span>
+        <span class="pie-legend-pct">${((r.value/totalLlamadas)*100).toFixed(1)}%</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── BAR CHART ───
+function drawBarChart() {
+  const canvas = document.getElementById('barChart');
+  const container = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = container.clientWidth * dpr;
+  canvas.height = container.clientHeight * dpr;
+  canvas.style.width = container.clientWidth + 'px';
+  canvas.style.height = container.clientHeight + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = container.clientWidth, H = container.clientHeight;
+  const pad = {t:20,r:20,b:36,l:44};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+
+  const maxVal = Math.max(...weeklyData.map(d => d.llamadas));
+  const barColors = ['#38bdf8','#06d6a0','#fbbf24','#fb923c'];
+  const barKeys = ['llamadas','resueltas','buzon','cortadas'];
+  const barNames = ['Llamadas','Resueltas','Buzón','Cortadas'];
+  const groupW = cw / weeklyData.length;
+  const barW = Math.min(14, (groupW - 20) / 4);
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (ch/5)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '11px JetBrains Mono';
+    ctx.textAlign = 'right'; ctx.fillText(Math.round(maxVal*(1-i/5)), pad.l-8, y+4);
+  }
+  ctx.setLineDash([]);
+
+  weeklyData.forEach((d,i) => {
+    const gx = pad.l + groupW * i + groupW/2;
+    ctx.fillStyle = '#64748b'; ctx.font = '11px JetBrains Mono';
+    ctx.textAlign = 'center'; ctx.fillText(d.day, gx, H-pad.b+20);
+
+    barKeys.forEach((key, ki) => {
+      const bx = gx - (barKeys.length * (barW+2))/2 + ki*(barW+2);
+      const bh = (d[key]/maxVal)*ch;
+      const by = pad.t + ch - bh;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, barW, bh, [4,4,0,0]);
+      ctx.fillStyle = barColors[ki];
+      ctx.fill();
+    });
+  });
+
+  // Tooltip
+  const tooltip = document.getElementById('barTooltip');
+  canvas.onmousemove = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const idx = Math.floor((mx - pad.l) / groupW);
+    if (idx < 0 || idx >= weeklyData.length) { tooltip.classList.remove('show'); return; }
+    const d = weeklyData[idx];
+    tooltip.classList.add('show');
+    tooltip.style.left = (pad.l + groupW*idx + groupW/2 + 10) + 'px';
+    tooltip.style.top = '20px';
+    tooltip.innerHTML = `<div class="tooltip-title">${d.day}</div>` +
+      barKeys.map((k,ki) => `<div class="tooltip-row"><span class="tooltip-dot" style="background:${barColors[ki]}"></span><span class="tooltip-label">${barNames[ki]}:</span><span class="tooltip-val">${d[k]}</span></div>`).join('');
+  };
+  canvas.onmouseleave = () => tooltip.classList.remove('show');
+}
+
+// ─── HEATMAP ───
+function drawHeatmap() {
+  const container = document.getElementById('heatmapContainer');
+  const maxVal = Math.max(...callHeatmap.map(d => d.value));
+  function getColor(v) {
+    const r = v/maxVal;
+    if(r<0.15) return 'rgba(6,214,160,0.05)';
+    if(r<0.3) return 'rgba(6,214,160,0.15)';
+    if(r<0.5) return 'rgba(6,214,160,0.30)';
+    if(r<0.7) return 'rgba(6,214,160,0.50)';
+    if(r<0.85) return 'rgba(6,214,160,0.70)';
+    return 'rgba(6,214,160,0.92)';
+  }
+  function textColor(v) { return v/maxVal > 0.5 ? '#0a0e1a' : '#64748b'; }
+
+  let html = `<div class="heatmap-grid" style="grid-template-columns:56px repeat(${HOURS.length},1fr)">`;
+  html += '<div></div>';
+  HOURS.forEach(h => html += `<div class="heatmap-header">${h}</div>`);
+
+  DAYS.forEach((day,di) => {
+    html += `<div class="heatmap-label" style="color:${di>=5?'var(--text-dim)':'var(--text-muted)'}">${day}</div>`;
+    HOURS.forEach((_,hi) => {
+      const cell = callHeatmap.find(d => d.di===di && d.hi===hi);
+      const v = cell?.value||0;
+      html += `<div class="heatmap-cell" style="background:${getColor(v)};color:${textColor(v)}">${v}</div>`;
+    });
+  });
+  html += '</div>';
+
+  html += '<div class="heatmap-legend"><span>Menos</span>';
+  [0.05,0.15,0.3,0.5,0.7,0.92].forEach(op => {
+    html += `<div class="heatmap-legend-box" style="background:rgba(6,214,160,${op})"></div>`;
+  });
+  html += '<span>Más</span></div>';
+  container.innerHTML = html;
+}
+
+// ─── AGENT TABLE ───
+function drawAgentTable() {
+  const table = document.getElementById('agentTable');
+  const estadoConfig = {
+    activo: {label:'Disponible',color:'var(--accent)',bg:'var(--accent-dim)',anim:''},
+    en_llamada: {label:'En Llamada',color:'var(--info)',bg:'var(--info-dim)',anim:'animation:pulse 1.5s infinite'},
+    pausa: {label:'En Pausa',color:'var(--warning)',bg:'var(--warning-dim)',anim:''},
+  };
+
+  let html = `<thead><tr>
+    <th>Agente</th><th>Estado</th><th>Llamadas</th><th>Contestadas</th>
+    <th>Buzón</th><th>Cortadas</th><th>Tasa</th><th>T. Prom.</th><th>Actividad Semanal</th>
+  </tr></thead><tbody>`;
+
+  agentes.forEach((a,i) => {
+    const tasa = ((a.contestadas/a.llamadas)*100).toFixed(1);
+    const est = estadoConfig[a.estado];
+    const initials = a.nombre.split(' ').map(n=>n[0]).join('');
+    const heatData = genAgentHeatmap(a,i);
+    const heatMax = Math.max(...heatData.map(d=>d.value),1);
+
+    const tasaColor = tasa>=90 ? 'var(--accent)' : tasa>=80 ? 'var(--warning)' : 'var(--danger)';
+    const tasaBg = tasa>=90 ? 'var(--accent-dim)' : tasa>=80 ? 'var(--warning-dim)' : 'var(--danger-dim)';
+
+    // Mini heatmap HTML
+    let miniHtml = '<div class="mini-heatmap">';
+    DAYS.forEach((_,di) => {
+      HOURS.forEach((_,hi) => {
+        const cell = heatData.find(d=>d.di===di&&d.hi===hi);
+        const v = cell?.value||0;
+        const r = v/heatMax;
+        let bg;
+        if(r<0.15) bg='rgba(56,189,248,0.05)';
+        else if(r<0.35) bg='rgba(56,189,248,0.20)';
+        else if(r<0.6) bg='rgba(56,189,248,0.40)';
+        else if(r<0.8) bg='rgba(56,189,248,0.65)';
+        else bg='rgba(56,189,248,0.90)';
+        miniHtml += `<div class="mini-cell" style="background:${bg}"></div>`;
+      });
+    });
+    miniHtml += '</div>';
+
+    html += `<tr>
+      <td style="font-weight:600">
+        <span class="agent-avatar" style="background:linear-gradient(135deg,${CHART_COLORS[i]},${CHART_COLORS[i]}88)">${initials}</span>
+        ${a.nombre}
+      </td>
+      <td><span class="badge" style="color:${est.color};background:${est.bg}">
+        <span class="badge-dot" style="background:${est.color};${est.anim}"></span>${est.label}
+      </span></td>
+      <td class="mono" style="font-size:14px">${a.llamadas}</td>
+      <td class="mono" style="font-size:14px;color:var(--accent)">${a.contestadas}</td>
+      <td class="mono" style="font-size:14px;color:var(--warning)">${a.buzon}</td>
+      <td class="mono" style="font-size:14px;color:var(--orange)">${a.cortadas}</td>
+      <td><span class="rate-badge" style="color:${tasaColor};background:${tasaBg}">${tasa}%</span></td>
+      <td class="mono" style="font-size:13px;color:var(--text-muted)">${a.tiempo}</td>
+      <td style="min-width:180px">${miniHtml}</td>
+    </tr>`;
+  });
+
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ─── MINUTES CONSUMED PER DAY ───
+const minutesData = [
+  {day:"Lun", entrantes:845, salientes:612, buzon:78, total:1535},
+  {day:"Mar", entrantes:932, salientes:687, buzon:71, total:1690},
+  {day:"Mié", entrantes:788, salientes:598, buzon:84, total:1470},
+  {day:"Jue", entrantes:1012, salientes:745, buzon:67, total:1824},
+  {day:"Vie", entrantes:1078, salientes:792, buzon:75, total:1945},
+  {day:"Sáb", entrantes:534, salientes:398, buzon:52, total:984},
+  {day:"Dom", entrantes:298, salientes:221, buzon:28, total:547},
+];
+const totalMinutesWeek = minutesData.reduce((s,d)=>s+d.total,0);
+const avgMinutesDay = Math.round(totalMinutesWeek / 7);
+const peakDay = minutesData.reduce((max,d)=>d.total>max.total?d:max, minutesData[0]);
+
+function drawMinutesChart() {
+  const canvas = document.getElementById('minutesChart');
+  const container = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = container.clientWidth * dpr;
+  canvas.height = container.clientHeight * dpr;
+  canvas.style.width = container.clientWidth + 'px';
+  canvas.style.height = container.clientHeight + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = container.clientWidth, H = container.clientHeight;
+  const pad = {t:24,r:24,b:50,l:54};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+
+  const maxVal = Math.max(...minutesData.map(d=>d.total)) * 1.1;
+  const barKeys = ['entrantes','salientes','buzon'];
+  const barNames = ['Entrantes','Salientes','Buzón de Voz'];
+  const barColors = ['#06d6a0','#38bdf8','#fbbf24'];
+  const groupW = cw / minutesData.length;
+
+  // Grid
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (ch/5)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    const val = Math.round(maxVal*(1-i/5));
+    ctx.fillStyle = '#64748b'; ctx.font = '11px JetBrains Mono';
+    ctx.textAlign = 'right'; ctx.fillText(val.toLocaleString() + ' min', pad.l-8, y+4);
+  }
+  ctx.setLineDash([]);
+
+  // Stacked bars
+  minutesData.forEach((d,i) => {
+    const gx = pad.l + groupW*i + groupW/2;
+    const barW = Math.min(48, groupW * 0.55);
+
+    // Draw stacked
+    let cumY = 0;
+    barKeys.forEach((key,ki) => {
+      const bh = (d[key]/maxVal)*ch;
+      const by = pad.t + ch - cumY - bh;
+      ctx.beginPath();
+      if (ki === barKeys.length - 1) {
+        ctx.roundRect(gx - barW/2, by, barW, bh, [6,6,0,0]);
+      } else if (ki === 0) {
+        ctx.roundRect(gx - barW/2, by, barW, bh, [0,0,0,0]);
+      } else {
+        ctx.rect(gx - barW/2, by, barW, bh);
+      }
+      ctx.fillStyle = barColors[ki];
+      ctx.fill();
+      cumY += bh;
+    });
+
+    // Total label on top
+    const totalY = pad.t + ch - (d.total/maxVal)*ch;
+    ctx.fillStyle = '#f1f5f9'; ctx.font = 'bold 12px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.total.toLocaleString(), gx, totalY - 8);
+
+    // Day label
+    ctx.fillStyle = '#64748b'; ctx.font = '12px DM Sans';
+    ctx.fillText(d.day, gx, H - pad.b + 18);
+
+    // Hours equivalent
+    const hrs = (d.total / 60).toFixed(1);
+    ctx.fillStyle = '#4a5568'; ctx.font = '10px JetBrains Mono';
+    ctx.fillText(hrs + 'h', gx, H - pad.b + 34);
+  });
+
+  // Average line
+  const avgY = pad.t + ch - (avgMinutesDay/maxVal)*ch;
+  ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, avgY); ctx.lineTo(W-pad.r, avgY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#a78bfa'; ctx.font = '11px JetBrains Mono'; ctx.textAlign = 'left';
+  ctx.fillText('Promedio: ' + avgMinutesDay.toLocaleString() + ' min', pad.l + 4, avgY - 8);
+
+  // Legend
+  const legendY = H - 8;
+  let lx = W/2 - 160;
+  barKeys.forEach((key,ki) => {
+    ctx.fillStyle = barColors[ki];
+    ctx.beginPath(); ctx.arc(lx, legendY - 3, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '11px DM Sans'; ctx.textAlign = 'left';
+    ctx.fillText(barNames[ki], lx + 10, legendY);
+    lx += ctx.measureText(barNames[ki]).width + 30;
+  });
+
+  // Tooltip
+  const tooltip = document.getElementById('minutesTooltip');
+  canvas.onmousemove = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const idx = Math.floor((mx - pad.l) / groupW);
+    if (idx < 0 || idx >= minutesData.length) { tooltip.classList.remove('show'); return; }
+    const d = minutesData[idx];
+    const hrs = (d.total / 60).toFixed(1);
+    tooltip.classList.add('show');
+    tooltip.style.left = (pad.l + groupW*idx + groupW/2 + 12) + 'px';
+    tooltip.style.top = '24px';
+    tooltip.innerHTML = `<div class="tooltip-title">${d.day}</div>
+      <div class="tooltip-row"><span class="tooltip-dot" style="background:#06d6a0"></span><span class="tooltip-label">Entrantes:</span><span class="tooltip-val">${d.entrantes} min</span></div>
+      <div class="tooltip-row"><span class="tooltip-dot" style="background:#38bdf8"></span><span class="tooltip-label">Salientes:</span><span class="tooltip-val">${d.salientes} min</span></div>
+      <div class="tooltip-row"><span class="tooltip-dot" style="background:#fbbf24"></span><span class="tooltip-label">Buzón:</span><span class="tooltip-val">${d.buzon} min</span></div>
+      <div style="border-top:1px solid #2d3748;margin:4px 0;padding-top:4px">
+        <div class="tooltip-row"><span class="tooltip-dot" style="background:#f1f5f9"></span><span class="tooltip-label">Total:</span><span class="tooltip-val">${d.total.toLocaleString()} min (${hrs}h)</span></div>
+      </div>`;
+  };
+  canvas.onmouseleave = () => tooltip.classList.remove('show');
+
+  // Summary cards
+  const summaryEl = document.getElementById('minutesSummary');
+  const summaryCards = [
+    {label:'Total Semanal', value: totalMinutesWeek.toLocaleString() + ' min', sub: (totalMinutesWeek/60).toFixed(1) + ' horas', color:'var(--accent)', dim:'var(--accent-dim)'},
+    {label:'Promedio Diario', value: avgMinutesDay.toLocaleString() + ' min', sub: (avgMinutesDay/60).toFixed(1) + ' horas', color:'var(--purple)', dim:'var(--purple-dim)'},
+    {label:'Día Pico', value: peakDay.day + ' — ' + peakDay.total.toLocaleString() + ' min', sub: (peakDay.total/60).toFixed(1) + ' horas', color:'var(--warning)', dim:'var(--warning-dim)'},
+    {label:'Costo Estimado', value: 'S/ ' + (totalMinutesWeek * 0.08).toFixed(2), sub: 'S/ 0.08/min', color:'var(--info)', dim:'var(--info-dim)'},
+  ];
+  summaryEl.innerHTML = summaryCards.map(c => `
+    <div style="flex:1;min-width:180px;background:${c.dim};border:1px solid ${c.dim};border-radius:12px;padding:14px 18px">
+      <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;font-weight:500;margin-bottom:4px">${c.label}</div>
+      <div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${c.color}">${c.value}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:2px">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+// ─── FOOTER ───
+document.getElementById('footerTime').textContent =
+  `Call Center Dashboard · Actualizado: ${new Date().toLocaleString('es-PE')} · Datos simulados`;
+
+// ─── INIT ───
+function init() {
+  drawAreaChart();
+  drawDonut();
+  drawBarChart();
+  drawHeatmap();
+  drawMinutesChart();
+  drawAgentTable();
+}
+init();
+window.addEventListener('resize', () => { drawAreaChart(); drawBarChart(); drawMinutesChart(); });
+</script>
+</body>
+</html>
