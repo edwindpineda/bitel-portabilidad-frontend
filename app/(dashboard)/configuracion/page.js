@@ -43,6 +43,7 @@ const gestionWhatsApp = [
 ];
 
 const gestionLlamadas = [
+  { title: 'Tipificaciones de Llamada', description: 'Gestionar tipificaciones para clasificar llamadas', href: '/configuracion/tipificaciones-llamada', icon: Phone, gradient: 'from-cyan-500 to-blue-500', glow: 'rgba(6,182,212,0.15)' },
   { title: 'Formatos', description: 'Gestionar formatos de datos y campos', href: '/configuracion/formatos', icon: Database, gradient: 'from-amber-500 to-yellow-500', glow: 'rgba(245,158,11,0.15)' },
   { title: 'Base de Números', description: 'Cargar y gestionar bases de números', href: '/configuracion/bases-numeros', icon: FileUp, gradient: 'from-lime-500 to-green-500', glow: 'rgba(132,204,22,0.15)' },
   { title: 'Plantillas', description: 'Gestionar plantillas de prompts para campañas', href: '/configuracion/plantillas', icon: LayoutTemplate, gradient: 'from-fuchsia-500 to-pink-500', glow: 'rgba(217,70,239,0.15)' },

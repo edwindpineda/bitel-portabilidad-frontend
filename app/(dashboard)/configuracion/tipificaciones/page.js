@@ -36,6 +36,7 @@ export default function TipificacionesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTipificacion, setEditingTipificacion] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
   const [savingOrder, setSavingOrder] = useState(false);
@@ -102,7 +103,9 @@ export default function TipificacionesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     try {
+      setSaving(true);
       if (editingTipificacion) {
         await apiClient.put(`/crm/tipificaciones/${editingTipificacion.id}`, { ...formData, flag_asesor: isAsesor, flag_bot: isBot });
       } else {
@@ -120,6 +123,8 @@ export default function TipificacionesPage() {
     } catch (error) {
       console.error('Error al guardar tipificacion:', error);
       alert(error.msg || 'Error al guardar tipificacion');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -547,8 +552,8 @@ export default function TipificacionesPage() {
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  {editingTipificacion ? 'Actualizar' : 'Crear'}
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Guardando...' : (editingTipificacion ? 'Actualizar' : 'Crear')}
                 </Button>
               </DialogFooter>
             </form>

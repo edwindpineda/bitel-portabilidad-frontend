@@ -60,7 +60,6 @@ import {
   XCircle,
   CheckCircle2,
   FileText,
-  Sparkles,
   TrendingUp,
   Filter,
   Zap,
@@ -122,7 +121,6 @@ export default function LeadsPage() {
   const [selectedEstado, setSelectedEstado] = useState('');
   const [selectedTipificacion, setSelectedTipificacion] = useState('');
   const [selectedTipificacionAsesor, setSelectedTipificacionAsesor] = useState('');
-  const [nivelesTipBot, setNivelesTipBot] = useState([]);
   const [nivelesTipAsesor, setNivelesTipAsesor] = useState([]);
   const [selectedAsesorFilter, setSelectedAsesorFilter] = useState('');
   const [asesoresFilter, setAsesoresFilter] = useState([]);
@@ -168,7 +166,7 @@ export default function LeadsPage() {
     try {
       setLoading(true);
       const [leadsRes, estadosRes, tipificacionesRes, planesRes] = await Promise.all([
-        apiClient.get('/crm/personas'),
+        apiClient.get('/crm/persona'),
         apiClient.get('/crm/estados'),
         apiClient.get('/crm/tipificaciones'),
         apiClient.get('/crm/catalogo')
@@ -184,20 +182,8 @@ export default function LeadsPage() {
     }
   };
 
-  const tipificacionesPadreBot = tipificaciones.filter(t => !t.id_padre && t.flag_bot === 1);
   const tipificacionesPadreAsesor = tipificaciones.filter(t => !t.id_padre && t.flag_asesor === 1);
-  const getHijosBot = (idPadre) => tipificaciones.filter(t => t.id_padre === idPadre && t.flag_bot === 1);
   const getHijosAsesor = (idPadre) => tipificaciones.filter(t => t.id_padre === idPadre && t.flag_asesor === 1);
-
-  const construirNivelesBot = () => {
-    const niveles = [{ opciones: tipificacionesPadreBot, seleccionado: nivelesTipBot[0] || null }];
-    for (let i = 0; i < nivelesTipBot.length; i++) {
-      const hijos = getHijosBot(nivelesTipBot[i]);
-      if (hijos.length > 0) niveles.push({ opciones: hijos, seleccionado: nivelesTipBot[i + 1] || null });
-      else break;
-    }
-    return niveles;
-  };
 
   const construirNivelesAsesor = () => {
     const niveles = [{ opciones: tipificacionesPadreAsesor, seleccionado: nivelesTipAsesor[0] || null }];
@@ -209,15 +195,6 @@ export default function LeadsPage() {
     return niveles;
   };
 
-  const handleNivelBotChange = (nivelIndex, value) => {
-    const nuevoValor = value ? parseInt(value) : null;
-    const nuevosNiveles = nivelesTipBot.slice(0, nivelIndex);
-    if (nuevoValor) nuevosNiveles.push(nuevoValor);
-    setNivelesTipBot(nuevosNiveles);
-    const ultimoNivel = nuevosNiveles.length > 0 ? nuevosNiveles[nuevosNiveles.length - 1] : null;
-    setSelectedTipificacion(ultimoNivel ? String(ultimoNivel) : '');
-  };
-
   const handleNivelAsesorChange = (nivelIndex, value) => {
     const nuevoValor = value ? parseInt(value) : null;
     const nuevosNiveles = nivelesTipAsesor.slice(0, nivelIndex);
@@ -227,7 +204,6 @@ export default function LeadsPage() {
     setSelectedTipificacionAsesor(ultimoNivel ? String(ultimoNivel) : '');
   };
 
-  const nivelesDropdownBot = construirNivelesBot();
   const nivelesDropdownAsesor = construirNivelesAsesor();
 
   const handleOpenDetailModal = async (lead) => {
@@ -254,9 +230,7 @@ export default function LeadsPage() {
       direccion: lead.direccion || '',
       id_estado: lead.id_estado ? parseInt(lead.id_estado) : '',
       id_plan: lead.id_catalogo ? parseInt(lead.id_catalogo) : (lead.id_plan ? parseInt(lead.id_plan) : ''),
-      id_tipificacion: lead.id_tipificacion ? parseInt(lead.id_tipificacion) : '',
       id_tipificacion_asesor: lead.id_tipificacion ? parseInt(lead.id_tipificacion) : '',
-      id_tipificacion_bot: lead.id_tipificacion_bot ? parseInt(lead.id_tipificacion_bot) : '',
       id_asesor: lead.id_usuario ? parseInt(lead.id_usuario) : (lead.id_asesor ? parseInt(lead.id_asesor) : '')
     });
     setShowEditModal(true);
@@ -323,6 +297,7 @@ export default function LeadsPage() {
   };
 
   const filteredLeads = leads.filter(lead => {
+    if (lead.id_tipo_persona === 2) return false;
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm || (
       (lead.nombre_completo && lead.nombre_completo.toLowerCase().includes(searchLower)) ||
@@ -338,10 +313,9 @@ export default function LeadsPage() {
       if (toDate && leadDate > toDate) matchesDate = false;
     }
     const matchesEstado = !selectedEstado || lead.id_estado === parseInt(selectedEstado);
-    const matchesTipificacion = !selectedTipificacion || lead.id_tipificacion_bot === parseInt(selectedTipificacion);
     const matchesTipificacionAsesor = !selectedTipificacionAsesor || lead.id_tipificacion === parseInt(selectedTipificacionAsesor);
     const matchesAsesor = !selectedAsesorFilter || lead.id_usuario === parseInt(selectedAsesorFilter);
-    return matchesSearch && matchesDate && matchesEstado && matchesTipificacion && matchesTipificacionAsesor && matchesAsesor;
+    return matchesSearch && matchesDate && matchesEstado && matchesTipificacionAsesor && matchesAsesor;
   });
 
   const formatDate = (dateString) => {
@@ -359,7 +333,7 @@ export default function LeadsPage() {
   const clearFilters = () => {
     setSearchTerm(''); setDateRange('all'); setDateFrom(''); setDateTo('');
     setSelectedEstado(''); setSelectedTipificacion(''); setSelectedTipificacionAsesor('');
-    setNivelesTipBot([]); setNivelesTipAsesor([]); setSelectedAsesorFilter(''); setCurrentPage(1);
+    setNivelesTipAsesor([]); setSelectedAsesorFilter(''); setCurrentPage(1);
   };
 
   const toggleSelectionMode = () => {
@@ -416,7 +390,7 @@ export default function LeadsPage() {
       'ID': lead.id, 'Nombre': lead.nombre_completo || '', 'DNI': lead.dni || '',
       'Celular': lead.celular || lead.contacto_celular || '', 'Direccion': lead.direccion || '',
       'Estado': lead.estado_nombre || '',
-      'Plan': lead.plan_nombre || '', 'Tipificacion': lead.tipificacion_nombre || '',
+      'Plan': lead.plan_nombre || '', 'Tipif. Asesor': lead.tipificacion_asesor_nombre || '',
       'Asesor': lead.asesor_nombre || '',
       'Fecha Registro': lead.fecha_registro ? new Date(lead.fecha_registro).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
     }));
@@ -758,29 +732,6 @@ export default function LeadsPage() {
                 {/* Separador vertical */}
                 <div className="hidden lg:block h-8 w-px bg-border/60 self-end mb-0.5" />
 
-                {/* Tipificacion Bot */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="h-2.5 w-2.5" />
-                    Tipif. Bot
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    {nivelesDropdownBot.map((nivel, index) => (
-                      <div key={index} className="flex items-center gap-1.5">
-                        {index > 0 && <ChevronRightSmall className="h-3 w-3 text-indigo-300" />}
-                        <select value={nivel.seleccionado || ''} onChange={(e) => handleNivelBotChange(index, e.target.value)}
-                          className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border-0">
-                          <option value="">{index === 0 ? 'Todas' : 'Seleccionar...'}</option>
-                          {nivel.opciones.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Separador vertical */}
-                <div className="hidden lg:block h-8 w-px bg-border/60 self-end mb-0.5" />
-
                 {/* Tipificacion Asesor */}
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-semibold text-violet-500 uppercase tracking-wider flex items-center gap-1">
@@ -821,7 +772,7 @@ export default function LeadsPage() {
       </Card>
 
       {/* ========== DATA TABLE ========== */}
-      <Card className="overflow-hidden shadow-lg shadow-black/[0.03] animate-scale-in" style={{ animationDelay: '600ms' }}>
+      <Card className="shadow-lg shadow-black/[0.03] animate-scale-in" style={{ animationDelay: '600ms' }}>
         {/* Selection bar */}
         {selectionMode && selectedLeads.length > 0 && (
           <div
@@ -863,11 +814,10 @@ export default function LeadsPage() {
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Celular</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Estado</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Plan</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Bot</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Asesor</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Asesor</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Fecha</TableHead>
-                <TableHead className="w-16"></TableHead>
+                <TableHead className="w-16 text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -933,19 +883,6 @@ export default function LeadsPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{lead.plan_nombre || <span className="text-muted-foreground/25">--</span>}</TableCell>
                   <TableCell>
-                    {lead.tipificacion_bot_nombre ? (
-                      <span
-                        className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg"
-                        style={{
-                          backgroundColor: getColorHex(lead.tipificacion_bot_color) + '12',
-                          color: getColorHex(lead.tipificacion_bot_color),
-                        }}
-                      >
-                        {lead.tipificacion_bot_nombre}
-                      </span>
-                    ) : <span className="text-muted-foreground/25 text-xs">--</span>}
-                  </TableCell>
-                  <TableCell>
                     {lead.tipificacion_asesor_nombre ? (
                       <span
                         className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg"
@@ -975,7 +912,7 @@ export default function LeadsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600"
+                          className="h-8 w-8 rounded-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -1264,14 +1201,6 @@ export default function LeadsPage() {
                         {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Bot</label>
-                      <select value={editingLead.id_tipificacion_bot ? String(editingLead.id_tipificacion_bot) : ''} onChange={(e) => handleEditChange('id_tipificacion_bot', e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
-                        <option value="">Seleccionar</option>
-                        {tipificaciones.filter(t => t.flag_bot == 1).map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
-                      </select>
-                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Asesor</label>
@@ -1458,21 +1387,6 @@ export default function LeadsPage() {
 
               {/* Tipificaciones */}
               <div className="flex flex-wrap gap-3">
-                {detailLead.tipificacion_bot_nombre && (
-                  <div className="flex items-center gap-2 p-2.5 px-3.5 rounded-xl bg-muted/30">
-                    <span className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">Bot:</span>
-                    <span
-                      className="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-sm"
-                      style={{
-                        backgroundColor: getColorHex(detailLead.tipificacion_bot_color) + '15',
-                        color: getColorHex(detailLead.tipificacion_bot_color),
-                        boxShadow: `0 2px 8px -2px ${getColorHex(detailLead.tipificacion_bot_color)}25`,
-                      }}
-                    >
-                      {detailLead.tipificacion_bot_nombre}
-                    </span>
-                  </div>
-                )}
                 {detailLead.tipificacion_asesor_nombre && (
                   <div className="flex items-center gap-2 p-2.5 px-3.5 rounded-xl bg-muted/30">
                     <span className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">Asesor:</span>
