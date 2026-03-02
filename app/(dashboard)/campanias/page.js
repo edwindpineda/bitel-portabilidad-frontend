@@ -361,10 +361,16 @@ export default function CampaniasPage() {
             })
           );
 
-          resultados.forEach((resultado, index) => {
+          resultados.forEach(async (resultado, index) => {
             const telefono = numeros[index].telefono;
             if (resultado.status === "fulfilled" && resultado.value?.data.response ) {
               console.log(`Numero ${telefono} realizado con exito`);
+              await apiClient.post("/crm/llamadas", {
+                id_campania: campania.id,
+                id_base_numero: baseSeleccionada,
+                id_base_numero_detalle: numeros[index].id,
+                provider_call_id: resultado.value.data.channelId
+              });
             } else {
               console.log(`Error al llamar al numero ${telefono}`);
             }
