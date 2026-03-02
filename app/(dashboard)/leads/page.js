@@ -154,7 +154,7 @@ export default function LeadsPage() {
     const loadAsesoresFilter = async () => {
       if (canFilterByAsesor) {
         try {
-          const response = await apiClient.get('/crm/leads/asesores');
+          const response = await apiClient.get('/crm/usuarios/rol/3');
           setAsesoresFilter(response.data || []);
         } catch (error) {
           console.error('Error al cargar asesores para filtro:', error);
@@ -168,10 +168,10 @@ export default function LeadsPage() {
     try {
       setLoading(true);
       const [leadsRes, estadosRes, tipificacionesRes, planesRes] = await Promise.all([
-        apiClient.get('/crm/leads'),
+        apiClient.get('/crm/personas'),
         apiClient.get('/crm/estados'),
         apiClient.get('/crm/tipificaciones'),
-        apiClient.get('/crm/leads/catalogo')
+        apiClient.get('/crm/catalogo')
       ]);
       setLeads(leadsRes.data || []);
       setEstados(estadosRes.data || []);
@@ -236,7 +236,7 @@ export default function LeadsPage() {
     setPerfilamientoData([]);
     setLoadingPerfilamiento(true);
     try {
-      const response = await apiClient.get(`/crm/leads/${lead.id}/perfilamiento`);
+      const response = await apiClient.get(`/crm/persona/${lead.id}/perfilamiento`);
       setPerfilamientoData(response.data || []);
     } catch (error) {
       console.error('Error al cargar perfilamiento:', error);
@@ -270,7 +270,7 @@ export default function LeadsPage() {
     if (!editingLead) return;
     try {
       setSavingLead(true);
-      await apiClient.put(`/crm/leads/${editingLead.id}`, editingLead);
+      await apiClient.put(`/crm/persona/${editingLead.id}`, editingLead);
       alert('Lead actualizado correctamente');
       setShowEditModal(false);
       setEditingLead(null);
@@ -287,7 +287,7 @@ export default function LeadsPage() {
     if (!convertingLead) return;
     try {
       setConvertingLoading(true);
-      await apiClient.put(`/crm/leads/${convertingLead.id}`, {
+      await apiClient.put(`/crm/persona/${convertingLead.id}`, {
         id_tipo_persona: 2,
       });
       setShowConvertirModal(false);
@@ -377,7 +377,7 @@ export default function LeadsPage() {
 
   const handleOpenAsesorModal = async () => {
     try {
-      const response = await apiClient.get('/crm/leads/asesores');
+      const response = await apiClient.get('/crm/usuarios/rol/3');
       setAsesores(response.data || []);
       setSelectedAsesorId('');
       setShowAsesorModal(true);
@@ -391,7 +391,7 @@ export default function LeadsPage() {
     if (selectedLeads.length === 0) return;
     try {
       setAssigningAsesor(true);
-      await apiClient.post('/crm/leads/bulk-assign', { lead_ids: selectedLeads, id_asesor: asesorId });
+      await apiClient.post('/crm/persona/bulk-assign', { persona_ids: selectedLeads, id_asesor: asesorId });
       alert(`${selectedLeads.length} leads asignados correctamente`);
       setShowAsesorModal(false);
       setSelectedLeads([]);
