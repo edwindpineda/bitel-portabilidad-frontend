@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -16,6 +17,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Search,
   Users,
@@ -33,7 +42,18 @@ import {
   Calendar,
   User,
   Briefcase,
+  UserPlus,
+  Pencil,
+  MoreHorizontal,
+  Eye,
+  Tag,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const COLOR_MAP = {
   'rojo': '#EF4444',
@@ -60,28 +80,60 @@ const PAGE_SIZE = 20;
 export default function ClientesPage() {
   const { data: session } = useSession();
   const [clientes, setClientes] = useState([]);
+  const [estados, setEstados] = useState([]);
+  const [tipificaciones, setTipificaciones] = useState([]);
+  const [planes, setPlanes] = useState([]);
+  const [asesores, setAsesores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterOrigen, setFilterOrigen] = useState('todos'); // 'todos' | 'prospecto' | 'directo'
+  const [filterOrigen, setFilterOrigen] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [newCliente, setNewCliente] = useState({ nombre_completo: '', celular: '', dni: '', direccion: '', id_estado: '', id_tipificacion_asesor: '', id_plan: '', id_asesor: '' });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editingCliente, setEditingCliente] = useState(null);
 
-  const loadClientes = async () => {
+  const canFilterByAsesor = session?.user?.rolId && session.user.rolId < 3;
+
+  const loadData = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/crm/clientes');
-      setClientes(res.data || []);
+      const [clientesRes, estadosRes, tipRes, planesRes] = await Promise.all([
+        apiClient.get('/crm/clientes'),
+        apiClient.get('/crm/estados'),
+        apiClient.get('/crm/tipificaciones'),
+        apiClient.get('/crm/catalogo'),
+      ]);
+      setClientes(clientesRes.data || []);
+      setEstados(estadosRes.data || []);
+      setTipificaciones(tipRes.data || []);
+      setPlanes(planesRes.data || []);
     } catch (err) {
-      console.error('Error al cargar clientes:', err);
+      console.error('Error al cargar datos:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (session?.accessToken) {
-      loadClientes();
-    }
-  }, [session?.accessToken]);
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    const loadAsesores = async () => {
+      if (canFilterByAsesor) {
+        try {
+          const res = await apiClient.get('/crm/usuarios/rol/3');
+          setAsesores(res.data || []);
+        } catch (err) {
+          console.error('Error al cargar asesores:', err);
+        }
+      }
+    };
+    loadAsesores();
+  }, [canFilterByAsesor]);
 
   // Filtrado
   const filtered = useMemo(() => {
@@ -120,6 +172,69 @@ export default function ClientesPage() {
     return { total, convertidos, directos };
   }, [clientes]);
 
+  const resetNewCliente = () => setNewCliente({ nombre_completo: '', celular: '', dni: '', direccion: '', id_estado: '', id_tipificacion_asesor: '', id_plan: '', id_asesor: '' });
+
+  const handleCreateCliente = async () => {
+    if (!newCliente.celular) return alert('El celular es obligatorio');
+    try {
+      setCreateLoading(true);
+      await apiClient.post('/crm/persona', {
+        nombre_completo: newCliente.nombre_completo || null,
+        celular: newCliente.celular,
+        dni: newCliente.dni || null,
+        direccion: newCliente.direccion || null,
+        id_estado: newCliente.id_estado ? parseInt(newCliente.id_estado) : 1,
+        id_tipificacion_asesor: newCliente.id_tipificacion_asesor ? parseInt(newCliente.id_tipificacion_asesor) : null,
+        id_plan: newCliente.id_plan ? parseInt(newCliente.id_plan) : null,
+        id_asesor: newCliente.id_asesor ? parseInt(newCliente.id_asesor) : null,
+        id_tipo_persona: 2,
+      });
+      setShowCreateModal(false);
+      resetNewCliente();
+      loadData();
+    } catch (error) {
+      console.error('Error al crear cliente:', error);
+      alert('Error al crear cliente');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleOpenEdit = (cliente) => {
+    setEditingCliente({
+      id: cliente.id,
+      nombre_completo: cliente.nombre_completo || '',
+      celular: cliente.celular || '',
+      dni: cliente.dni || '',
+      direccion: cliente.direccion || '',
+      id_estado: cliente.id_estado ? parseInt(cliente.id_estado) : '',
+      id_tipificacion_asesor: cliente.id_tipificacion ? parseInt(cliente.id_tipificacion) : '',
+      id_plan: cliente.id_catalogo ? parseInt(cliente.id_catalogo) : '',
+      id_asesor: cliente.id_usuario ? parseInt(cliente.id_usuario) : '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditingCliente(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditCliente = async () => {
+    if (!editingCliente) return;
+    try {
+      setEditLoading(true);
+      await apiClient.put(`/crm/persona/${editingCliente.id}`, editingCliente);
+      setShowEditModal(false);
+      setEditingCliente(null);
+      loadData();
+    } catch (error) {
+      console.error('Error al editar cliente:', error);
+      alert('Error al editar cliente');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const handleExport = () => {
     const data = filtered.map(c => ({
       'Nombre': c.nombre_completo || '-',
@@ -142,6 +257,85 @@ export default function ClientesPage() {
     return new Date(dateStr).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  const inputClass = "w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-background transition-colors";
+
+  // Campos del formulario reutilizable
+  const renderFormFields = (data, onChange) => (
+    <div className="space-y-6 py-2">
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-6 w-6 rounded-lg bg-blue-50 flex items-center justify-center">
+            <User className="h-3.5 w-3.5 text-blue-600" />
+          </div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Datos Personales</p>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Nombre Completo</label>
+            <input type="text" value={data.nombre_completo} onChange={(e) => onChange('nombre_completo', e.target.value)} className={inputClass} placeholder="Nombre completo" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">DNI</label>
+              <input type="text" value={data.dni} onChange={(e) => onChange('dni', e.target.value)} className={inputClass} placeholder="DNI" maxLength={8} />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Celular *</label>
+              <input type="text" value={data.celular} onChange={(e) => onChange('celular', e.target.value)} className={inputClass} placeholder="Celular" maxLength={11} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Direccion</label>
+            <input type="text" value={data.direccion} onChange={(e) => onChange('direccion', e.target.value)} className={inputClass} placeholder="Direccion" />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-6 w-6 rounded-lg bg-violet-50 flex items-center justify-center">
+            <Tag className="h-3.5 w-3.5 text-violet-600" />
+          </div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Clasificacion</p>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Estado</label>
+            <select value={data.id_estado || ''} onChange={(e) => onChange('id_estado', e.target.value ? parseInt(e.target.value) : null)} className={inputClass}>
+              <option value="">Seleccionar</option>
+              {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Asesor</label>
+            <select value={data.id_tipificacion_asesor ? String(data.id_tipificacion_asesor) : ''} onChange={(e) => onChange('id_tipificacion_asesor', e.target.value ? parseInt(e.target.value) : null)} className={inputClass}>
+              <option value="">Seleccionar</option>
+              {tipificaciones.filter(t => t.flag_asesor == 1).map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Plan</label>
+            <select value={data.id_plan || ''} onChange={(e) => onChange('id_plan', e.target.value ? parseInt(e.target.value) : null)} className={inputClass}>
+              <option value="">Seleccionar</option>
+              {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+          </div>
+          {canFilterByAsesor && (
+            <div>
+              <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Asesor</label>
+              <select value={data.id_asesor || ''} onChange={(e) => onChange('id_asesor', e.target.value ? parseInt(e.target.value) : null)} className={inputClass}>
+                <option value="">Sin asesor</option>
+                {asesores.map((a) => <option key={a.id} value={a.id}>{a.username}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -153,13 +347,17 @@ export default function ClientesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadClientes} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={loading || filtered.length === 0}>
             <FileDown className="h-4 w-4 mr-1.5" />
             Exportar
+          </Button>
+          <Button size="sm" onClick={() => setShowCreateModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            Nuevo Cliente
           </Button>
         </div>
       </div>
@@ -256,7 +454,7 @@ export default function ClientesPage() {
               <p className="text-sm">No se encontraron clientes</p>
             </div>
           ) : (
-            <div className="rounded-xl border overflow-hidden">
+            <div className="rounded-xl border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
@@ -266,8 +464,10 @@ export default function ClientesPage() {
                     <TableHead className="text-xs">Asesor</TableHead>
                     <TableHead className="text-xs">Plan</TableHead>
                     <TableHead className="text-xs">Estado</TableHead>
+                    <TableHead className="text-xs">Tipif. Asesor</TableHead>
                     <TableHead className="text-xs">Origen</TableHead>
                     <TableHead className="text-xs">Registro</TableHead>
+                    <TableHead className="text-xs w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -322,6 +522,23 @@ export default function ClientesPage() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {cliente.tipificacion_nombre ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium border"
+                            style={{
+                              color: getColorHex(cliente.tipificacion_color),
+                              borderColor: getColorHex(cliente.tipificacion_color) + '55',
+                              backgroundColor: getColorHex(cliente.tipificacion_color) + '12',
+                            }}
+                          >
+                            {cliente.tipificacion_nombre}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {cliente.fue_prospecto === 1 ? (
                           <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs gap-1">
                             <TrendingUp className="h-3 w-3" />
@@ -339,6 +556,21 @@ export default function ClientesPage() {
                           <Calendar className="h-3.5 w-3.5 shrink-0" />
                           {formatDate(cliente.fecha_registro)}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => handleOpenEdit(cliente)} className="gap-2 text-xs">
+                              <Pencil className="h-3.5 w-3.5" />
+                              Editar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -371,6 +603,62 @@ export default function ClientesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Editar Cliente */}
+      <Dialog open={showEditModal} onOpenChange={(open) => { if (!open) { setShowEditModal(false); setEditingCliente(null); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <Pencil className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <span>Editar Cliente #{editingCliente?.id}</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Modificar datos del cliente</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Formulario para editar un cliente</DialogDescription>
+          </DialogHeader>
+          {editingCliente && renderFormFields(editingCliente, handleEditChange)}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowEditModal(false); setEditingCliente(null); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditCliente} disabled={editLoading} className="bg-amber-600 hover:bg-amber-700 text-white gap-2">
+              {editLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {editLoading ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Crear Cliente */}
+      <Dialog open={showCreateModal} onOpenChange={(open) => { if (!open) { setShowCreateModal(false); resetNewCliente(); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <UserPlus className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <span>Nuevo Cliente</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Se registrara como cliente directo</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Formulario para crear un nuevo cliente directo</DialogDescription>
+          </DialogHeader>
+          {renderFormFields(newCliente, (field, value) => setNewCliente(p => ({ ...p, [field]: value })))}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowCreateModal(false); resetNewCliente(); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateCliente} disabled={createLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+              {createLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {createLoading ? 'Creando...' : 'Crear Cliente'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
