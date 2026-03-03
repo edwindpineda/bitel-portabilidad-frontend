@@ -149,7 +149,7 @@ export default function LlamadasPage() {
       'ID': l.id,
       'Contacto': l.contacto_nombre || '-',
       'Telefono': l.telefono || '-',
-      'Campania': l.campania_nombre || '-',
+      'Campaña': l.campania_nombre || '-',
       'Tipificacion': l.tipificacion_llamada_nombre || '-',
       'Fecha Inicio': l.fecha_inicio || '-',
       'Fecha Fin': l.fecha_fin || '-',
@@ -246,7 +246,7 @@ export default function LlamadasPage() {
             <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar contacto, telefono, campania..."
+                placeholder="Buscar contacto, teléfono, campaña..."
                 className="pl-9 h-9"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -288,7 +288,7 @@ export default function LlamadasPage() {
                   <TableRow className="bg-muted/30">
                     <TableHead className="text-xs">Contacto</TableHead>
                     <TableHead className="text-xs">Telefono</TableHead>
-                    <TableHead className="text-xs">Campania</TableHead>
+                    <TableHead className="text-xs">Campaña</TableHead>
                     <TableHead className="text-xs">Tipificacion</TableHead>
                     <TableHead className="text-xs">Duracion</TableHead>
                     <TableHead className="text-xs">Fecha Inicio</TableHead>
@@ -442,7 +442,7 @@ export default function LlamadasPage() {
                   <p className="text-sm font-medium">{selectedLlamada.numero_documento || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Campania</p>
+                  <p className="text-xs text-muted-foreground mb-1">Campaña</p>
                   <p className="text-sm font-medium">{selectedLlamada.campania_nombre || '-'}</p>
                 </div>
                 <div>

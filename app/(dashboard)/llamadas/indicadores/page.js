@@ -336,7 +336,7 @@ export default function IndicadoresLlamadasPage() {
     // Group by campania
     const campaniaMap = {};
     llamadas.forEach(l => {
-      const key = l.campania_nombre || 'Sin campania';
+      const key = l.campania_nombre || 'Sin campaña';
       if (!campaniaMap[key]) campaniaMap[key] = { name: key, total: 0, conTip: 0, duracion: 0 };
       campaniaMap[key].total++;
       if (l.id_tipificacion_llamada) campaniaMap[key].conTip++;
@@ -374,7 +374,7 @@ export default function IndicadoresLlamadasPage() {
     { label: 'Sin Tipificar', value: stats?.sinTipificacion || 0, icon: PhoneMissed, color: COLORS.danger, bgDim: 'rgba(239,68,68,0.12)' },
     { label: 'T. Promedio', value: stats?.promedioDuracion || 0, icon: Timer, color: COLORS.purple, bgDim: 'rgba(167,139,250,0.12)', format: (v) => formatDuration(v) },
     { label: 'Minutos Totales', value: stats?.totalMinutos || 0, icon: Clock, color: COLORS.warning, bgDim: 'rgba(251,191,36,0.12)' },
-    { label: 'Campanias', value: stats?.campaniaData?.length || 0, icon: Activity, color: COLORS.orange, bgDim: 'rgba(251,146,60,0.12)' },
+    { label: 'Campañas', value: stats?.campaniaData?.length || 0, icon: Activity, color: COLORS.orange, bgDim: 'rgba(251,146,60,0.12)' },
   ];
 
   return (
@@ -641,7 +641,7 @@ export default function IndicadoresLlamadasPage() {
                 { label: 'Total Semanal', value: `${stats?.totalMinutosWeek || 0} min`, sub: `${((stats?.totalMinutosWeek || 0) / 60).toFixed(1)} horas`, color: COLORS.accent, bg: 'rgba(6,214,160,0.08)' },
                 { label: 'Promedio Diario', value: `${stats?.avgMinutosDay || 0} min`, sub: `${((stats?.avgMinutosDay || 0) / 60).toFixed(1)} horas`, color: COLORS.purple, bg: 'rgba(167,139,250,0.08)' },
                 { label: 'Dia Pico', value: `${stats?.peakDay?.day || '-'} — ${stats?.peakDay?.minutos || 0} min`, sub: `${((stats?.peakDay?.minutos || 0) / 60).toFixed(1)} horas`, color: COLORS.warning, bg: 'rgba(251,191,36,0.08)' },
-                { label: 'Total Llamadas', value: stats?.total || 0, sub: `${stats?.campaniaData?.length || 0} campanias`, color: COLORS.info, bg: 'rgba(56,189,248,0.08)' },
+                { label: 'Total Llamadas', value: stats?.total || 0, sub: `${stats?.campaniaData?.length || 0} campañas`, color: COLORS.info, bg: 'rgba(56,189,248,0.08)' },
               ].map((card, i) => (
                 <div key={i} className="rounded-xl p-4 border" style={{ background: card.bg, borderColor: card.bg }}>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">{card.label}</p>
@@ -662,8 +662,8 @@ export default function IndicadoresLlamadasPage() {
                   <Users className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold">Rendimiento por Campania</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Resumen de llamadas por campania</p>
+                  <CardTitle className="text-sm font-semibold">Rendimiento por Campaña</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">Resumen de llamadas por campaña</p>
                 </div>
               </div>
             </CardHeader>
@@ -672,7 +672,7 @@ export default function IndicadoresLlamadasPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted/30 border-b">
-                      <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Campania</th>
+                      <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Campaña</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Llamadas</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Tipificadas</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Tasa</th>

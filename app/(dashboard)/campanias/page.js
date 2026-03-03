@@ -180,7 +180,7 @@ export default function CampaniasPage() {
       loadData();
     } catch (error) {
       console.error('Error al guardar campania:', error);
-      alert(error.msg || 'Error al guardar campania');
+      alert(error.msg || 'Error al guardar campaña');
     }
   };
 
@@ -198,7 +198,7 @@ export default function CampaniasPage() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Esta seguro de eliminar esta campania?')) {
+    if (confirm('¿Está seguro de eliminar esta campaña?')) {
       try {
         await apiClient.delete(`/crm/campanias/${id}`);
         loadData();
@@ -276,7 +276,7 @@ export default function CampaniasPage() {
   };
 
   const handleRemoveBase = async (id) => {
-    if (confirm('Esta seguro de quitar esta base de la campania?')) {
+    if (confirm('¿Está seguro de quitar esta base de la campaña?')) {
       try {
         await apiClient.delete(`/crm/campania-bases/${id}`);
         const response = await apiClient.get(`/crm/campanias/${selectedCampania.id}/bases`);
@@ -308,7 +308,7 @@ export default function CampaniasPage() {
 
   // Ejecutar campania
   const handleEjecutar = async (campania) => {
-    if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
+    if (confirm(`¿Está seguro de ejecutar la campaña "${campania.nombre}"? Esto creará ejecuciones pendientes para todas las bases asignadas.`)) {
       try {
         const [response, tipificacionRes] = await Promise.all([
           apiClient.get(`/crm/bases-numeros/${baseSeleccionada}/detalles`),
@@ -389,7 +389,7 @@ export default function CampaniasPage() {
       loadData();
     } catch (error) {
       console.error('Error al ejecutar campania:', error);
-      alert(error.msg || 'Error al ejecutar campania');
+      alert(error.msg || 'Error al ejecutar campaña');
     } finally {
       setEjecutando(false);
     }
@@ -524,7 +524,7 @@ export default function CampaniasPage() {
 
   const STATS = [
     {
-      label: 'Campanias',
+      label: 'Campañas',
       value: totalCampanias,
       icon: Megaphone,
       gradient: 'from-indigo-500 to-indigo-600',
@@ -572,7 +572,7 @@ export default function CampaniasPage() {
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm font-medium">Cargando campanias...</span>
+            <span className="text-sm font-medium">Cargando campañas...</span>
           </div>
         </div>
       </div>
@@ -589,8 +589,8 @@ export default function CampaniasPage() {
               <Megaphone className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gradient">Campanias de Llamadas</h1>
-              <p className="text-sm text-muted-foreground">Gestiona las campanias y sus bases de numeros</p>
+              <h1 className="text-2xl font-bold tracking-tight text-gradient">Campañas de Llamadas</h1>
+              <p className="text-sm text-muted-foreground">Gestiona las campañas y sus bases de números</p>
             </div>
           </div>
         </div>
@@ -599,7 +599,7 @@ export default function CampaniasPage() {
           className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25 text-white gap-2"
         >
           <Plus className="h-4 w-4" />
-          Nueva Campania
+          Nueva Campaña
         </Button>
       </div>
 
@@ -655,7 +655,7 @@ export default function CampaniasPage() {
               </div>
               <input
                 type="text"
-                placeholder="Buscar campania..."
+                placeholder="Buscar campaña..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
@@ -673,7 +673,7 @@ export default function CampaniasPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
               <Badge variant="outline" className="gap-1 font-normal">
                 <Megaphone className="h-3 w-3" />
-                {filteredCampanias.length} campania{filteredCampanias.length !== 1 ? 's' : ''}
+                {filteredCampanias.length} campaña{filteredCampanias.length !== 1 ? 's' : ''}
               </Badge>
             </div>
           </div>
@@ -808,15 +808,15 @@ export default function CampaniasPage() {
               <Megaphone className="h-8 w-8 text-indigo-400" />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">
-              {searchTerm ? 'Sin resultados' : 'No hay campanias'}
+              {searchTerm ? 'Sin resultados' : 'No hay campañas'}
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              {searchTerm ? 'Intenta con otro termino de busqueda' : 'Crea tu primera campania para comenzar'}
+              {searchTerm ? 'Intenta con otro término de búsqueda' : 'Crea tu primera campaña para comenzar'}
             </p>
             {!searchTerm && (
               <Button onClick={openNewModal} variant="outline" size="sm" className="gap-2">
                 <Plus className="h-3.5 w-3.5" />
-                Crear Campania
+                Crear Campaña
               </Button>
             )}
           </div>
@@ -831,10 +831,10 @@ export default function CampaniasPage() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
                 <Megaphone className="h-4 w-4 text-white" />
               </div>
-              {editingCampania ? 'Editar Campania' : 'Nueva Campania'}
+              {editingCampania ? 'Editar Campaña' : 'Nueva Campaña'}
             </DialogTitle>
             <DialogDescription>
-              {editingCampania ? 'Modifica los datos de la campania' : 'Configura los datos de tu nueva campania'}
+              {editingCampania ? 'Modifica los datos de la campaña' : 'Configura los datos de tu nueva campaña'}
             </DialogDescription>
           </DialogHeader>
 
@@ -849,7 +849,7 @@ export default function CampaniasPage() {
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                 className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200"
-                placeholder="Nombre de la campania"
+                placeholder="Nombre de la campaña"
                 required
               />
             </div>
@@ -864,14 +864,14 @@ export default function CampaniasPage() {
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200 resize-none"
                 rows={2}
-                placeholder="Descripcion de la campania"
+                placeholder="Descripción de la campaña"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                Tipo de Campania
+                Tipo de Campaña
               </label>
               <select
                 value={formData.id_tipo_campania}
@@ -885,7 +885,7 @@ export default function CampaniasPage() {
               </select>
             </div>
 
-            {/* Seccion de seleccion de bases (solo para nueva campania) */}
+            {/* Sección de selección de bases (solo para nueva campaña) */}
             {!editingCampania && (
               <>
                 <Separator />
@@ -993,14 +993,14 @@ export default function CampaniasPage() {
                 type="submit"
                 className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white gap-2"
               >
-                {editingCampania ? 'Actualizar' : 'Crear Campania'}
+                {editingCampania ? 'Actualizar' : 'Crear Campaña'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ========== MODAL: BASES DE CAMPANIA ========== */}
+      {/* ========== MODAL: BASES DE CAMPAÑA ========== */}
       <Dialog open={showBasesModal} onOpenChange={setShowBasesModal}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1008,7 +1008,7 @@ export default function CampaniasPage() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
                 <Database className="h-4 w-4 text-white" />
               </div>
-              Bases de la Campania
+              Bases de la Campaña
             </DialogTitle>
             <DialogDescription>
               {selectedCampania?.nombre}
@@ -1113,7 +1113,7 @@ export default function CampaniasPage() {
             {basesAsignadas.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12">
                 <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No hay bases asignadas a esta campania</p>
+                <p className="text-sm text-muted-foreground">No hay bases asignadas a esta campaña</p>
               </div>
             )}
           </div>
@@ -1143,7 +1143,7 @@ export default function CampaniasPage() {
                   <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                     <Zap className="h-4 w-4 text-white" />
                   </div>
-                  Ejecuciones de Campania
+                  Ejecuciones de Campaña
                 </>
               )}
             </DialogTitle>
@@ -1209,7 +1209,7 @@ export default function CampaniasPage() {
               {ejecuciones.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12">
                   <ClipboardList className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campania</p>
+                  <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campaña</p>
                 </div>
               )}
             </div>
@@ -1422,7 +1422,7 @@ export default function CampaniasPage() {
               Seleccionar Plantilla
             </DialogTitle>
             <DialogDescription>
-              Elige la plantilla para la ejecucion de la campania
+              Elige la plantilla para la ejecución de la campaña
             </DialogDescription>
           </DialogHeader>
 
