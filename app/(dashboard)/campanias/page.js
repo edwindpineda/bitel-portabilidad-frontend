@@ -73,7 +73,7 @@ export default function CampaniasPage() {
   const [editingCampania, setEditingCampania] = useState(null);
   const [selectedCampania, setSelectedCampania] = useState(null);
   const [basesAsignadas, setBasesAsignadas] = useState([]);
-  const [baseSeleccionada, setBaseSeleccionada] = useState(null);
+  const [basesSeleccionadasIds, setBasesSeleccionadasIds] = useState([]);
   const [plantillasDisponibles, setPlantillasDisponibles] = useState([]);
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
   const [ejecuciones, setEjecuciones] = useState([]);
@@ -253,7 +253,6 @@ export default function CampaniasPage() {
       const response = await apiClient.get(`/crm/campanias/${campania.id}/bases`);
       const bases = response?.data || [];
       setBasesAsignadas(bases);
-      setBaseSeleccionada(bases.length > 0 ? bases[0].id_base_numero : null);
       setShowBasesModal(true);
     } catch (error) {
       console.error('Error al cargar bases:', error);
@@ -309,90 +308,22 @@ export default function CampaniasPage() {
   // Ejecutar campania
   const handleEjecutar = async (campania) => {
     if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
+      setEjecutando(true);
       try {
-        const [response, tipificacionRes] = await Promise.all([
-          apiClient.get(`/crm/bases-numeros/${baseSeleccionada}/detalles`),
-          apiClient.get('/crm/tipificacion-llamada'),
-        ]);
-        const numeros = response?.data;
-        const tipificaciones = tipificacionRes?.data || [];
-        if (numeros) {
-          const formatearTelefono = (telefono) => {
-            const limpio = String(telefono).replace(/\D/g, '');
-            return limpio.startsWith('51') ? limpio : `51${limpio}`;
-          };
-
-          const resultados = await Promise.allSettled(
-            numeros.map(async (num) => {
-              const telefonoFormateado = formatearTelefono(num.telefono);
-
-              const busqueda = await apiClient.get(`/crm/persona/celular/${telefonoFormateado}`).catch(() => null);
-              let persona = busqueda?.data;
-
-              if (!persona) {
-                const personaRes = await apiClient.post('/crm/persona', {
-                  celular: telefonoFormateado,
-                  nombre_completo: num.nombre,
-                  id_estado: 1,
-                });
-                persona = personaRes?.data;
-              }
-
-              const body = {
-                destination: telefonoFormateado,
-                data: {
-                  id: persona?.id,
-                  nombre_completo: num.nombre,
-                  celular: telefonoFormateado,
-                  ...num.json_adicional
-                },
-                extras: {
-                  voice: "bacfa559-a200-4377-9d0e-fcae7c766a1f",
-                  tipificaciones,
-                  empresa: {
-                    id: num.id_empresa,
-                    nombre: num.nombre_comercial
-                  }
-                }
-              };
-              return apiClient.post("https://bot.ai-you.io/api/calls/ultravox", body);
-            })
-          );
-
-          resultados.forEach(async (resultado, index) => {
-            const telefono = numeros[index].telefono;
-            if (resultado.status === "fulfilled" && resultado.value?.data.response ) {
-              console.log(`Numero ${telefono} realizado con exito`);
-              await apiClient.post("/crm/llamadas", {
-                id_campania: campania.id,
-                id_base_numero: baseSeleccionada,
-                id_base_numero_detalle: numeros[index].id,
-                provider_call_id: resultado.value.data.channelId
-              });
-            } else {
-              console.log(`Error al llamar al numero ${telefono}`);
-            }
-          });
-        }
-      }
-      catch (err) {
-        console.error("Error al realizar las llamadas: ", err);
+        const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
+          id_campania: campania.id,
+          ids_base_numero: basesSeleccionadasIds
+        });
+        alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
+        loadData();
+      } catch (error) {
+        console.error('Error al ejecutar campania:', error);
+        alert(error.msg || 'Error al ejecutar campania');
+      } finally {
+        setEjecutando(false);
       }
     }
 
-    setEjecutando(true);
-    try {
-      const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
-        id_campania: campania.id
-      });
-      alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
-      loadData();
-    } catch (error) {
-      console.error('Error al ejecutar campania:', error);
-      alert(error.msg || 'Error al ejecutar campania');
-    } finally {
-      setEjecutando(false);
-    }
   };
 
   // ===== PERSONAS POR EJECUCION =====
@@ -1071,17 +1002,28 @@ export default function CampaniasPage() {
                 {basesAsignadas.map((base) => (
                   <TableRow
                     key={base.id}
-                    className={`table-row-premium cursor-pointer ${baseSeleccionada === base.id_base_numero ? 'bg-indigo-50/50' : ''}`}
-                    onClick={() => setBaseSeleccionada(base.id_base_numero)}
+                    className={`table-row-premium cursor-pointer ${basesSeleccionadasIds.includes(base.id_base_numero) ? 'bg-indigo-50/50' : ''}`}
+                    onClick={() => {
+                      setBasesSeleccionadasIds(prev =>
+                        prev.includes(base.id_base_numero)
+                          ? prev.filter(id => id !== base.id_base_numero)
+                          : [...prev, base.id_base_numero]
+                      );
+                    }}
                   >
                     <TableCell>
                       <div className="flex items-center justify-center">
-                        <input
-                          type="radio"
-                          name="baseSeleccionada"
-                          checked={baseSeleccionada === base.id_base_numero}
-                          onChange={() => setBaseSeleccionada(base.id_base_numero)}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        <Checkbox
+                          checked={basesSeleccionadasIds.includes(base.id_base_numero)}
+                          onCheckedChange={(checked) => {
+                            setBasesSeleccionadasIds(prev =>
+                              checked
+                                ? [...prev, base.id_base_numero]
+                                : prev.filter(id => id !== base.id_base_numero)
+                            );
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-4 w-4"
                         />
                       </div>
                     </TableCell>

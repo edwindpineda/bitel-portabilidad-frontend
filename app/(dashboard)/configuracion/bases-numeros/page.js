@@ -528,6 +528,7 @@ export default function BasesNumerosPage() {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Correo</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Documento</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo Persona</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Adicional</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
@@ -542,6 +543,13 @@ export default function BasesNumerosPage() {
                       {detalle.tipo_documento && detalle.numero_documento
                         ? `${detalle.tipo_documento}: ${detalle.numero_documento}`
                         : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-500">
+                      {detalle.id_tipo_persona === 1 ? (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Prospecto</span>
+                      ) : detalle.id_tipo_persona === 2 ? (
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">Cliente</span>
+                      ) : '-'}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-500">
                       {detalle.json_adicional ? (
