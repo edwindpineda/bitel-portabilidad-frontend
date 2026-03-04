@@ -311,90 +311,22 @@ export default function CampaniasPage() {
   // Ejecutar campania
   const handleEjecutar = async (campania) => {
     if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
+      setEjecutando(true);
       try {
-        const [response, tipificacionRes] = await Promise.all([
-          apiClient.get(`/crm/bases-numeros/${baseSeleccionada}/detalles`),
-          apiClient.get('/crm/tipificacion-llamada'),
-        ]);
-        const numeros = response?.data;
-        const tipificaciones = tipificacionRes?.data || [];
-        if (numeros) {
-          const formatearTelefono = (telefono) => {
-            const limpio = String(telefono).replace(/\D/g, '');
-            return limpio.startsWith('51') ? limpio : `51${limpio}`;
-          };
-
-          const resultados = await Promise.allSettled(
-            numeros.map(async (num) => {
-              const telefonoFormateado = formatearTelefono(num.telefono);
-
-              const busqueda = await apiClient.get(`/crm/persona/celular/${telefonoFormateado}`).catch(() => null);
-              let persona = busqueda?.data;
-
-              if (!persona) {
-                const personaRes = await apiClient.post('/crm/persona', {
-                  celular: telefonoFormateado,
-                  nombre_completo: num.nombre,
-                  id_estado: 1,
-                });
-                persona = personaRes?.data;
-              }
-
-              const body = {
-                destination: telefonoFormateado,
-                data: {
-                  id: persona?.id,
-                  nombre_completo: num.nombre,
-                  celular: telefonoFormateado,
-                  ...num.json_adicional
-                },
-                extras: {
-                  voice: "bacfa559-a200-4377-9d0e-fcae7c766a1f",
-                  tipificaciones,
-                  empresa: {
-                    id: num.id_empresa,
-                    nombre: num.nombre_comercial
-                  }
-                }
-              };
-              return apiClient.post("https://bot.ai-you.io/api/calls/ultravox", body);
-            })
-          );
-
-          resultados.forEach(async (resultado, index) => {
-            const telefono = numeros[index].telefono;
-            if (resultado.status === "fulfilled" && resultado.value?.data.response ) {
-              console.log(`Numero ${telefono} realizado con exito`);
-              await apiClient.post("/crm/llamadas", {
-                id_campania: campania.id,
-                id_base_numero: baseSeleccionada,
-                id_base_numero_detalle: numeros[index].id,
-                provider_call_id: resultado.value.data.channelId
-              });
-            } else {
-              console.log(`Error al llamar al numero ${telefono}`);
-            }
-          });
-        }
-      }
-      catch (err) {
-        console.error("Error al realizar las llamadas: ", err);
+        const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
+          id_campania: campania.id,
+          ids_base_numero: [baseSeleccionada]
+        });
+        alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
+        loadData();
+      } catch (error) {
+        console.error('Error al ejecutar campania:', error);
+        alert(error.msg || 'Error al ejecutar campania');
+      } finally {
+        setEjecutando(false);
       }
     }
 
-    setEjecutando(true);
-    try {
-      const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
-        id_campania: campania.id
-      });
-      alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
-      loadData();
-    } catch (error) {
-      console.error('Error al ejecutar campania:', error);
-      alert(error.msg || 'Error al ejecutar campania');
-    } finally {
-      setEjecutando(false);
-    }
   };
 
   // ===== PERSONAS POR EJECUCION =====
