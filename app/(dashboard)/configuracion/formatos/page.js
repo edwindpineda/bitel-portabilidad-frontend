@@ -12,6 +12,7 @@ const CAMPOS_FIJOS = [
   { nombre_campo: 'correo', etiqueta: 'Correo', tipo_dato: 'email', requerido: false, orden: 0, es_fijo: true },
   { nombre_campo: 'tipo_documento', etiqueta: 'Tipo Documento', tipo_dato: 'string', requerido: false, orden: 0, es_fijo: true },
   { nombre_campo: 'numero_documento', etiqueta: 'Numero Documento', tipo_dato: 'string', requerido: false, orden: 0, es_fijo: true },
+  { nombre_campo: 'tipo_persona', etiqueta: 'Tipo Persona', tipo_dato: 'string', requerido: false, orden: 0, es_fijo: true },
 ];
 
 const TIPOS_DATO = [
