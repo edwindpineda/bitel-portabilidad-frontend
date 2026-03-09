@@ -148,7 +148,8 @@ export default function CampaniasPage() {
         await apiClient.put(`/crm/campanias/${editingCampania.id}`, {
           nombre: formData.nombre,
           descripcion: formData.descripcion,
-          id_tipo_campania: formData.id_tipo_campania ? parseInt(formData.id_tipo_campania) : null,
+          id_tipo_campania: parseInt(formData.id_tipo_campania),
+          id_formato: parseInt(formData.id_formato),
         });
         campaniaId = editingCampania.id;
       } else {
@@ -156,6 +157,7 @@ export default function CampaniasPage() {
           nombre: formData.nombre,
           descripcion: formData.descripcion,
           id_tipo_campania: formData.id_tipo_campania ? parseInt(formData.id_tipo_campania) : null,
+          id_formato: parseInt(formData.id_formato),
         });
         campaniaId = response.data?.id;
       }
@@ -189,7 +191,7 @@ export default function CampaniasPage() {
     setFormData({
       nombre: campania.nombre || '',
       descripcion: campania.descripcion || '',
-      id_formato: '',
+      id_formato: campania.id_formato ? String(campania.id_formato) : '',
       id_tipo_campania: campania.id_tipo_campania ? String(campania.id_tipo_campania) : ''
     });
     setBasesSeleccionadas([]);
@@ -816,27 +818,29 @@ export default function CampaniasPage() {
               </select>
             </div>
 
-            {/* Sección de selección de bases (solo para nueva campaña) */}
+            <Separator />
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                Formato *
+              </label>
+              <select
+                value={formData.id_formato}
+                onChange={(e) => setFormData({ ...formData, id_formato: e.target.value })}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
+                required
+              >
+                <option value="">Seleccionar formato</option>
+                {formatos.map((formato) => (
+                  <option key={formato.id} value={formato.id}>{formato.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Seccion de seleccion de bases (solo para nueva campania) */}
             {!editingCampania && (
               <>
-                <Separator />
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    Formato (filtro)
-                  </label>
-                  <select
-                    value={formData.id_formato}
-                    onChange={(e) => setFormData({ ...formData, id_formato: e.target.value })}
-                    className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
-                  >
-                    <option value="">Todos los formatos</option>
-                    {formatos.map((formato) => (
-                      <option key={formato.id} value={formato.id}>{formato.nombre}</option>
-                    ))}
-                  </select>
-                </div>
 
                 <div className="relative space-y-1.5" ref={dropdownRef}>
                   <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">

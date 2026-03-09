@@ -44,6 +44,7 @@ const WA_WALLPAPER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200
 const formatRelativeTime = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
@@ -122,7 +123,7 @@ export default function ConversacionesPage() {
     if (currentSelectedChat && mensaje.id_contacto === currentSelectedChat.id) {
       const newMsg = {
         id: mensaje.id || Date.now(),
-        type: mensaje.direccion === 'in' ? 'client' : 'ai',
+        type: (mensaje.direccion === 'in' || mensaje.direccion === 'incoming') ? 'client' : 'ai',
         text: mensaje.contenido || '',
         file: mensaje.contenido_archivo || null,
         timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
@@ -333,9 +334,9 @@ export default function ConversacionesPage() {
     const timeout = setTimeout(() => {
       setOffset(0);
       if (value.trim()) {
-        searchContacts(value.trim(), 0);
+        searchContacts(value.trim(), 0, false, selectedEstado, selectedTipificacion, selectedTipificacionAsesor);
       } else {
-        loadConversations(0);
+        loadConversations(0, false, selectedEstado, selectedTipificacion, selectedTipificacionAsesor);
       }
     }, SEARCH_DEBOUNCE_MS);
 
@@ -348,7 +349,7 @@ export default function ConversacionesPage() {
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-    loadConversations(0);
+    loadConversations(0, false, selectedEstado, selectedTipificacion, selectedTipificacionAsesor);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -502,11 +503,11 @@ export default function ConversacionesPage() {
 
       const messages = messagesData.map(msg => ({
         id: msg.id,
-        type: msg.direccion === 'in' ? 'client' : 'ai',
+        type: (msg.direccion === 'in' || msg.direccion === 'incoming') ? 'client' : 'ai',
         text: msg.contenido || '',
         file: msg.contenido_archivo || null,
-        timestamp: msg.fecha_registro
-          ? new Date(msg.fecha_registro + "Z").toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
+        timestamp: (msg.fecha_hora || msg.fecha_registro)
+          ? new Date((msg.fecha_hora || msg.fecha_registro) + "Z").toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
           : ''
       }));
 
@@ -890,7 +891,7 @@ export default function ConversacionesPage() {
                         <span className={`text-[12px] flex-shrink-0 ml-2 ${
                           contacto.mensajes_no_leidos > 0 ? 'text-[#25d366] font-medium' : 'text-[#667781]'
                         }`}>
-                          {formatRelativeTime(contacto.ultimo_mensaje)}
+                          {formatRelativeTime(contacto.fecha_ultimo_mensaje)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between mt-0.5">
