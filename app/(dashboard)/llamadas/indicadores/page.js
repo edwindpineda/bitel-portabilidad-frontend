@@ -381,48 +381,6 @@ export default function IndicadoresLlamadasPage() {
     <div className="min-h-full" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
       <div className="space-y-7">
 
-        {/* Banner en construccion */}
-        <div className="construction-banner relative rounded-2xl overflow-hidden shadow-lg">
-          {/* Background animado */}
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 bg-[length:200%_100%] animate-[gradientSlide_4s_ease-in-out_infinite]" />
-          {/* Shimmer overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-[shimmer_3s_ease-in-out_infinite]" />
-          {/* Barras diagonales tipo warning */}
-          <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#000_10px,#000_20px)]" />
-
-          <div className="relative flex items-center gap-4 px-5 py-4">
-            {/* Icono con pulso */}
-            <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 animate-[pulse_2s_ease-in-out_infinite] shadow-inner">
-              <span className="text-2xl drop-shadow-lg animate-[lightSwitch_1.5s_ease-in-out_infinite]">💡</span>
-            </div>
-            <div>
-              <p className="text-base font-bold text-white drop-shadow-sm tracking-wide">Modulo en construccion</p>
-              <p className="text-sm text-white/80 font-medium">Este modulo esta en desarrollo activo. Los datos mostrados pueden ser parciales.</p>
-            </div>
-            {/* Badge derecha */}
-            <div className="ml-auto shrink-0 hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5">
-              <span className="h-2 w-2 rounded-full bg-white animate-[pulse_1.5s_ease-in-out_infinite]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">En desarrollo</span>
-            </div>
-          </div>
-
-          <style jsx>{`
-            @keyframes lightSwitch {
-              0%, 100% { opacity: 1; filter: brightness(1.2) drop-shadow(0 0 8px rgba(251,191,36,0.8)); transform: scale(1); }
-              40% { opacity: 0.2; filter: brightness(0.3) drop-shadow(0 0 0px transparent); transform: scale(0.9); }
-              60% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 12px rgba(251,191,36,1)); transform: scale(1.05); }
-            }
-            @keyframes shimmer {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(100%); }
-            }
-            @keyframes gradientSlide {
-              0%, 100% { background-position: 0% 50%; }
-              50% { background-position: 100% 50%; }
-            }
-          `}</style>
-        </div>
-
         {/* Breadcrumb */}
         <div className="text-sm text-muted-foreground">
           Llamadas <span className="mx-1.5 text-gray-300">/</span>

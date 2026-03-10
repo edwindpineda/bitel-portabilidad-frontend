@@ -37,7 +37,7 @@ export default function UsuariosAdminPage() {
       ]);
       setUsuarios(usuariosRes?.data || []);
       // Solo empresas activas para el select
-      setEmpresas((empresasRes?.data || []).filter(e => e.estado_registro === 1));
+      setEmpresas((empresasRes?.data || []).filter(e => e.estado_registro == 1));
     } catch (error) {
       console.error('Error al cargar datos:', error);
       setError('Error al cargar datos');
