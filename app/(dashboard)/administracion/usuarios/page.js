@@ -32,8 +32,8 @@ export default function UsuariosAdminPage() {
     try {
       setLoading(true);
       const [usuariosRes, empresasRes] = await Promise.all([
-        apiClient.get('/admin/usuarios'),
-        apiClient.get('/admin/empresas')
+        apiClient.get('/crm/admin/usuarios'),
+        apiClient.get('/crm/admin/empresas')
       ]);
       setUsuarios(usuariosRes?.data || []);
       // Solo empresas activas para el select
@@ -53,7 +53,7 @@ export default function UsuariosAdminPage() {
 
     try {
       if (editingUsuario) {
-        await apiClient.put(`/admin/usuarios/${editingUsuario.id}`, {
+        await apiClient.put(`/crm/admin/usuarios/${editingUsuario.id}`, {
           username: formData.username,
           password: formData.password || null,
           id_empresa: formData.id_empresa ? parseInt(formData.id_empresa) : null
@@ -64,7 +64,7 @@ export default function UsuariosAdminPage() {
           setError('La contraseña es requerida para nuevos usuarios');
           return;
         }
-        await apiClient.post('/admin/usuarios', {
+        await apiClient.post('/crm/admin/usuarios', {
           username: formData.username,
           password: formData.password,
           id_empresa: formData.id_empresa ? parseInt(formData.id_empresa) : null
@@ -94,7 +94,7 @@ export default function UsuariosAdminPage() {
     if (!confirm('¿Estas seguro de eliminar este usuario?')) return;
 
     try {
-      await apiClient.delete(`/admin/usuarios/${id}`);
+      await apiClient.delete(`/crm/admin/usuarios/${id}`);
       setSuccess('Usuario eliminado correctamente');
       fetchData();
     } catch (error) {
@@ -117,8 +117,8 @@ export default function UsuariosAdminPage() {
 
   // Filtrar usuarios: solo activos + busqueda + filtro por empresa
   const filteredUsuarios = usuarios.filter(usuario => {
-    // Solo usuarios activos
-    if (usuario.estado_registro !== 1) return false;
+    // Solo usuarios activos (comparación flexible para string o number)
+    if (usuario.estado_registro != 1) return false;
 
     // Filtro por busqueda de texto
     if (searchTerm && !usuario.username?.toLowerCase().includes(searchTerm.toLowerCase())) {
