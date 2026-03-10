@@ -42,10 +42,6 @@ import {
   MoreHorizontal,
   Eye,
   Megaphone,
-  Tag,
-  Settings,
-  Save,
-  ArrowLeft,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -93,13 +89,6 @@ export default function LlamadasPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedLlamada, setSelectedLlamada] = useState(null);
-  const [showConfig, setShowConfig] = useState(false);
-  const [config, setConfig] = useState({
-    dias: { lun: false, mar: false, mie: false, jue: false, vie: false, sab: false, dom: false },
-    hora_inicio: '09:00',
-    hora_fin: '18:00',
-    max_intentos: 3,
-  });
 
   const loadData = async () => {
     try {
@@ -207,133 +196,9 @@ export default function LlamadasPage() {
             <FileDown className="h-4 w-4 mr-1.5" />
             Exportar
           </Button>
-          <Button size="sm" onClick={() => setShowConfig(!showConfig)} className={showConfig ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''} variant={showConfig ? 'default' : 'outline'}>
-            <Settings className="h-4 w-4 mr-1.5" />
-            Config. Llamadas
-          </Button>
         </div>
       </div>
 
-      {/* Panel Config Llamadas */}
-      {showConfig && (
-        <Card className="border-0 shadow-sm border-l-4 border-l-blue-500">
-          <CardContent className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Settings className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">Configuracion de Llamadas</h2>
-                  <p className="text-xs text-muted-foreground">Dias, horario e intentos por base</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowConfig(false)}>
-                <ArrowLeft className="h-4 w-4 mr-1.5" />
-                Volver
-              </Button>
-            </div>
-
-            {/* Dias */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Dias de llamada</label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: 'lun', label: 'Lun' },
-                  { key: 'mar', label: 'Mar' },
-                  { key: 'mie', label: 'Mie' },
-                  { key: 'jue', label: 'Jue' },
-                  { key: 'vie', label: 'Vie' },
-                  { key: 'sab', label: 'Sab' },
-                  { key: 'dom', label: 'Dom' },
-                ].map(d => (
-                  <button
-                    key={d.key}
-                    onClick={() => setConfig(prev => ({ ...prev, dias: { ...prev.dias, [d.key]: !prev.dias[d.key] } }))}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                      config.dias[d.key]
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
-                        : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/60'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Horario */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Horario</label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Hora inicio</label>
-                  <input
-                    type="time"
-                    value={config.hora_inicio}
-                    onChange={e => setConfig(prev => ({ ...prev, hora_inicio: e.target.value }))}
-                    className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors"
-                  />
-                </div>
-                <span className="text-muted-foreground text-sm mt-5">a</span>
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Hora fin</label>
-                  <input
-                    type="time"
-                    value={config.hora_fin}
-                    onChange={e => setConfig(prev => ({ ...prev, hora_fin: e.target.value }))}
-                    className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Intentos */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Intentos por contacto</label>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 p-1 rounded-xl bg-muted/30 border">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setConfig(prev => ({ ...prev, max_intentos: n }))}
-                      className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                        config.max_intentos === n
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
-                          : 'text-muted-foreground hover:bg-muted/60'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-xs text-muted-foreground">intentos maximos</span>
-              </div>
-            </div>
-
-            {/* Resumen */}
-            <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-              <p className="text-xs font-medium text-blue-800 mb-1">Resumen de configuracion</p>
-              <p className="text-xs text-blue-600">
-                {Object.entries(config.dias).filter(([, v]) => v).map(([k]) => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || 'Sin dias seleccionados'}
-                {' · '}
-                {config.hora_inicio} a {config.hora_fin}
-                {' · '}
-                {config.max_intentos} intento{config.max_intentos !== 1 ? 's' : ''}
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                <Save className="h-4 w-4" />
-                Guardar Configuracion
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!showConfig && <>
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white">
@@ -544,8 +409,6 @@ export default function LlamadasPage() {
           )}
         </CardContent>
       </Card>
-
-      </>}
 
       {/* Modal Detalle */}
       <Dialog open={showDetailModal} onOpenChange={(open) => { if (!open) { setShowDetailModal(false); setSelectedLlamada(null); } }}>
