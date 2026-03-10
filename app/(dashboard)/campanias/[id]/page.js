@@ -112,13 +112,25 @@ export default function CampaniaDetallePage() {
   const [ejecucionesPage, setEjecucionesPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
+  // Modal de llamadas
+  const [showLlamadasModal, setShowLlamadasModal] = useState(false);
+  const [selectedEjecucionLlamadas, setSelectedEjecucionLlamadas] = useState(null);
+  const [llamadasResultados, setLlamadasResultados] = useState([]);
+  const [loadingLlamadas, setLoadingLlamadas] = useState(false);
+
   // Configuracion de llamadas
   const [showConfigLlamadas, setShowConfigLlamadas] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configLlamadas, setConfigLlamadas] = useState({
-    dias: { lun: false, mar: false, mie: false, jue: false, vie: false, sab: false, dom: false },
-    hora_inicio: '09:00',
-    hora_fin: '18:00',
+    horarios_por_dia: {
+      lun: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+      mar: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+      mie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+      jue: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+      vie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+      sab: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+      dom: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+    },
     max_intentos: 3,
   });
 
@@ -160,21 +172,37 @@ export default function CampaniaDetallePage() {
       const res = await apiClient.get(`/crm/campanias/${campaniaId}/config-llamadas`);
       const config = res?.data;
       if (config) {
-        // Convertir dias_llamada string a objeto
-        const diasArray = (config.dias_llamada || '').split(',').map(d => d.trim().toLowerCase());
-        const diasObj = {
-          lun: diasArray.includes('lun'),
-          mar: diasArray.includes('mar'),
-          mie: diasArray.includes('mie'),
-          jue: diasArray.includes('jue'),
-          vie: diasArray.includes('vie'),
-          sab: diasArray.includes('sab'),
-          dom: diasArray.includes('dom'),
+        // Si existe horarios_por_dia, usarlo; sino migrar desde dias_llamada
+        let horariosPorDia = {
+          lun: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+          mar: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+          mie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+          jue: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+          vie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+          sab: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
+          dom: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
         };
+
+        if (config.horarios_por_dia) {
+          // Parsear si viene como string
+          const parsed = typeof config.horarios_por_dia === 'string'
+            ? JSON.parse(config.horarios_por_dia)
+            : config.horarios_por_dia;
+          horariosPorDia = { ...horariosPorDia, ...parsed };
+        } else if (config.dias_llamada) {
+          // Migración: convertir formato antiguo al nuevo
+          const diasArray = (config.dias_llamada || '').split(',').map(d => d.trim().toLowerCase());
+          const horaInicio = config.hora_inicio?.substring(0, 5) || '09:00';
+          const horaFin = config.hora_fin?.substring(0, 5) || '18:00';
+          diasArray.forEach(dia => {
+            if (horariosPorDia[dia]) {
+              horariosPorDia[dia] = { activo: true, hora_inicio: horaInicio, hora_fin: horaFin };
+            }
+          });
+        }
+
         setConfigLlamadas({
-          dias: diasObj,
-          hora_inicio: config.hora_inicio?.substring(0, 5) || '09:00',
-          hora_fin: config.hora_fin?.substring(0, 5) || '18:00',
+          horarios_por_dia: horariosPorDia,
           max_intentos: config.max_intentos || 3,
         });
       }
@@ -186,21 +214,23 @@ export default function CampaniaDetallePage() {
   const handleSaveConfigLlamadas = async () => {
     try {
       setSavingConfig(true);
-      // Convertir objeto dias a string
-      const diasArray = Object.entries(configLlamadas.dias)
-        .filter(([, v]) => v)
-        .map(([k]) => k);
+      // Obtener días activos
+      const diasActivos = Object.entries(configLlamadas.horarios_por_dia)
+        .filter(([, config]) => config.activo)
+        .map(([dia]) => dia);
 
-      if (diasArray.length === 0) {
+      if (diasActivos.length === 0) {
         alert('Debe seleccionar al menos un día');
+        setSavingConfig(false);
         return;
       }
 
       await apiClient.post(`/crm/campanias/${campaniaId}/config-llamadas`, {
-        dias_llamada: diasArray.join(','),
-        hora_inicio: configLlamadas.hora_inicio,
-        hora_fin: configLlamadas.hora_fin,
+        dias_llamada: diasActivos.join(','),
+        hora_inicio: configLlamadas.horarios_por_dia.lun.hora_inicio,
+        hora_fin: configLlamadas.horarios_por_dia.lun.hora_fin,
         max_intentos: configLlamadas.max_intentos,
+        horarios_por_dia: configLlamadas.horarios_por_dia,
       });
       alert('Configuración guardada exitosamente');
     } catch (error) {
@@ -288,6 +318,27 @@ export default function CampaniaDetallePage() {
     setPersonasSeleccionadasIds([]);
     cargarPersonas(1, '', 'todos');
     setShowPersonasModal(true);
+  };
+
+  // ===== LLAMADAS POR EJECUCION =====
+  const cargarLlamadas = async (idEjecucion) => {
+    try {
+      setLoadingLlamadas(true);
+      const res = await apiClient.get(`/crm/llamadas/ejecucion/${idEjecucion}`);
+      setLlamadasResultados(res?.data || []);
+    } catch (error) {
+      console.error('Error al cargar llamadas:', error);
+      setLlamadasResultados([]);
+    } finally {
+      setLoadingLlamadas(false);
+    }
+  };
+
+  const handleVerLlamadas = (ejecucion) => {
+    setSelectedEjecucionLlamadas(ejecucion);
+    setLlamadasResultados([]);
+    cargarLlamadas(ejecucion.id);
+    setShowLlamadasModal(true);
   };
 
   const basesNoAsignadas = basesDisponibles.filter(
@@ -436,61 +487,88 @@ export default function CampaniaDetallePage() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold">Configuración de Llamadas</h2>
-                <p className="text-xs text-muted-foreground">Días, horario e intentos por contacto</p>
+                <p className="text-xs text-muted-foreground">Horarios por día e intentos por contacto</p>
               </div>
             </div>
 
-            {/* Dias */}
+            {/* Tabla de horarios por día */}
             <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Días de llamada</label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: 'lun', label: 'Lun' },
-                  { key: 'mar', label: 'Mar' },
-                  { key: 'mie', label: 'Mié' },
-                  { key: 'jue', label: 'Jue' },
-                  { key: 'vie', label: 'Vie' },
-                  { key: 'sab', label: 'Sáb' },
-                  { key: 'dom', label: 'Dom' },
-                ].map(d => (
-                  <button
-                    key={d.key}
-                    onClick={() => setConfigLlamadas(prev => ({ ...prev, dias: { ...prev.dias, [d.key]: !prev.dias[d.key] } }))}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                      configLlamadas.dias[d.key]
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
-                        : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/60'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Horario */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Horario</label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 max-w-[150px]">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Hora inicio</label>
-                  <input
-                    type="time"
-                    value={configLlamadas.hora_inicio}
-                    onChange={e => setConfigLlamadas(prev => ({ ...prev, hora_inicio: e.target.value }))}
-                    className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors"
-                  />
-                </div>
-                <span className="text-muted-foreground text-sm mt-5">a</span>
-                <div className="flex-1 max-w-[150px]">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Hora fin</label>
-                  <input
-                    type="time"
-                    value={configLlamadas.hora_fin}
-                    onChange={e => setConfigLlamadas(prev => ({ ...prev, hora_fin: e.target.value }))}
-                    className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors"
-                  />
-                </div>
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Horarios por día de la semana</label>
+              <div className="rounded-xl border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70 w-24">Día</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70 w-20 text-center">Activo</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70">Hora Inicio</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70">Hora Fin</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { key: 'lun', label: 'Lunes' },
+                      { key: 'mar', label: 'Martes' },
+                      { key: 'mie', label: 'Miércoles' },
+                      { key: 'jue', label: 'Jueves' },
+                      { key: 'vie', label: 'Viernes' },
+                      { key: 'sab', label: 'Sábado' },
+                      { key: 'dom', label: 'Domingo' },
+                    ].map(d => (
+                      <TableRow key={d.key} className={configLlamadas.horarios_por_dia[d.key]?.activo ? 'bg-blue-50/50' : ''}>
+                        <TableCell className="font-medium text-sm">{d.label}</TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={configLlamadas.horarios_por_dia[d.key]?.activo || false}
+                            onCheckedChange={(checked) => {
+                              setConfigLlamadas(prev => ({
+                                ...prev,
+                                horarios_por_dia: {
+                                  ...prev.horarios_por_dia,
+                                  [d.key]: { ...prev.horarios_por_dia[d.key], activo: checked }
+                                }
+                              }));
+                            }}
+                            className="h-5 w-5"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <input
+                            type="time"
+                            value={configLlamadas.horarios_por_dia[d.key]?.hora_inicio || '09:00'}
+                            onChange={e => {
+                              setConfigLlamadas(prev => ({
+                                ...prev,
+                                horarios_por_dia: {
+                                  ...prev.horarios_por_dia,
+                                  [d.key]: { ...prev.horarios_por_dia[d.key], hora_inicio: e.target.value }
+                                }
+                              }));
+                            }}
+                            disabled={!configLlamadas.horarios_por_dia[d.key]?.activo}
+                            className="h-9 w-28 px-3 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <input
+                            type="time"
+                            value={configLlamadas.horarios_por_dia[d.key]?.hora_fin || '18:00'}
+                            onChange={e => {
+                              setConfigLlamadas(prev => ({
+                                ...prev,
+                                horarios_por_dia: {
+                                  ...prev.horarios_por_dia,
+                                  [d.key]: { ...prev.horarios_por_dia[d.key], hora_fin: e.target.value }
+                                }
+                              }));
+                            }}
+                            disabled={!configLlamadas.horarios_por_dia[d.key]?.activo}
+                            className="h-9 w-28 px-3 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
 
@@ -520,13 +598,21 @@ export default function CampaniaDetallePage() {
             {/* Resumen */}
             <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
               <p className="text-xs font-medium text-blue-800 mb-1">Resumen de configuración</p>
-              <p className="text-xs text-blue-600">
-                {Object.entries(configLlamadas.dias).filter(([, v]) => v).map(([k]) => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || 'Sin días seleccionados'}
-                {' · '}
-                {configLlamadas.hora_inicio} a {configLlamadas.hora_fin}
-                {' · '}
-                {configLlamadas.max_intentos} intento{configLlamadas.max_intentos !== 1 ? 's' : ''}
-              </p>
+              <div className="text-xs text-blue-600 space-y-0.5">
+                {Object.entries(configLlamadas.horarios_por_dia)
+                  .filter(([, config]) => config.activo)
+                  .map(([dia, config]) => (
+                    <p key={dia}>
+                      <span className="font-medium capitalize">{dia}</span>: {config.hora_inicio} - {config.hora_fin}
+                    </p>
+                  ))}
+                {Object.values(configLlamadas.horarios_por_dia).every(c => !c.activo) && (
+                  <p className="text-amber-600">Sin días seleccionados</p>
+                )}
+                <p className="mt-2 pt-2 border-t border-blue-200">
+                  {configLlamadas.max_intentos} intento{configLlamadas.max_intentos !== 1 ? 's' : ''} máximo{configLlamadas.max_intentos !== 1 ? 's' : ''} por contacto
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end">
@@ -716,6 +802,7 @@ export default function CampaniaDetallePage() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 w-16">#</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">ID Ejecución</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Base</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Estado</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Resultado</TableHead>
@@ -728,7 +815,8 @@ export default function CampaniaDetallePage() {
                   .slice((ejecucionesPage - 1) * ITEMS_PER_PAGE, ejecucionesPage * ITEMS_PER_PAGE)
                   .map((ejecucion, index) => (
                   <TableRow key={ejecucion.id} className="group">
-                    <TableCell className="text-muted-foreground font-mono">{(ejecucionesPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-xs">{(ejecucionesPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-xs">{ejecucion.id}</TableCell>
                     <TableCell className="font-medium">{ejecucion.base_nombre}</TableCell>
                     <TableCell>
                       <Badge
@@ -748,11 +836,11 @@ export default function CampaniaDetallePage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleVerPersonas(ejecucion)}
-                        className="h-8 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 gap-1"
+                        onClick={() => handleVerLlamadas(ejecucion)}
+                        className="h-8 text-purple-500 hover:text-purple-600 hover:bg-purple-50 gap-1"
                       >
-                        <Users className="h-3.5 w-3.5" />
-                        Personas
+                        <Phone className="h-3.5 w-3.5" />
+                        Llamadas
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -1015,6 +1103,83 @@ export default function CampaniaDetallePage() {
                 </div>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Llamadas */}
+      <Dialog open={showLlamadasModal} onOpenChange={setShowLlamadasModal}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                <Phone className="h-4 w-4 text-white" />
+              </div>
+              Llamadas — Ejecucion #{selectedEjecucionLlamadas?.id}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedEjecucionLlamadas?.base_nombre} · {llamadasResultados.length} llamada{llamadasResultados.length !== 1 ? 's' : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {loadingLlamadas ? (
+              <div className="flex items-center justify-center py-10 gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                <span className="text-xs text-muted-foreground">Cargando llamadas...</span>
+              </div>
+            ) : llamadasResultados.length > 0 ? (
+              <div className="border rounded-xl overflow-hidden">
+                <div className="max-h-96 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Codigo</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Contacto</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Telefono</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Tipificacion</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {llamadasResultados.map((llamada) => (
+                        <TableRow key={llamada.id} className="hover:bg-muted/20">
+                          <TableCell className="font-mono text-xs text-purple-600 font-semibold">
+                            #{llamada.codigo_llamada || llamada.id}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-purple-600">
+                                  {llamada.contacto_nombre ? llamada.contacto_nombre.charAt(0).toUpperCase() : '?'}
+                                </span>
+                              </div>
+                              <span className="text-sm font-medium">{llamada.contacto_nombre || 'Sin nombre'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {llamada.telefono || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {llamada.tipificacion_llamada_nombre ? (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {llamada.tipificacion_llamada_nombre}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Sin tipificar</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 border rounded-xl">
+                <Phone className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No hay llamadas registradas</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

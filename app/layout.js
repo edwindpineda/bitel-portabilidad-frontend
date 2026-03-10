@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'AI-YOU - CRM Inteligente',
-  description: 'Sistema inteligente de gestión de leads y ventas con IA',
+  description: 'Sistema inteligente de gestión de prospectos y ventas con IA',
 };
 
 export default function RootLayout({ children }) {

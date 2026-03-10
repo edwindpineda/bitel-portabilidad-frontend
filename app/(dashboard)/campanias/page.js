@@ -1215,7 +1215,6 @@ export default function CampaniasPage() {
                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Registrado</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Inicio</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Fin</TableHead>
-                    <TableHead className="w-12" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1242,15 +1241,6 @@ export default function CampaniasPage() {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {ejecucion.fecha_fin ? new Date(ejecucion.fecha_fin).toLocaleString() : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <button
-                          onClick={() => handleVerPersonas(ejecucion)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50"
-                        >
-                          <Users className="h-3.5 w-3.5" />
-                          Personas
-                        </button>
                       </TableCell>
                     </TableRow>
                   ))}

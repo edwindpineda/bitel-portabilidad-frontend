@@ -45,7 +45,7 @@ const getColorHex = (color) => {
 const STAT_CONFIG = [
   {
     key: 'totalLeads',
-    name: 'Total Leads',
+    name: 'Total Prospectos',
     subtitle: 'Personas registradas',
     icon: Users,
     from: '#3b82f6',
@@ -61,7 +61,7 @@ const STAT_CONFIG = [
   },
   {
     key: 'leadsSemana',
-    name: 'Leads Semana',
+    name: 'Prospectos Semana',
     subtitle: 'Últimos 7 días',
     icon: UserPlus,
     from: '#8b5cf6',
@@ -70,7 +70,7 @@ const STAT_CONFIG = [
   {
     key: 'tasaConversion',
     name: 'Conversión',
-    subtitle: 'Clientes / Total leads',
+    subtitle: 'Clientes / Total prospectos',
     icon: TrendingUp,
     from: '#f59e0b',
     to: '#f97316',
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <CardTitle className="text-sm font-semibold">Pipeline por Estado</CardTitle>
-                      <p className="text-xs text-muted-foreground mt-0.5">{stats.totalLeads} leads en total</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{stats.totalLeads} prospectos en total</p>
                     </div>
                   </div>
                   <Badge variant="secondary" className="text-sm px-3 py-1">

@@ -245,13 +245,13 @@ export default function LeadsPage() {
     try {
       setSavingLead(true);
       await apiClient.put(`/crm/persona/${editingLead.id}`, editingLead);
-      alert('Lead actualizado correctamente');
+      alert('Prospecto actualizado correctamente');
       setShowEditModal(false);
       setEditingLead(null);
       loadData();
     } catch (error) {
-      console.error('Error al actualizar lead:', error);
-      alert('Error al actualizar lead');
+      console.error('Error al actualizar prospecto:', error);
+      alert('Error al actualizar prospecto');
     } finally {
       setSavingLead(false);
     }
@@ -366,7 +366,7 @@ export default function LeadsPage() {
     try {
       setAssigningAsesor(true);
       await apiClient.post('/crm/persona/bulk-assign', { persona_ids: selectedLeads, id_asesor: asesorId });
-      alert(`${selectedLeads.length} leads asignados correctamente`);
+      alert(`${selectedLeads.length} prospectos asignados correctamente`);
       setShowAsesorModal(false);
       setSelectedLeads([]);
       setSelectionMode(false);
@@ -416,7 +416,7 @@ export default function LeadsPage() {
 
   const stats = [
     {
-      key: 'total', label: 'Total Leads', value: statsData.total,
+      key: 'total', label: 'Total Prospectos', value: statsData.total,
       icon: Users, gradient: 'from-indigo-600 via-indigo-500 to-blue-500',
       glow: 'rgba(99, 102, 241, 0.35)', iconBg: 'from-indigo-500 to-blue-500',
       ring: 'ring-indigo-500/20', change: '+12%',
@@ -453,7 +453,7 @@ export default function LeadsPage() {
           </div>
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium">Cargando leads</p>
+          <p className="text-sm font-medium">Cargando prospectos</p>
           <p className="text-xs text-muted-foreground mt-0.5">Preparando tu pipeline...</p>
         </div>
       </div>
@@ -488,7 +488,7 @@ export default function LeadsPage() {
               <Users className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Pipeline de Leads</h1>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Pipeline de Prospectos</h1>
               <p className="text-indigo-200/70 text-sm mt-0.5">
                 {leads.length.toLocaleString()} personas en tu sistema
               </p>
@@ -671,7 +671,7 @@ export default function LeadsPage() {
                 <span className="font-bold text-foreground tabular-nums">{filteredLeads.length}</span>
                 {' '}/{' '}
                 <span className="font-bold text-foreground tabular-nums">{leads.length}</span>
-                {' '}leads
+                {' '}prospectos
               </span>
               {hasActiveFilters && (
                 <button onClick={clearFilters} className="text-[11px] font-medium text-muted-foreground hover:text-red-500 flex items-center gap-1 transition-colors">
@@ -787,7 +787,7 @@ export default function LeadsPage() {
                 <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
               <span className="text-sm font-semibold text-indigo-700">
-                {selectedLeads.length} lead{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
+                {selectedLeads.length} prospecto{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
               </span>
             </div>
             <Button size="sm" variant="ghost" onClick={() => setSelectedLeads([])} className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
@@ -928,7 +928,7 @@ export default function LeadsPage() {
                           <div className="h-6 w-6 rounded-md bg-amber-50 flex items-center justify-center">
                             <Pencil className="h-3.5 w-3.5 text-amber-600" />
                           </div>
-                          Editar lead
+                          Editar prospecto
                         </DropdownMenuItem>
                         {lead.id_tipo_persona !== 2 && (
                           <>
@@ -965,7 +965,7 @@ export default function LeadsPage() {
               <Users className="h-9 w-9 text-indigo-400" />
             </div>
             <p className="text-base font-semibold">
-              {hasActiveFilters ? 'No se encontraron resultados' : 'Sin leads registrados'}
+              {hasActiveFilters ? 'No se encontraron resultados' : 'Sin prospectos registrados'}
             </p>
             <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
               {hasActiveFilters ? 'Intenta ajustar los filtros para encontrar lo que buscas' : 'Las personas del sistema apareceran aqui'}
@@ -998,7 +998,7 @@ export default function LeadsPage() {
                 <span className="font-bold text-foreground">{startIndex + 1}-{Math.min(endIndex, filteredLeads.length)}</span>
                 <span className="mx-1.5">de</span>
                 <span className="font-bold text-foreground">{filteredLeads.length}</span>
-                <span className="ml-1">leads</span>
+                <span className="ml-1">prospectos</span>
               </p>
             </div>
             <div className="flex items-center gap-1.5">
@@ -1090,14 +1090,14 @@ export default function LeadsPage() {
               </div>
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {selectedLeads.length} lead{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
+              {selectedLeads.length} prospecto{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 mb-4">
               <CheckCircle2 className="h-4 w-4 text-indigo-500" />
               <span className="text-sm font-medium text-indigo-700">
-                {selectedLeads.length} lead{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
+                {selectedLeads.length} prospecto{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
               </span>
             </div>
             {asesores.length === 0 ? (
@@ -1139,7 +1139,7 @@ export default function LeadsPage() {
                 <Pencil className="h-5 w-5 text-white" />
               </div>
               <div>
-                <span>Editar Lead #{editingLead?.id}</span>
+                <span>Editar Prospecto #{editingLead?.id}</span>
                 <p className="text-xs font-normal text-muted-foreground mt-0.5">Modifica la informacion de la persona</p>
               </div>
             </DialogTitle>
@@ -1314,7 +1314,7 @@ export default function LeadsPage() {
                 <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
-                <span>Detalle del Lead #{detailLead?.id}</span>
+                <span>Detalle del Prospecto #{detailLead?.id}</span>
                 <p className="text-xs font-normal text-muted-foreground mt-0.5">Informacion completa de la persona</p>
               </div>
             </DialogTitle>
@@ -1444,7 +1444,7 @@ export default function LeadsPage() {
               onClick={() => { setShowDetailModal(false); handleOpenEditModal(detailLead); }}
               className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
             >
-              <Pencil className="h-3.5 w-3.5" /> Editar Lead
+              <Pencil className="h-3.5 w-3.5" /> Editar Prospecto
             </Button>
           </DialogFooter>
         </DialogContent>
