@@ -30,7 +30,7 @@ export default function EmpresasPage() {
   const fetchEmpresas = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/admin/empresas');
+      const response = await apiClient.get('/crm/admin/empresas');
       // apiClient interceptor already unwraps response.data, so response = { message, data, timestamp }
       setEmpresas(response?.data || []);
     } catch (error) {
@@ -48,10 +48,10 @@ export default function EmpresasPage() {
 
     try {
       if (editingEmpresa) {
-        await apiClient.put(`/admin/empresas/${editingEmpresa.id}`, formData);
+        await apiClient.put(`/crm/admin/empresas/${editingEmpresa.id}`, formData);
         setSuccess('Empresa actualizada correctamente');
       } else {
-        await apiClient.post('/admin/empresas', formData);
+        await apiClient.post('/crm/admin/empresas', formData);
         setSuccess('Empresa creada correctamente');
       }
       setShowModal(false);
@@ -78,7 +78,7 @@ export default function EmpresasPage() {
   const handleToggleEstado = async (empresa) => {
     try {
       const nuevoEstado = empresa.estado_registro === 1 ? 0 : 1;
-      await apiClient.put(`/admin/empresas/${empresa.id}/estado`, { estado: nuevoEstado });
+      await apiClient.put(`/crm/admin/empresas/${empresa.id}/estado`, { estado: nuevoEstado });
       setSuccess(nuevoEstado === 1 ? 'Empresa activada correctamente' : 'Empresa desactivada correctamente');
       fetchEmpresas();
     } catch (error) {
