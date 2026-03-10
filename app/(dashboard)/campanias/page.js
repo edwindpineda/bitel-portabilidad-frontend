@@ -92,7 +92,6 @@ export default function CampaniasPage() {
   const [editingCampania, setEditingCampania] = useState(null);
   const [selectedCampania, setSelectedCampania] = useState(null);
   const [basesAsignadas, setBasesAsignadas] = useState([]);
-  const [basesSeleccionadasIds, setBasesSeleccionadasIds] = useState([]);
   const [plantillasDisponibles, setPlantillasDisponibles] = useState([]);
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
   const [ejecuciones, setEjecuciones] = useState([]);
@@ -355,12 +354,13 @@ export default function CampaniasPage() {
 
   // Ejecutar campania
   const handleEjecutar = async (campania) => {
+    const ids_base_numero = basesAsignadas.map(b => b.id_base_numero);
     if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
       setEjecutando(true);
       try {
         const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
           id_campania: campania.id,
-          ids_base_numero: basesSeleccionadasIds
+          ids_base_numero: ids_base_numero
         });
         alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
         loadData();
