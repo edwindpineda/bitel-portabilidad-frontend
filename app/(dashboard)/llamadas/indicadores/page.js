@@ -336,10 +336,12 @@ function TipificacionTree({ stats }) {
   );
 }
 const formatDuration = (seconds) => {
-  if (!seconds) return '0s';
+  const totalSeconds = Math.max(0, Math.round(Number(seconds) || 0));
 
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+  if (totalSeconds === 0) return '0s';
+
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
 
   if (m === 0) return `${s}s`;
 
@@ -367,13 +369,18 @@ function useAnimatedValue(target, duration = 1200) {
 }
 
 // ─── KPI Card ───
-function KpiCard({ label, value, icon: Icon, color, bgDim, format, index }) {
+function KpiCard({ label, value, icon: Icon, color, bgDim, format, index, integer = false }) {
   const animated = useAnimatedValue(value);
-  const display = format
-  ? format(animated)
-  : Number.isInteger(animated)
-    ? animated.toLocaleString()
-    : animated.toFixed(1);
+
+  let display;
+
+  if (format) {
+    display = format(animated);
+  } else if (integer) {
+    display = Math.round(animated).toLocaleString();
+  } else {
+    display = Number(animated).toFixed(1);
+  }
 
   return (
     <div
@@ -598,7 +605,8 @@ if (fechaFin) params.fecha_fin = fechaFin;
     value: stats?.embudo?.base_total || 0,
     icon: Phone,
     color: COLORS.accent,
-    bgDim: 'rgba(6,214,160,0.12)'
+    bgDim: 'rgba(6,214,160,0.12)',
+    integer: true
   },
 
   {
@@ -606,7 +614,8 @@ if (fechaFin) params.fecha_fin = fechaFin;
     value: stats?.embudo?.base_recorrida || 0,
     icon: PhoneCall,
     color: COLORS.info,
-    bgDim: 'rgba(56,189,248,0.12)'
+    bgDim: 'rgba(56,189,248,0.12)',
+    integer: true
   },
 
   {
@@ -614,7 +623,8 @@ if (fechaFin) params.fecha_fin = fechaFin;
     value: stats?.embudo?.base_no_recorrida || 0,
     icon: PhoneMissed,
     color: COLORS.danger,
-    bgDim: 'rgba(239,68,68,0.12)'
+    bgDim: 'rgba(239,68,68,0.12)',
+    integer: true
   },
 
   {
@@ -631,7 +641,8 @@ if (fechaFin) params.fecha_fin = fechaFin;
     value: stats?.totalMinutosWeek || 0,
     icon: Clock,
     color: COLORS.warning,
-    bgDim: 'rgba(251,191,36,0.12)'
+    bgDim: 'rgba(251,191,36,0.12)',
+    integer: true
   },
 
   {
@@ -639,7 +650,8 @@ if (fechaFin) params.fecha_fin = fechaFin;
     value: stats?.totalCampanias || 0,
     icon: Users,
     color: COLORS.accent,
-    bgDim: 'rgba(6,214,160,0.12)'
+    bgDim: 'rgba(6,214,160,0.12)',
+    integer: true
   },
 
   {
@@ -670,25 +682,23 @@ if (fechaFin) params.fecha_fin = fechaFin;
   },
 
   {
-  label: 'Conversión Total',
-  value: (parseFloat(stats?.kpis?.conversion_total || 0) * 100),
-  icon: Flame,
-  color: COLORS.orange,
-  bgDim: 'rgba(251,146,60,0.12)',
-  format: (v) => `${v.toFixed(1)}%`
-},
+    label: 'Conversión Total',
+    value: parseFloat(stats?.kpis?.conversion_total || 0) * 100,
+    icon: Flame,
+    color: COLORS.orange,
+    bgDim: 'rgba(251,146,60,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  },
 
-{
-  label: 'Conversión Recorrida',
-  value: (parseFloat(stats?.kpis?.conversion_recorrida || 0) * 100),
-  icon: CheckCircle2,
-  color: COLORS.accent,
-  bgDim: 'rgba(6,214,160,0.12)',
-  format: (v) => `${v.toFixed(1)}%`
-},
-
-
-  ];
+  {
+    label: 'Conversión Recorrida',
+    value: parseFloat(stats?.kpis?.conversion_recorrida || 0) * 100,
+    icon: CheckCircle2,
+    color: COLORS.accent,
+    bgDim: 'rgba(6,214,160,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  }
+];
   return (
     <div className="min-h-full" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
       <div className="space-y-7">
