@@ -61,7 +61,7 @@ export default function WhatsAppAPIConfig() {
   const cargarConfiguracion = useCallback(async () => {
     try {
       setEmbeddedState(prev => ({ ...prev, loading: true, error: null }));
-      const response = await whatsappEmbeddedService.obtenerConfiguracion(2);
+      const response = await whatsappEmbeddedService.obtenerConfiguracion(4);
 
       if (response.success && response.connected) {
         setEmbeddedState({
