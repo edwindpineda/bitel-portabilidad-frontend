@@ -12,6 +12,7 @@ const nextConfig = {
   // Variables de entorno públicas
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3020/api',
+    NEXT_PUBLIC_APP_BASE_URL: process.env.NEXT_PUBLIC_APP_BASE_URL || (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3020/api').replace(/\/api\/?$/, ''),
   },
 
   // Configuración de headers
