@@ -185,6 +185,7 @@ export default function BasesNumerosPage() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
+        console.log('SSE raw buffer:', buffer);
 
         // Procesar eventos SSE
         const lines = buffer.split('\n\n');
@@ -194,6 +195,7 @@ export default function BasesNumerosPage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+              console.log('SSE event received:', data);
 
               if (data.tipo === 'inicio') {
                 setProgressInfo(prev => ({ ...prev, mensaje: data.mensaje }));
