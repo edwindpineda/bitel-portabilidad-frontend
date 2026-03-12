@@ -44,6 +44,7 @@ export default function CatalogoPage() {
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -64,6 +65,11 @@ export default function CatalogoPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevenir doble envío
+    if (submitting) return;
+    setSubmitting(true);
+
     try {
       const submitData = new FormData();
       submitData.append('nombre', formData.nombre);
@@ -83,13 +89,9 @@ export default function CatalogoPage() {
       }
 
       if (editingPlan) {
-        await apiClient.put(`/crm/catalogo/${editingPlan.id}`, submitData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await apiClient.put(`/crm/catalogo/${editingPlan.id}`, submitData);
       } else {
-        await apiClient.post('/crm/catalogo', submitData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await apiClient.post('/crm/catalogo', submitData);
       }
       setShowModal(false);
       setEditingPlan(null);
@@ -97,7 +99,9 @@ export default function CatalogoPage() {
       loadData();
     } catch (error) {
       console.error('Error al guardar plan:', error);
-      alert(error.msg || 'Error al guardar plan');
+      alert(error.response?.data?.msg || error.msg || 'Error al guardar plan');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -443,11 +447,11 @@ export default function CatalogoPage() {
                 <label htmlFor="principal" className="text-sm font-medium cursor-pointer">Plan principal</label>
               </div>
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)} disabled={submitting}>
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  {editingPlan ? 'Actualizar' : 'Crear'}
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? 'Guardando...' : (editingPlan ? 'Actualizar' : 'Crear')}
                 </Button>
               </DialogFooter>
             </form>
