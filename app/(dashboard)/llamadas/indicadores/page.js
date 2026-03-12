@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import {
   Phone,
   PhoneCall,
@@ -19,13 +19,10 @@ import {
   Users,
   Flame,
   Timer,
-  Voicemail,
+  CheckCircle2,
+  XCircle,
+  CalendarDays
 } from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend,
-} from 'recharts';
-
 // ─── Colors ───
 const COLORS = {
   accent: '#06d6a0',
@@ -33,21 +30,324 @@ const COLORS = {
   warning: '#fbbf24',
   danger: '#ef4444',
   purple: '#a78bfa',
-  orange: '#fb923c',
+  orange: '#fb923c'
+};
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, 
+} from 'recharts';
+
+function TipificacionTree({ stats }) {
+  const baseTotal = stats?.embudo?.base_total || 0;
+  const baseNoRecorrida = stats?.embudo?.base_no_recorrida || 0;
+  const baseRecorrida = stats?.embudo?.base_recorrida || 0;
+
+  const answer = stats?.embudo?.answer || 0;
+  const noAnswer = stats?.embudo?.no_answer || 0;
+
+  const valido = stats?.embudo?.contacto_valido || 0;
+  const noValido = stats?.embudo?.contacto_no_valido || 0;
+
+  const efectivo = stats?.embudo?.contacto_efectivo || 0;
+  const noEfectivo = stats?.embudo?.contacto_no_efectivo || 0;
+
+  const Node = ({ title, value, color, Icon, sub, level = 2 }) => {
+    const styles = {
+      1: {
+        card: 'w-full max-w-[220px] px-4 py-4 rounded-2xl',
+        iconWrap: 'h-9 w-9 rounded-xl',
+        icon: 18,
+        title: 'text-[10px] md:text-[11px]',
+        value: 'text-[40px] md:text-[46px]',
+        sub: 'text-[9px] md:text-[10px]',
+      },
+      2: {
+        card: 'w-full max-w-[190px] px-4 py-3.5 rounded-xl',
+        iconWrap: 'h-8 w-8 rounded-lg',
+        icon: 16,
+        title: 'text-[9px] md:text-[10px]',
+        value: 'text-[30px] md:text-[34px]',
+        sub: 'text-[8px] md:text-[9px]',
+      },
+      3: {
+        card: 'w-full max-w-[170px] px-3 py-3 rounded-xl',
+        iconWrap: 'h-7 w-7 rounded-lg',
+        icon: 14,
+        title: 'text-[8px] md:text-[9px]',
+        value: 'text-[24px] md:text-[28px]',
+        sub: 'text-[8px]',
+      },
+    };
+
+    const s = styles[level];
+
+    return (
+      <div
+        className={`bg-white/95 backdrop-blur border border-slate-200 shadow-md text-center ${s.card}`}
+      >
+        <div className="flex items-center justify-center gap-2 mb-1.5">
+          <div
+            className={`${s.iconWrap} flex items-center justify-center shadow-sm`}
+            style={{ background: `${color}18` }}
+          >
+            <Icon size={s.icon} style={{ color }} />
+          </div>
+
+          <p
+            className={`font-extrabold uppercase tracking-[0.08em] ${s.title}`}
+            style={{ color }}
+          >
+            {title}
+          </p>
+        </div>
+
+        <p className={`font-black leading-none ${s.value}`}>{value}</p>
+
+        {sub ? (
+          <p className={`mt-2 uppercase tracking-wide text-muted-foreground ${s.sub}`}>
+            {sub}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
+
+  const SplitConnector = ({ topColor, bottomColor }) => (
+    <div className="hidden lg:flex flex-col items-center py-1">
+      <div className="flex items-center justify-center h-8">
+        <div className="h-[2px] w-12 xl:w-16 rounded-full" style={{ backgroundColor: topColor }} />
+        <div
+          className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[7px]"
+          style={{ borderLeftColor: topColor }}
+        />
+      </div>
+      <div className="flex items-center justify-center h-8">
+        <div className="h-[2px] w-12 xl:w-16 rounded-full" style={{ backgroundColor: bottomColor }} />
+        <div
+          className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[7px]"
+          style={{ borderLeftColor: bottomColor }}
+        />
+      </div>
+    </div>
+  );
+
+  const SingleConnector = ({ color }) => (
+    <div className="hidden lg:flex items-center justify-center">
+      <div className="h-[2px] w-10 xl:w-14 rounded-full" style={{ backgroundColor: color }} />
+      <div
+        className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[7px]"
+        style={{ borderLeftColor: color }}
+      />
+    </div>
+  );
+
+  return (
+    <div className="w-full">
+      {/* MOBILE / TABLET */}
+      <div className="flex flex-col gap-4 lg:hidden">
+        <div className="flex justify-center">
+          <Node
+            title="BASE_TOTAL"
+            value={baseTotal}
+            color="#0f172a"
+            Icon={BarChart3}
+            sub="Base general"
+            level={1}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 justify-items-center">
+          <Node
+            title="BASE_RECORRIDA"
+            value={baseRecorrida}
+            color="#06b6d4"
+            Icon={PhoneCall}
+            sub={baseTotal > 0 ? `${((baseRecorrida / baseTotal) * 100).toFixed(1)}% del total` : '0.0% del total'}
+            level={2}
+          />
+          <Node
+            title="BASE_NO_RECORRIDA"
+            value={baseNoRecorrida}
+            color="#64748b"
+            Icon={PhoneMissed}
+            sub={baseTotal > 0 ? `${((baseNoRecorrida / baseTotal) * 100).toFixed(1)}% del total` : '0.0% del total'}
+            level={2}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 justify-items-center">
+          <Node
+            title="ANSWER"
+            value={answer}
+            color="#10b981"
+            Icon={Phone}
+            sub={baseRecorrida > 0 ? `${((answer / baseRecorrida) * 100).toFixed(1)}% de recorrida` : '0.0% de recorrida'}
+            level={2}
+          />
+          <Node
+            title="NO_ANSWER"
+            value={noAnswer}
+            color="#ef4444"
+            Icon={PhoneOff}
+            sub={baseRecorrida > 0 ? `${((noAnswer / baseRecorrida) * 100).toFixed(1)}% de recorrida` : '0.0% de recorrida'}
+            level={2}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 justify-items-center">
+          <Node
+            title="CONTACTO_VALIDO"
+            value={valido}
+            color="#10b981"
+            Icon={PhoneCall}
+            sub={answer > 0 ? `${((valido / answer) * 100).toFixed(1)}% de answer` : '0.0% de answer'}
+            level={3}
+          />
+          <Node
+            title="CONTACTO_NO_VALIDO"
+            value={noValido}
+            color="#ef4444"
+            Icon={XCircle}
+            sub={answer > 0 ? `${((noValido / answer) * 100).toFixed(1)}% de answer` : '0.0% de answer'}
+            level={3}
+          />
+          <Node
+            title="CONTACTO_EFECTIVO"
+            value={efectivo}
+            color="#10b981"
+            Icon={CheckCircle2}
+            sub={valido > 0 ? `${((efectivo / valido) * 100).toFixed(1)}% de válido` : '0.0% de válido'}
+            level={3}
+          />
+          <Node
+            title="CONTACTO_NO_EFECTIVO"
+            value={noEfectivo}
+            color="#f59e0b"
+            Icon={PhoneMissed}
+            sub={valido > 0 ? `${((noEfectivo / valido) * 100).toFixed(1)}% de válido` : '0.0% de válido'}
+            level={3}
+          />
+        </div>
+      </div>
+
+      {/* DESKTOP */}
+      <div className="hidden lg:flex items-center justify-start gap-3 xl:gap-4 overflow-x-auto pb-2">
+        {/* Columna 1 */}
+        <div className="flex flex-col justify-center min-w-fit">
+          <Node
+            title="BASE_TOTAL"
+            value={baseTotal}
+            color="#0f172a"
+            Icon={BarChart3}
+            sub="Base general"
+            level={1}
+          />
+        </div>
+
+        <SplitConnector topColor="#06b6d4" bottomColor="#64748b" />
+
+        {/* Columna 2 */}
+        <div className="flex flex-col gap-10 min-w-fit">
+          <Node
+            title="BASE_RECORRIDA"
+            value={baseRecorrida}
+            color="#06b6d4"
+            Icon={PhoneCall}
+            sub={baseTotal > 0 ? `${((baseRecorrida / baseTotal) * 100).toFixed(1)}% del total` : '0.0% del total'}
+            level={2}
+          />
+          <Node
+            title="BASE_NO_RECORRIDA"
+            value={baseNoRecorrida}
+            color="#64748b"
+            Icon={PhoneMissed}
+            sub={baseTotal > 0 ? `${((baseNoRecorrida / baseTotal) * 100).toFixed(1)}% del total` : '0.0% del total'}
+            level={2}
+          />
+        </div>
+
+        <SplitConnector topColor="#10b981" bottomColor="#ef4444" />
+
+        {/* Columna 3 */}
+        <div className="flex flex-col gap-8 min-w-fit">
+          <Node
+            title="ANSWER"
+            value={answer}
+            color="#10b981"
+            Icon={Phone}
+            sub={baseRecorrida > 0 ? `${((answer / baseRecorrida) * 100).toFixed(1)}% de recorrida` : '0.0% de recorrida'}
+            level={2}
+          />
+          <Node
+            title="NO_ANSWER"
+            value={noAnswer}
+            color="#ef4444"
+            Icon={PhoneOff}
+            sub={baseRecorrida > 0 ? `${((noAnswer / baseRecorrida) * 100).toFixed(1)}% de recorrida` : '0.0% de recorrida'}
+            level={2}
+          />
+        </div>
+
+        <SplitConnector topColor="#10b981" bottomColor="#ef4444" />
+
+        {/* Columna 4 */}
+        <div className="flex flex-col gap-7 min-w-fit">
+          <Node
+            title="CONTACTO_VALIDO"
+            value={valido}
+            color="#10b981"
+            Icon={PhoneCall}
+            sub={answer > 0 ? `${((valido / answer) * 100).toFixed(1)}% de answer` : '0.0% de answer'}
+            level={3}
+          />
+          <Node
+            title="CONTACTO_NO_VALIDO"
+            value={noValido}
+            color="#ef4444"
+            Icon={XCircle}
+            sub={answer > 0 ? `${((noValido / answer) * 100).toFixed(1)}% de answer` : '0.0% de answer'}
+            level={3}
+          />
+        </div>
+
+        <SplitConnector topColor="#10b981" bottomColor="#f59e0b" />
+
+        {/* Columna 5 */}
+        <div className="flex flex-col gap-6 min-w-fit">
+          <Node
+            title="CONTACTO_EFECTIVO"
+            value={efectivo}
+            color="#10b981"
+            Icon={CheckCircle2}
+            sub={valido > 0 ? `${((efectivo / valido) * 100).toFixed(1)}% de válido` : '0.0% de válido'}
+            level={3}
+          />
+          <Node
+            title="CONTACTO_NO_EFECTIVO"
+            value={noEfectivo}
+            color="#f59e0b"
+            Icon={PhoneMissed}
+            sub={valido > 0 ? `${((noEfectivo / valido) * 100).toFixed(1)}% de válido` : '0.0% de válido'}
+            level={3}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+const formatDuration = (seconds) => {
+  const totalSeconds = Math.max(0, Math.round(Number(seconds) || 0));
+
+  if (totalSeconds === 0) return '0s';
+
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+
+  if (m === 0) return `${s}s`;
+
+  return `${m}m ${s}s`;
 };
 
-const COLOR_MAP = {
-  'rojo': '#EF4444', 'naranja': '#F97316', 'amarillo': '#EAB308',
-  'verde': '#22C55E', 'azul': '#3B82F6', 'indigo': '#6366F1',
-  'cyan': '#06B6D4', 'teal': '#14B8A6', 'gris': '#6B7280',
-  'morado': '#A855F7', 'rosa': '#EC4899',
-};
-
-const getColorHex = (color) => {
-  if (!color) return '#6B7280';
-  if (color.startsWith('#')) return color;
-  return COLOR_MAP[color.toLowerCase()] || '#6B7280';
-};
 
 // ─── Animated counter ───
 function useAnimatedValue(target, duration = 1200) {
@@ -60,7 +360,7 @@ function useAnimatedValue(target, duration = 1200) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setVal(Math.floor(eased * num));
+      setVal(Number((eased * num).toFixed(1)));
       if (progress < 1) requestAnimationFrame(animate);
     };
     requestAnimationFrame(animate);
@@ -69,9 +369,18 @@ function useAnimatedValue(target, duration = 1200) {
 }
 
 // ─── KPI Card ───
-function KpiCard({ label, value, icon: Icon, color, bgDim, format, index }) {
+function KpiCard({ label, value, icon: Icon, color, bgDim, format, index, integer = false }) {
   const animated = useAnimatedValue(value);
-  const display = format ? format(animated) : animated.toLocaleString();
+
+  let display;
+
+  if (format) {
+    display = format(animated);
+  } else if (integer) {
+    display = Math.round(animated).toLocaleString();
+  } else {
+    display = Number(animated).toFixed(1);
+  }
 
   return (
     <div
@@ -140,7 +449,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 // ─── Heatmap ───
-const HOURS = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'];
+const HOURS = ['06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22'];
 const DAYS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
 function HeatmapCell({ value, max }) {
@@ -165,7 +474,8 @@ function HeatmapCell({ value, max }) {
 }
 
 function Heatmap({ data }) {
-  const max = Math.max(...data.flat(), 1);
+  const max = Math.max(...(data?.flat?.() || [0]), 1);
+  
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[600px]">
@@ -199,26 +509,7 @@ function Heatmap({ data }) {
 }
 
 // ─── Agent Mini Heatmap ───
-function MiniHeatmap({ data }) {
-  const max = Math.max(...data.flat(), 1);
-  return (
-    <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${HOURS.length}, 1fr)`, gridTemplateRows: `repeat(${DAYS.length}, 1fr)` }}>
-      {DAYS.map((_, di) =>
-        HOURS.map((_, hi) => {
-          const v = data[di]?.[hi] ?? 0;
-          const r = max > 0 ? v / max : 0;
-          let bg;
-          if (r < 0.15) bg = 'rgba(56,189,248,0.05)';
-          else if (r < 0.35) bg = 'rgba(56,189,248,0.20)';
-          else if (r < 0.6) bg = 'rgba(56,189,248,0.40)';
-          else if (r < 0.8) bg = 'rgba(56,189,248,0.65)';
-          else bg = 'rgba(56,189,248,0.90)';
-          return <div key={`${di}-${hi}`} className="h-2 rounded-sm" style={{ background: bg }} />;
-        })
-      )}
-    </div>
-  );
-}
+
 
 // ─── Donut label ───
 const renderDonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -238,145 +529,176 @@ const renderDonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent 
 // MAIN PAGE
 // ═══════════════════════════════════════
 export default function IndicadoresLlamadasPage() {
-  const [llamadas, setLlamadas] = useState([]);
-  const [tipificaciones, setTipificaciones] = useState([]);
-  const [loading, setLoading] = useState(true);
 
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [idEmpresa, setIdEmpresa] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [empresaInicializada, setEmpresaInicializada] = useState(false);
+
+  useEffect(() => {
+    const empresaGuardada =
+      localStorage.getItem('id_empresa') ||
+      localStorage.getItem('empresa') ||
+      '';
+
+    if (empresaGuardada) {
+      setIdEmpresa(String(empresaGuardada));
+    }
+
+    setEmpresaInicializada(true);
+  }, []);
   const loadData = async () => {
     try {
       setLoading(true);
-      const [llamadasRes, tipRes] = await Promise.all([
-        apiClient.get('/crm/llamadas'),
-        apiClient.get('/crm/tipificacion-llamada'),
-      ]);
-      setLlamadas(llamadasRes.data || []);
-      setTipificaciones(tipRes.data || []);
+
+      const params = {};
+
+      if (idEmpresa) params.empresa = idEmpresa;
+      if (fechaInicio) params.fecha_inicio = fechaInicio;
+if (fechaFin) params.fecha_fin = fechaFin;
+
+      const res = await apiClient.get('/crm/consumo-indicadores', { params });
+
+      const payload = res?.data?.data || res?.data || res;
+
+      console.log('Indicadores:', payload);
+      setData(payload);
     } catch (err) {
       console.error('Error cargando indicadores:', err);
+      setData(null);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    if (!empresaInicializada) return;
+    loadData();
+  }, [empresaInicializada, idEmpresa, fechaInicio, fechaFin]);
 
   // ─── Computed stats ───
-  const stats = useMemo(() => {
-    if (!llamadas.length) return null;
-
-    const total = llamadas.length;
-    const conTipificacion = llamadas.filter(l => l.id_tipificacion_llamada).length;
-    const sinTipificacion = total - conTipificacion;
-    const totalDuracion = llamadas.reduce((s, l) => s + (l.duracion_seg || 0), 0);
-    const promedioDuracion = total > 0 ? Math.round(totalDuracion / total) : 0;
-    const totalMinutos = Math.round(totalDuracion / 60);
-
-    // Group by tipificacion
-    const tipMap = {};
-    llamadas.forEach(l => {
-      const key = l.tipificacion_llamada_nombre || 'Sin tipificar';
-      if (!tipMap[key]) {
-        tipMap[key] = { name: key, value: 0, color: getColorHex(l.tipificacion_llamada_color) };
-      }
-      tipMap[key].value++;
-    });
-    const tipificacionData = Object.values(tipMap).sort((a, b) => b.value - a.value);
-
-    // Group by hour
-    const hourlyMap = {};
-    HOURS.forEach(h => { hourlyMap[h] = { hour: `${h}:00`, llamadas: 0, duracion: 0 }; });
-    llamadas.forEach(l => {
-      if (!l.fecha_inicio && !l.fecha_registro) return;
-      const date = new Date(l.fecha_inicio || l.fecha_registro);
-      const h = String(date.getHours()).padStart(2, '0');
-      if (hourlyMap[h]) {
-        hourlyMap[h].llamadas++;
-        hourlyMap[h].duracion += (l.duracion_seg || 0);
-      }
-    });
-    const hourlyData = HOURS.map(h => hourlyMap[h]);
-
-    // Group by day of week
-    const dayMap = {};
-    DAYS.forEach((d, i) => { dayMap[i] = { day: d, llamadas: 0, conTip: 0, sinTip: 0, duracion: 0 }; });
-    llamadas.forEach(l => {
-      const date = new Date(l.fecha_registro || l.fecha_inicio);
-      let dow = date.getDay(); // 0=Sun
-      dow = dow === 0 ? 6 : dow - 1; // Convert to Mon=0
-      if (dayMap[dow]) {
-        dayMap[dow].llamadas++;
-        dayMap[dow].duracion += (l.duracion_seg || 0);
-        if (l.id_tipificacion_llamada) dayMap[dow].conTip++;
-        else dayMap[dow].sinTip++;
-      }
-    });
-    const weeklyData = DAYS.map((_, i) => dayMap[i]);
-
-    // Heatmap: 7 days x 12 hours
-    const heatmapData = DAYS.map(() => HOURS.map(() => 0));
-    llamadas.forEach(l => {
-      const date = new Date(l.fecha_inicio || l.fecha_registro);
-      let dow = date.getDay();
-      dow = dow === 0 ? 6 : dow - 1;
-      const h = String(date.getHours()).padStart(2, '0');
-      const hi = HOURS.indexOf(h);
-      if (hi >= 0 && dow >= 0 && dow < 7) heatmapData[dow][hi]++;
-    });
-
-    // Minutes per day (for stacked bar)
-    const minutesData = weeklyData.map(d => ({
-      day: d.day,
-      minutos: Math.round(d.duracion / 60),
-      llamadas: d.llamadas,
-    }));
-    const totalMinutosWeek = minutesData.reduce((s, d) => s + d.minutos, 0);
-    const avgMinutosDay = minutesData.length > 0 ? Math.round(totalMinutosWeek / 7) : 0;
-    const peakDay = minutesData.reduce((max, d) => d.minutos > max.minutos ? d : max, minutesData[0] || { day: '-', minutos: 0 });
-
-    // Group by campania
-    const campaniaMap = {};
-    llamadas.forEach(l => {
-      const key = l.campania_nombre || 'Sin campania';
-      if (!campaniaMap[key]) campaniaMap[key] = { name: key, total: 0, conTip: 0, duracion: 0 };
-      campaniaMap[key].total++;
-      if (l.id_tipificacion_llamada) campaniaMap[key].conTip++;
-      campaniaMap[key].duracion += (l.duracion_seg || 0);
-    });
-    const campaniaData = Object.values(campaniaMap).sort((a, b) => b.total - a.total);
-
-    return {
-      total, conTipificacion, sinTipificacion, promedioDuracion, totalMinutos,
-      tipificacionData, hourlyData, weeklyData, heatmapData,
-      minutesData, totalMinutosWeek, avgMinutosDay, peakDay,
-      campaniaData,
-    };
-  }, [llamadas]);
-
-  const formatDuration = (seconds) => {
-    if (!seconds) return '0s';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return m > 0 ? `${m}m ${s}s` : `${s}s`;
-  };
-
+  
+  const stats = data;
+  const totalDuracionCampanias = (stats?.campanias || []).reduce(
+    (sum, c) => sum + (c.duracion || 0),
+    0
+  );
   if (loading) {
     return (
-      <div className="min-h-full flex flex-col items-center justify-center h-64 gap-3" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-        <p className="text-sm text-muted-foreground">Cargando indicadores...</p>
+      <div className="flex items-center justify-center h-[500px]">
+        <Loader2 className="animate-spin h-10 w-10 text-emerald-500" />
       </div>
     );
   }
 
+  if (!stats) {
+    return (
+      <div className="flex items-center justify-center h-[500px] text-sm text-gray-500">
+        No se pudieron cargar los indicadores
+      </div>
+    );
+  }
   const kpis = [
-    { label: 'Total Llamadas', value: stats?.total || 0, icon: Phone, color: COLORS.accent, bgDim: 'rgba(6,214,160,0.12)' },
-    { label: 'Con Tipificacion', value: stats?.conTipificacion || 0, icon: PhoneCall, color: COLORS.info, bgDim: 'rgba(56,189,248,0.12)' },
-    { label: 'Sin Tipificar', value: stats?.sinTipificacion || 0, icon: PhoneMissed, color: COLORS.danger, bgDim: 'rgba(239,68,68,0.12)' },
-    { label: 'T. Promedio', value: stats?.promedioDuracion || 0, icon: Timer, color: COLORS.purple, bgDim: 'rgba(167,139,250,0.12)', format: (v) => formatDuration(v) },
-    { label: 'Minutos Totales', value: stats?.totalMinutos || 0, icon: Clock, color: COLORS.warning, bgDim: 'rgba(251,191,36,0.12)' },
-    { label: 'Campanias', value: stats?.campaniaData?.length || 0, icon: Activity, color: COLORS.orange, bgDim: 'rgba(251,146,60,0.12)' },
-  ];
+  {
+    label: 'Base Total',
+    value: stats?.embudo?.base_total || 0,
+    icon: Phone,
+    color: COLORS.accent,
+    bgDim: 'rgba(6,214,160,0.12)',
+    integer: true
+  },
 
+  {
+    label: 'Base Recorrida',
+    value: stats?.embudo?.base_recorrida || 0,
+    icon: PhoneCall,
+    color: COLORS.info,
+    bgDim: 'rgba(56,189,248,0.12)',
+    integer: true
+  },
+
+  {
+    label: 'Sin Tipificar',
+    value: stats?.embudo?.base_no_recorrida || 0,
+    icon: PhoneMissed,
+    color: COLORS.danger,
+    bgDim: 'rgba(239,68,68,0.12)',
+    integer: true
+  },
+
+  {
+    label: 'T. Promedio',
+    value: stats?.promedioDuracion || 0,
+    icon: Timer,
+    color: COLORS.purple,
+    bgDim: 'rgba(167,139,250,0.12)',
+    format: (v) => formatDuration(v)
+  },
+
+  {
+    label: 'Minutos Totales',
+    value: stats?.totalMinutosWeek || 0,
+    icon: Clock,
+    color: COLORS.warning,
+    bgDim: 'rgba(251,191,36,0.12)',
+    integer: true
+  },
+
+  {
+    label: 'Campañas',
+    value: stats?.totalCampanias || 0,
+    icon: Users,
+    color: COLORS.accent,
+    bgDim: 'rgba(6,214,160,0.12)',
+    integer: true
+  },
+
+  {
+    label: 'Contactabilidad',
+    value: parseFloat(stats?.kpis_percent?.contactabilidad || 0),
+    icon: PhoneCall,
+    color: COLORS.info,
+    bgDim: 'rgba(56,189,248,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  },
+
+  {
+    label: 'Tasa Cierre',
+    value: parseFloat(stats?.kpis_percent?.tasa_cierre || 0),
+    icon: Activity,
+    color: COLORS.warning,
+    bgDim: 'rgba(251,191,36,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  },
+
+  {
+    label: 'Efectividad',
+    value: parseFloat(stats?.kpis_percent?.efectividad || 0),
+    icon: TrendingUp,
+    color: COLORS.purple,
+    bgDim: 'rgba(167,139,250,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  },
+
+  {
+    label: 'Conversión Total',
+    value: parseFloat(stats?.kpis?.conversion_total || 0) * 100,
+    icon: Flame,
+    color: COLORS.orange,
+    bgDim: 'rgba(251,146,60,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  },
+
+  {
+    label: 'Conversión Recorrida',
+    value: parseFloat(stats?.kpis?.conversion_recorrida || 0) * 100,
+    icon: CheckCircle2,
+    color: COLORS.accent,
+    bgDim: 'rgba(6,214,160,0.12)',
+    format: (v) => `${v.toFixed(1)}%`
+  }
+];
   return (
     <div className="min-h-full" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
       <div className="space-y-7">
@@ -390,21 +712,7 @@ export default function IndicadoresLlamadasPage() {
           {/* Barras diagonales tipo warning */}
           <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#000_10px,#000_20px)]" />
 
-          <div className="relative flex items-center gap-4 px-5 py-4">
-            {/* Icono con pulso */}
-            <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 animate-[pulse_2s_ease-in-out_infinite] shadow-inner">
-              <span className="text-2xl drop-shadow-lg animate-[lightSwitch_1.5s_ease-in-out_infinite]">💡</span>
-            </div>
-            <div>
-              <p className="text-base font-bold text-white drop-shadow-sm tracking-wide">Modulo en construccion</p>
-              <p className="text-sm text-white/80 font-medium">Este modulo esta en desarrollo activo. Los datos mostrados pueden ser parciales.</p>
-            </div>
-            {/* Badge derecha */}
-            <div className="ml-auto shrink-0 hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5">
-              <span className="h-2 w-2 rounded-full bg-white animate-[pulse_1.5s_ease-in-out_infinite]" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">En desarrollo</span>
-            </div>
-          </div>
+          
 
           <style jsx>{`
             @keyframes lightSwitch {
@@ -430,33 +738,91 @@ export default function IndicadoresLlamadasPage() {
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-              <BarChart3 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Indicadores de Llamadas</h1>
-              <p className="text-xs text-muted-foreground">Metricas y rendimiento del call center</p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadData}
-            className="gap-2 rounded-xl border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
-        </div>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+  <div className="flex items-center gap-3">
+    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+      <BarChart3 className="h-5 w-5 text-white" />
+    </div>
+    <div>
+      <h1 className="text-2xl font-bold tracking-tight">Indicadores de Llamadas</h1>
+      <p className="text-xs text-muted-foreground">Metricas y rendimiento del call center</p>
+    </div>
+  </div>
+
+  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="flex flex-col sm:flex-row gap-3">
+      <div className="relative">
+        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
+        <input
+          type="date"
+          value={fechaInicio}
+          onChange={(e) => setFechaInicio(e.target.value)}
+          className="h-10 w-full sm:w-[170px] rounded-xl border border-emerald-200 bg-white pl-10 pr-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        />
+      </div>
+
+      <div className="relative">
+        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
+        <input
+          type="date"
+          value={fechaFin}
+          onChange={(e) => setFechaFin(e.target.value)}
+          className="h-10 w-full sm:w-[170px] rounded-xl border border-emerald-200 bg-white pl-10 pr-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        />
+      </div>
+    </div>
+    <Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    setFechaInicio('');
+    setFechaFin('');
+  }}
+  className="h-10 gap-2 rounded-xl border-emerald-200 px-4 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200"
+    
+>
+  Limpiar
+</Button>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={loadData}
+      className="h-10 gap-2 rounded-xl border-emerald-200 px-4 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200"
+    >
+      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+      Actualizar
+    </Button>
+  </div>
+</div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {kpis.map((kpi, i) => (
             <KpiCard key={kpi.label} {...kpi} index={i} />
           ))}
         </div>
+      
+  <GlassCard className="overflow-hidden">
+  <CardHeader className="pb-2"> 
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-lg">
+          <BarChart3 className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <CardTitle className="text-sm font-semibold">Embudo de Tipificaciones</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Flujo completo desde base total hasta contacto efectivo
+          </p>
+        </div>
+      </div>
+    </CardHeader>
+
+    <CardContent className="pt-2 pb-4 px-3 sm:px-4 md:px-6">
+      <TipificacionTree stats={stats} />
+    </CardContent>
+  </GlassCard>
+
+
 
         <SectionSeparator label="Analisis por tiempo" />
 
@@ -478,7 +844,7 @@ export default function IndicadoresLlamadasPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={stats?.hourlyData || []} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <AreaChart data={stats?.hourly || []} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                     <defs>
                       <linearGradient id="gradLlamadas" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={COLORS.accent} stopOpacity={0.25} />
@@ -514,7 +880,7 @@ export default function IndicadoresLlamadasPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={stats?.tipificacionData || []}
+                      data={stats?.tipificaciones || []}
                       cx="50%"
                       cy="50%"
                       innerRadius={50}
@@ -524,8 +890,8 @@ export default function IndicadoresLlamadasPage() {
                       labelLine={false}
                       label={renderDonutLabel}
                     >
-                      {(stats?.tipificacionData || []).map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
+                      {(stats?.tipificaciones || []).map((entry, i) => (
+                        <Cell key={i} fill={entry.color || COLORS.accent} />
                       ))}
                     </Pie>
                     <RechartsTooltip content={<CustomTooltip />} />
@@ -534,10 +900,13 @@ export default function IndicadoresLlamadasPage() {
               </div>
               {/* Legend */}
               <div className="space-y-1.5 mt-2">
-                {(stats?.tipificacionData || []).map((entry, i) => (
+                {(stats?.tipificaciones || []).map((entry, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full shrink-0" style={{ background: entry.color }} />
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ background: entry.color || COLORS.accent }}
+                      />
                       <span className="text-muted-foreground truncate">{entry.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -571,13 +940,12 @@ export default function IndicadoresLlamadasPage() {
             <CardContent>
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats?.weeklyData || []} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <BarChart data={stats?.weekly || []} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="#94a3b8" />
                     <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" />
                     <RechartsTooltip content={<CustomTooltip />} />
-                    <Bar dataKey="conTip" name="Tipificadas" fill={COLORS.info} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="sinTip" name="Sin tipificar" fill={COLORS.warning} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="llamadas" name="Llamadas" fill={COLORS.info} radius={[4,4,0,0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -598,7 +966,7 @@ export default function IndicadoresLlamadasPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Heatmap data={stats?.heatmapData || DAYS.map(() => HOURS.map(() => 0))} />
+              <Heatmap data={stats?.heatmap ?? DAYS.map(() => HOURS.map(() => 0))} />
             </CardContent>
           </GlassCard>
         </div>
@@ -621,14 +989,17 @@ export default function IndicadoresLlamadasPage() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.minutesData || []} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
+                <BarChart data={stats?.minutes || []} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="#94a3b8" />
                   <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={v => `${v} min`} />
                   <RechartsTooltip content={<CustomTooltip />} />
                   <Bar dataKey="minutos" name="Minutos" fill={COLORS.accent} radius={[6, 6, 0, 0]}>
-                    {(stats?.minutesData || []).map((entry, i) => (
-                      <Cell key={i} fill={entry === stats?.peakDay ? COLORS.warning : COLORS.accent} />
+                    {(stats?.minutes || []).map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={entry.day === stats?.peakDay?.day ? COLORS.warning : COLORS.accent}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
@@ -641,7 +1012,7 @@ export default function IndicadoresLlamadasPage() {
                 { label: 'Total Semanal', value: `${stats?.totalMinutosWeek || 0} min`, sub: `${((stats?.totalMinutosWeek || 0) / 60).toFixed(1)} horas`, color: COLORS.accent, bg: 'rgba(6,214,160,0.08)' },
                 { label: 'Promedio Diario', value: `${stats?.avgMinutosDay || 0} min`, sub: `${((stats?.avgMinutosDay || 0) / 60).toFixed(1)} horas`, color: COLORS.purple, bg: 'rgba(167,139,250,0.08)' },
                 { label: 'Dia Pico', value: `${stats?.peakDay?.day || '-'} — ${stats?.peakDay?.minutos || 0} min`, sub: `${((stats?.peakDay?.minutos || 0) / 60).toFixed(1)} horas`, color: COLORS.warning, bg: 'rgba(251,191,36,0.08)' },
-                { label: 'Total Llamadas', value: stats?.total || 0, sub: `${stats?.campaniaData?.length || 0} campanias`, color: COLORS.info, bg: 'rgba(56,189,248,0.08)' },
+                { label: 'Total Llamadas', value: stats?.total || 0, sub: `${stats?.totalCampanias || 0} campanias`, color: COLORS.info, bg: 'rgba(56,189,248,0.08)' },
               ].map((card, i) => (
                 <div key={i} className="rounded-xl p-4 border" style={{ background: card.bg, borderColor: card.bg }}>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">{card.label}</p>
@@ -654,7 +1025,7 @@ export default function IndicadoresLlamadasPage() {
         </GlassCard>
 
         {/* Rendimiento por campania */}
-        {stats?.campaniaData && stats.campaniaData.length > 0 && (
+        {stats?.campanias && stats.campanias.length > 0 && (
           <GlassCard>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
@@ -674,20 +1045,27 @@ export default function IndicadoresLlamadasPage() {
                     <tr className="bg-muted/30 border-b">
                       <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Campania</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Llamadas</th>
-                      <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Tipificadas</th>
+                      <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Participación</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Tasa</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Duracion Total</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">T. Promedio</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.campaniaData.map((camp, i) => {
-                      const tasa = camp.total > 0 ? ((camp.conTip / camp.total) * 100).toFixed(1) : '0.0';
-                      const tasaNum = parseFloat(tasa);
-                      const tasaColor = tasaNum >= 80 ? COLORS.accent : tasaNum >= 50 ? COLORS.warning : COLORS.danger;
-                      const tasaBg = tasaNum >= 80 ? 'rgba(6,214,160,0.12)' : tasaNum >= 50 ? 'rgba(251,191,36,0.12)' : 'rgba(239,68,68,0.12)';
-                      const avgDur = camp.total > 0 ? Math.round(camp.duracion / camp.total) : 0;
+                    {stats.campanias.map((camp, i) => {
+                      const tasa = totalDuracionCampanias > 0
+                      ? ((camp.duracion / totalDuracionCampanias) * 100).toFixed(1)
+                      : '0.0';
 
+                      const tasaNum = parseFloat(tasa);
+                      const tasaColor = tasaNum >= 40 ? COLORS.accent : tasaNum >= 20 ? COLORS.warning : COLORS.danger;
+                      const tasaBg = tasaNum >= 40
+                        ? 'rgba(6,214,160,0.12)'
+                        : tasaNum >= 20
+                          ? 'rgba(251,191,36,0.12)'
+                          : 'rgba(239,68,68,0.12)';
+
+                      const avgDur = camp.avg_duracion || 0;
                       return (
                         <tr key={i} className="border-b last:border-0 hover:bg-muted/10 transition-colors">
                           <td className="px-4 py-3">
@@ -697,7 +1075,11 @@ export default function IndicadoresLlamadasPage() {
                             <span className="text-sm font-mono font-semibold">{camp.total}</span>
                           </td>
                           <td className="text-center px-4 py-3">
-                            <span className="text-sm font-mono font-semibold" style={{ color: COLORS.accent }}>{camp.conTip}</span>
+                            <span className="text-sm font-mono font-semibold" style={{ color: COLORS.accent }}>
+                              {stats?.embudo?.base_recorrida > 0
+                                ? ((camp.total / stats.embudo.base_recorrida) * 100).toFixed(1)
+                                : '0.0'}%
+                            </span>
                           </td>
                           <td className="text-center px-4 py-3">
                             <span
