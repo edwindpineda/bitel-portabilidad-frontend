@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { apiClient } from '@/lib/api';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
