@@ -172,7 +172,7 @@ export default function WhatsAppAPIConfig() {
               const result = await whatsappEmbeddedService.procesarToken(
                 accessToken,
                 eventType,
-                2
+                4
               );
 
               if (result.success) {
