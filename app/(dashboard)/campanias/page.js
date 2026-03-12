@@ -354,15 +354,17 @@ export default function CampaniasPage() {
 
   // Ejecutar campania
   const handleEjecutar = async (campania) => {
-    const ids_base_numero = basesAsignadas.map(b => b.id_base_numero);
     if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
       setEjecutando(true);
       try {
+        const basesRes = await apiClient.get(`/crm/campanias/${campania.id}/bases`);
+        const bases = basesRes?.data || [];
+        const ids_base_numero = bases.map(b => b.id_base_numero);
         const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
           id_campania: campania.id,
           ids_base_numero: ids_base_numero
         });
-        alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
+        alert(`Ejecución iniciada: ${response.data?.data?.ids_base_numero?.length || ids_base_numero.length} bases programadas`);
         loadData();
       } catch (error) {
         console.error('Error al ejecutar campania:', error);
