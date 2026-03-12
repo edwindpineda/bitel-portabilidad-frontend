@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Cargar PromptEditor dinámicamente (solo en cliente)
+const PromptEditor = dynamic(() => import('@/components/PromptEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+  )
+});
 
 // Campos fijos de base_numero_detalle
 const CAMPOS_FIJOS = [
@@ -20,7 +31,6 @@ export default function PlantillasPage() {
   const [editingPlantilla, setEditingPlantilla] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [camposFormato, setCamposFormato] = useState([]);
-  const promptRef = useRef(null);
 
   const [formData, setFormData] = useState({
     id_formato: '',
@@ -137,27 +147,6 @@ export default function PlantillasPage() {
     resetForm();
   };
 
-  // Insertar campo en el prompt
-  const insertCampo = (campo) => {
-    const textarea = promptRef?.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = formData.prompt;
-    const variable = `{{${campo.nombre_campo}}}`;
-
-    const newText = text.substring(0, start) + variable + text.substring(end);
-    setFormData({ ...formData, prompt: newText });
-
-    // Restaurar foco y posicion del cursor
-    setTimeout(() => {
-      textarea.focus();
-      const newPos = start + variable.length;
-      textarea.setSelectionRange(newPos, newPos);
-    }, 0);
-  };
-
   // Todos los campos disponibles (fijos + formato)
   const allCampos = [...CAMPOS_FIJOS, ...camposFormato];
 
@@ -253,87 +242,68 @@ export default function PlantillasPage() {
                   />
                 </div>
 
+                {/* Info sobre variables */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-blue-800 mb-2">Variables disponibles</h4>
+                  <p className="text-xs text-blue-600 mb-2">
+                    Usa <code className="bg-blue-100 px-1 rounded">{'{{variable}}'}</code> para insertar datos dinámicos.
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {CAMPOS_FIJOS.map((campo) => (
+                      <span
+                        key={campo.nombre_campo}
+                        className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700"
+                      >
+                        {campo.etiqueta}
+                      </span>
+                    ))}
+                    {camposFormato.map((campo) => (
+                      <span
+                        key={campo.id}
+                        className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700"
+                      >
+                        {campo.etiqueta || campo.nombre_campo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Columna derecha: Prompt único */}
-              <div className="lg:col-span-2 space-y-4">
-                {/* Campos disponibles */}
-                {formData.id_formato && (
-                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-2">Haz click en un campo para insertarlo en el prompt:</p>
+              {/* Columna derecha: Editor de Prompt estilo VS Code */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Prompt *
+                  <span className="ml-2 text-xs text-gray-400">(Instrucciones completas del agente de voz)</span>
+                </label>
 
-                    {/* Campos fijos */}
-                    <div className="mb-2">
-                      <span className="text-xs text-blue-600 font-medium">Campos base:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {CAMPOS_FIJOS.map((campo) => (
-                          <button
-                            key={campo.nombre_campo}
-                            type="button"
-                            onClick={() => insertCampo(campo)}
-                            className="px-2 py-1 text-xs rounded-full border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 cursor-pointer transition-colors"
-                          >
-                            {`{{${campo.nombre_campo}}}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Campos del formato */}
-                    {camposFormato.length > 0 && (
-                      <div>
-                        <span className="text-xs text-purple-600 font-medium">Campos del formato:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {camposFormato.map((campo) => (
-                            <button
-                              key={campo.id}
-                              type="button"
-                              onClick={() => insertCampo(campo)}
-                              className="px-2 py-1 text-xs rounded-full border bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 cursor-pointer transition-colors"
-                            >
-                              {`{{${campo.nombre_campo}}}`}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Prompt único */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prompt *
-                    <span className="ml-2 text-xs text-gray-400">(Instrucciones completas del agente de voz)</span>
-                  </label>
-                  <textarea
-                    ref={promptRef}
+                {/* Editor Monaco estilo VS Code */}
+                <div style={{ height: '400px' }}>
+                  <PromptEditor
                     value={formData.prompt}
-                    onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
-                    rows={16}
+                    onChange={(value) => setFormData({ ...formData, prompt: value || '' })}
+                    campos={allCampos}
+                    height="100%"
                     placeholder="Escribe aquí el prompt completo del agente de voz..."
-                    required
                   />
                 </div>
-
-                {/* Botones de accion */}
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                  >
-                    {editingPlantilla ? 'Actualizar' : 'Crear'} Plantilla
-                  </button>
-                </div>
               </div>
+            </div>
+
+            {/* Botones de accion - fuera del grid para asegurar visibilidad */}
+            <div className="flex justify-end space-x-3 pt-4 mt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                {editingPlantilla ? 'Actualizar' : 'Crear'} Plantilla
+              </button>
             </div>
           </form>
         </div>
