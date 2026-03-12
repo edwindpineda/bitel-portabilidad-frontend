@@ -12,6 +12,8 @@ import {
   Image as ImageIcon,
   Paperclip,
   X,
+  CheckCircle,
+  Circle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,23 +121,17 @@ function ConfigDialog({ open, onOpenChange, config, onSave }) {
 }
 
 // ==================== Componente NewChatDialog ====================
-function NewChatDialog({ open, onOpenChange, onCreate }) {
-  const [channel, setChannel] = useState("");
+function NewChatDialog({ open, onOpenChange, onCreate, canal }) {
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (open) setChannel("");
-  }, [open]);
-
   const handleCreate = async () => {
-    if (!channel.trim()) {
-      toast.error("El canal es obligatorio");
+    if (!canal) {
+      toast.error("Configura el canal primero en ajustes");
       return;
     }
     setCreating(true);
     try {
-      const chat = await createChat({ channel: channel.trim() });
-      toast.success("Chat creado");
+      const chat = await createChat({ canal: canal });
       onCreate(chat);
       onOpenChange(false);
     } catch {
@@ -147,31 +143,48 @@ function NewChatDialog({ open, onOpenChange, onCreate }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Nuevo Chat</DialogTitle>
           <DialogDescription>
-            Crea una nueva conversación de prueba con el bot.
+            Se creará una conversación en el canal configurado.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Canal</label>
-            <Input
-              placeholder="mi-canal-test"
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            />
+        <div className="py-2">
+          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
+            <span className="text-sm text-muted-foreground">Canal:</span>
+            <span className="text-sm font-medium">{canal || "No configurado"}</span>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleCreate} disabled={creating}>
+          <Button onClick={handleCreate} disabled={creating || !canal}>
             {creating ? "Creando..." : "Crear Chat"}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ==================== Componente SuccessDialog ====================
+function SuccessDialog({ open, onOpenChange, chatId }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            Chat creado exitosamente
+          </DialogTitle>
+          <DialogDescription>
+            El chat #{chatId} está listo. Ya puedes enviar mensajes al bot.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Aceptar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -307,6 +320,8 @@ export default function SandboxPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successChatId, setSuccessChatId] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = useCallback(() => {
@@ -386,15 +401,21 @@ export default function SandboxPage() {
       type: "text",
       fecha_hora: new Date().toISOString(),
       id_chat_sandbox: selectedChat.id,
+      config:{
+        id_empresa:50,
+      }
     };
     setMessages((prev) => [...prev, tempMsg]);
 
     try {
-      await sendMessage(selectedChat.id, {
+      const payload = {
         message: text,
         type: "text",
-        direction: "outgoing",
-      });
+        url: "",
+      };
+
+      console.log("[Sandbox] payload enviado:", payload);
+      await sendMessage(selectedChat.id, payload);
       // Recargar mensajes para obtener respuesta del bot
       setTimeout(() => loadMessages(selectedChat.id), 1500);
     } catch {
@@ -427,6 +448,8 @@ export default function SandboxPage() {
     setChats((prev) => [chat, ...prev]);
     setSelectedChat(chat);
     setMessages([]);
+    setSuccessChatId(chat.id);
+    setSuccessOpen(true);
   };
 
   return (
@@ -434,26 +457,45 @@ export default function SandboxPage() {
       {/* ===== Sidebar de Chats ===== */}
       <div className="w-[360px] border-r flex flex-col bg-card">
         {/* Header sidebar */}
-        <div className="h-16 border-b flex items-center justify-between px-4 bg-card shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="border-b bg-card shrink-0">
+          <div className="h-14 flex items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setConfigOpen(true)}
+                title="Configuración"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+              <h2 className="font-semibold text-lg">Sandbox</h2>
+            </div>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setConfigOpen(true)}
-              title="Configuración"
+              onClick={() => setNewChatOpen(true)}
+              title="Nuevo chat"
             >
-              <Settings className="h-5 w-5" />
+              <Plus className="h-5 w-5" />
             </Button>
-            <h2 className="font-semibold text-lg">Sandbox</h2>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setNewChatOpen(true)}
-            title="Nuevo chat"
-          >
-            <Plus className="h-5 w-5" />
-          </Button>
+          {/* Indicador de configuración */}
+          <div className="px-4 pb-2">
+            {config?.url_bot_service && config?.canal ? (
+              <div className="flex items-center gap-2 rounded-md bg-green-500/10 px-3 py-1.5">
+                <Circle className="h-2.5 w-2.5 fill-green-500 text-green-500" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-green-700 dark:text-green-400">Conectado</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{config.canal} · {config.url_bot_service}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-md bg-yellow-500/10 px-3 py-1.5 cursor-pointer" onClick={() => setConfigOpen(true)}>
+                <Circle className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
+                <p className="text-[11px] font-medium text-yellow-700 dark:text-yellow-400">Sin configurar — Click para configurar</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Lista de chats */}
@@ -633,6 +675,12 @@ export default function SandboxPage() {
         open={newChatOpen}
         onOpenChange={setNewChatOpen}
         onCreate={handleNewChat}
+        canal={config?.canal}
+      />
+      <SuccessDialog
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        chatId={successChatId}
       />
     </div>
   );
