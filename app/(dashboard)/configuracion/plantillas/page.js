@@ -20,25 +20,13 @@ export default function PlantillasPage() {
   const [editingPlantilla, setEditingPlantilla] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [camposFormato, setCamposFormato] = useState([]);
-  const [activePromptField, setActivePromptField] = useState(null);
-
-  const promptRefs = {
-    prompt_sistema: useRef(null),
-    prompt_inicio: useRef(null),
-    prompt_flujo: useRef(null),
-    prompt_cierre: useRef(null),
-    prompt_resultado: useRef(null),
-  };
+  const promptRef = useRef(null);
 
   const [formData, setFormData] = useState({
     id_formato: '',
     nombre: '',
     descripcion: '',
-    prompt_sistema: '',
-    prompt_inicio: '',
-    prompt_flujo: '',
-    prompt_cierre: '',
-    prompt_resultado: ''
+    prompt: ''
   });
 
   useEffect(() => {
@@ -107,11 +95,7 @@ export default function PlantillasPage() {
       id_formato: plantilla.id_formato || '',
       nombre: plantilla.nombre || '',
       descripcion: plantilla.descripcion || '',
-      prompt_sistema: plantilla.prompt_sistema || '',
-      prompt_inicio: plantilla.prompt_inicio || '',
-      prompt_flujo: plantilla.prompt_flujo || '',
-      prompt_cierre: plantilla.prompt_cierre || '',
-      prompt_resultado: plantilla.prompt_resultado || ''
+      prompt: plantilla.prompt || ''
     });
     await loadCamposFormato(plantilla.id_formato);
   };
@@ -136,14 +120,9 @@ export default function PlantillasPage() {
       id_formato: '',
       nombre: '',
       descripcion: '',
-      prompt_sistema: '',
-      prompt_inicio: '',
-      prompt_flujo: '',
-      prompt_cierre: '',
-      prompt_resultado: ''
+      prompt: ''
     });
     setCamposFormato([]);
-    setActivePromptField(null);
   };
 
   const handleNewPlantilla = () => {
@@ -158,21 +137,18 @@ export default function PlantillasPage() {
     resetForm();
   };
 
-  // Insertar campo en el prompt activo
+  // Insertar campo en el prompt
   const insertCampo = (campo) => {
-    if (!activePromptField) return;
-
-    const ref = promptRefs[activePromptField];
-    const textarea = ref?.current;
+    const textarea = promptRef?.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const text = formData[activePromptField];
+    const text = formData.prompt;
     const variable = `{{${campo.nombre_campo}}}`;
 
     const newText = text.substring(0, start) + variable + text.substring(end);
-    setFormData({ ...formData, [activePromptField]: newText });
+    setFormData({ ...formData, prompt: newText });
 
     // Restaurar foco y posicion del cursor
     setTimeout(() => {
@@ -277,176 +253,67 @@ export default function PlantillasPage() {
                   />
                 </div>
 
+              </div>
+
+              {/* Columna derecha: Prompt único */}
+              <div className="lg:col-span-2 space-y-4">
                 {/* Campos disponibles */}
                 {formData.id_formato && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Campos disponibles
-                      <span className="text-xs text-gray-400 ml-1">(click para insertar)</span>
-                    </label>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-2">Selecciona un campo de prompt y luego haz click en un campo:</p>
+                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-2">Haz click en un campo para insertarlo en el prompt:</p>
 
-                      {/* Campos fijos */}
-                      <div className="mb-2">
-                        <span className="text-xs text-blue-600 font-medium">Campos base:</span>
+                    {/* Campos fijos */}
+                    <div className="mb-2">
+                      <span className="text-xs text-blue-600 font-medium">Campos base:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {CAMPOS_FIJOS.map((campo) => (
+                          <button
+                            key={campo.nombre_campo}
+                            type="button"
+                            onClick={() => insertCampo(campo)}
+                            className="px-2 py-1 text-xs rounded-full border bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 cursor-pointer transition-colors"
+                          >
+                            {`{{${campo.nombre_campo}}}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Campos del formato */}
+                    {camposFormato.length > 0 && (
+                      <div>
+                        <span className="text-xs text-purple-600 font-medium">Campos del formato:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {CAMPOS_FIJOS.map((campo) => (
+                          {camposFormato.map((campo) => (
                             <button
-                              key={campo.nombre_campo}
+                              key={campo.id}
                               type="button"
                               onClick={() => insertCampo(campo)}
-                              disabled={!activePromptField}
-                              className={`px-2 py-1 text-xs rounded-full border transition-colors ${
-                                activePromptField
-                                  ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 cursor-pointer'
-                                  : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                              }`}
+                              className="px-2 py-1 text-xs rounded-full border bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 cursor-pointer transition-colors"
                             >
                               {`{{${campo.nombre_campo}}}`}
                             </button>
                           ))}
                         </div>
                       </div>
-
-                      {/* Campos del formato */}
-                      {camposFormato.length > 0 && (
-                        <div>
-                          <span className="text-xs text-purple-600 font-medium">Campos del formato:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {camposFormato.map((campo) => (
-                              <button
-                                key={campo.id}
-                                type="button"
-                                onClick={() => insertCampo(campo)}
-                                disabled={!activePromptField}
-                                className={`px-2 py-1 text-xs rounded-full border transition-colors ${
-                                  activePromptField
-                                    ? 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 cursor-pointer'
-                                    : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                                }`}
-                              >
-                                {`{{${campo.nombre_campo}}}`}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )}
-              </div>
 
-              {/* Columna derecha: Prompts (2 columnas en pantallas grandes) */}
-              <div className="lg:col-span-2 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Prompt Sistema */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prompt Sistema *
-                      {activePromptField === 'prompt_sistema' && (
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Activo</span>
-                      )}
-                    </label>
-                    <textarea
-                      ref={promptRefs.prompt_sistema}
-                      value={formData.prompt_sistema}
-                      onChange={(e) => setFormData({ ...formData, prompt_sistema: e.target.value })}
-                      onFocus={() => setActivePromptField('prompt_sistema')}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm ${
-                        activePromptField === 'prompt_sistema' ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'
-                      }`}
-                      rows={6}
-                      placeholder="Define el rol y comportamiento del asistente..."
-                      required
-                    />
-                  </div>
-
-                  {/* Prompt Inicio */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prompt Inicio *
-                      {activePromptField === 'prompt_inicio' && (
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Activo</span>
-                      )}
-                    </label>
-                    <textarea
-                      ref={promptRefs.prompt_inicio}
-                      value={formData.prompt_inicio}
-                      onChange={(e) => setFormData({ ...formData, prompt_inicio: e.target.value })}
-                      onFocus={() => setActivePromptField('prompt_inicio')}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm ${
-                        activePromptField === 'prompt_inicio' ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'
-                      }`}
-                      rows={6}
-                      placeholder="Mensaje inicial de bienvenida..."
-                      required
-                    />
-                  </div>
-
-                  {/* Prompt Flujo */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prompt Flujo *
-                      {activePromptField === 'prompt_flujo' && (
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Activo</span>
-                      )}
-                    </label>
-                    <textarea
-                      ref={promptRefs.prompt_flujo}
-                      value={formData.prompt_flujo}
-                      onChange={(e) => setFormData({ ...formData, prompt_flujo: e.target.value })}
-                      onFocus={() => setActivePromptField('prompt_flujo')}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm ${
-                        activePromptField === 'prompt_flujo' ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'
-                      }`}
-                      rows={6}
-                      placeholder="Instrucciones para el flujo de la conversación..."
-                      required
-                    />
-                  </div>
-
-                  {/* Prompt Cierre */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prompt Cierre
-                      {activePromptField === 'prompt_cierre' && (
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Activo</span>
-                      )}
-                    </label>
-                    <textarea
-                      ref={promptRefs.prompt_cierre}
-                      value={formData.prompt_cierre}
-                      onChange={(e) => setFormData({ ...formData, prompt_cierre: e.target.value })}
-                      onFocus={() => setActivePromptField('prompt_cierre')}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm ${
-                        activePromptField === 'prompt_cierre' ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'
-                      }`}
-                      rows={6}
-                      placeholder="Mensaje de cierre o despedida (opcional)..."
-                    />
-                  </div>
-                </div>
-
-                {/* Prompt Resultado - ancho completo */}
-                <div className="mt-4">
+                {/* Prompt único */}
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prompt Resultado
-                    {activePromptField === 'prompt_resultado' && (
-                      <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Activo</span>
-                    )}
-                    <span className="ml-2 text-xs text-gray-400">(Instrucciones para extraer/formatear el resultado de la conversación)</span>
+                    Prompt *
+                    <span className="ml-2 text-xs text-gray-400">(Instrucciones completas del agente de voz)</span>
                   </label>
                   <textarea
-                    ref={promptRefs.prompt_resultado}
-                    value={formData.prompt_resultado}
-                    onChange={(e) => setFormData({ ...formData, prompt_resultado: e.target.value })}
-                    onFocus={() => setActivePromptField('prompt_resultado')}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm ${
-                      activePromptField === 'prompt_resultado' ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'
-                    }`}
-                    rows={4}
-                    placeholder="Instrucciones para procesar o extraer el resultado de la conversación (opcional)..."
+                    ref={promptRef}
+                    value={formData.prompt}
+                    onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
+                    rows={16}
+                    placeholder="Escribe aquí el prompt completo del agente de voz..."
+                    required
                   />
                 </div>
 

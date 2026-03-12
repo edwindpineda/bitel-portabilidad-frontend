@@ -6,6 +6,10 @@ import { apiClient } from '@/lib/api';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+const formatNumber = (num) => {
+  return (num || 0).toLocaleString('es-PE');
+};
+
 export default function BasesNumerosPage() {
   const { data: session } = useSession();
   const [bases, setBases] = useState([]);
@@ -199,44 +203,55 @@ export default function BasesNumerosPage() {
               console.log('SSE event received:', data);
 
               if (data.tipo === 'inicio') {
-                setProgressInfo(prev => ({ ...prev, mensaje: data.mensaje }));
-              } else if (data.tipo === 'progreso') {
-                setProgressInfo({
-                  total: data.total || 0,
-                  procesados: data.procesados || 0,
-                  nuevos: data.nuevos || 0,
-                  omitidos: data.omitidos || 0,
-                  mensaje: data.mensaje || 'Procesando...'
+                flushSync(() => {
+                  setProgressInfo(prev => ({ ...prev, mensaje: data.mensaje }));
                 });
-                if (data.porcentaje !== undefined) {
-                  setUploadProgress(data.porcentaje);
-                } else if (data.total > 0) {
-                  setUploadProgress(Math.round((data.procesados / data.total) * 100));
-                }
+              } else if (data.tipo === 'progreso') {
+                flushSync(() => {
+                  setProgressInfo({
+                    total: data.total || 0,
+                    procesados: data.procesados || 0,
+                    nuevos: data.nuevos || 0,
+                    omitidos: data.omitidos || 0,
+                    mensaje: data.mensaje || 'Procesando...'
+                  });
+                  if (data.porcentaje !== undefined) {
+                    setUploadProgress(data.porcentaje);
+                  } else if (data.total > 0) {
+                    setUploadProgress(Math.round((data.procesados / data.total) * 100));
+                  }
+                });
               } else if (data.tipo === 'completado') {
-                setUploadResult({
-                  exito: data.exito,
-                  totalProcesados: data.data?.totalProcesados || 0,
-                  insertados: data.data?.insertados || 0,
-                  erroresValidacion: data.data?.erroresValidacion || 0,
-                  erroresDuplicados: data.data?.erroresDuplicados || 0,
-                  detalleErroresValidacion: data.data?.detalleErroresValidacion || [],
-                  detalleErroresDuplicados: data.data?.detalleErroresDuplicados || []
+                flushSync(() => {
+                  setUploadProgress(100);
+                  setUploadResult({
+                    exito: data.exito,
+                    totalProcesados: data.data?.totalProcesados || 0,
+                    insertados: data.data?.insertados || 0,
+                    erroresValidacion: data.data?.erroresValidacion || 0,
+                    erroresDuplicados: data.data?.erroresDuplicados || 0,
+                    detalleErroresValidacion: data.data?.detalleErroresValidacion || [],
+                    detalleErroresDuplicados: data.data?.detalleErroresDuplicados || []
+                  });
                 });
                 loadData();
               } else if (data.tipo === 'error') {
-                setUploadResult({
-                  error: true,
-                  msg: data.mensaje
+                flushSync(() => {
+                  setUploadResult({
+                    error: true,
+                    msg: data.mensaje
+                  });
                 });
               } else if (data.tipo === 'error_estructura') {
-                setUploadResult({
-                  error: 'estructura_invalida',
-                  msg: data.mensaje,
-                  columnasFaltantes: data.columnasFaltantes,
-                  columnasSobrantes: data.columnasSobrantes,
-                  columnasEsperadas: data.columnasEsperadas,
-                  columnasArchivo: data.columnasArchivo
+                flushSync(() => {
+                  setUploadResult({
+                    error: 'estructura_invalida',
+                    msg: data.mensaje,
+                    columnasFaltantes: data.columnasFaltantes,
+                    columnasSobrantes: data.columnasSobrantes,
+                    columnasEsperadas: data.columnasEsperadas,
+                    columnasArchivo: data.columnasArchivo
+                  });
                 });
               }
             } catch (parseError) {
@@ -478,19 +493,19 @@ export default function BasesNumerosPage() {
                   {/* Indicadores - siempre visibles */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                     <div className="bg-blue-50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-blue-600">{progressInfo.total || 0}</div>
+                      <div className="text-2xl font-bold text-blue-600">{formatNumber(progressInfo.total)}</div>
                       <div className="text-xs text-blue-700">Total filas</div>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-gray-600">{progressInfo.procesados || 0}</div>
+                      <div className="text-2xl font-bold text-gray-600">{formatNumber(progressInfo.procesados)}</div>
                       <div className="text-xs text-gray-700">Procesados</div>
                     </div>
                     <div className="bg-green-50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-green-600">{progressInfo.nuevos || 0}</div>
+                      <div className="text-2xl font-bold text-green-600">{formatNumber(progressInfo.nuevos)}</div>
                       <div className="text-xs text-green-700">Validos</div>
                     </div>
                     <div className="bg-yellow-50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-yellow-600">{progressInfo.omitidos || 0}</div>
+                      <div className="text-2xl font-bold text-yellow-600">{formatNumber(progressInfo.omitidos)}</div>
                       <div className="text-xs text-yellow-700">Con errores</div>
                     </div>
                   </div>
@@ -504,19 +519,19 @@ export default function BasesNumerosPage() {
                   {/* Resumen con indicadores */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     <div className="bg-white rounded-lg p-3 text-center border border-green-200">
-                      <div className="text-2xl font-bold text-blue-600">{uploadResult.totalProcesados}</div>
+                      <div className="text-2xl font-bold text-blue-600">{formatNumber(uploadResult.totalProcesados)}</div>
                       <div className="text-xs text-gray-600">Total procesados</div>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center border border-green-200">
-                      <div className="text-2xl font-bold text-green-600">{uploadResult.insertados}</div>
+                      <div className="text-2xl font-bold text-green-600">{formatNumber(uploadResult.insertados)}</div>
                       <div className="text-xs text-gray-600">Insertados</div>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center border border-green-200">
-                      <div className="text-2xl font-bold text-yellow-600">{uploadResult.erroresValidacion || 0}</div>
+                      <div className="text-2xl font-bold text-yellow-600">{formatNumber(uploadResult.erroresValidacion)}</div>
                       <div className="text-xs text-gray-600">Errores validacion</div>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center border border-green-200">
-                      <div className="text-2xl font-bold text-orange-600">{uploadResult.erroresDuplicados || 0}</div>
+                      <div className="text-2xl font-bold text-orange-600">{formatNumber(uploadResult.erroresDuplicados)}</div>
                       <div className="text-xs text-gray-600">Duplicados</div>
                     </div>
                   </div>
