@@ -52,7 +52,7 @@ export default function PeriodicidadesRecordatorioPage() {
     setEditingPeriodicidad(periodicidad);
     setFormData({
       nombre: periodicidad.nombre || '',
-      cada_horas: periodicidad.cada_horas || 1
+      cada_horas: periodicidad.cada_horas ?? null
     });
     setShowModal(true);
   };
@@ -215,7 +215,7 @@ export default function PeriodicidadesRecordatorioPage() {
                   type="number"
                   min="1"
                   value={formData.cada_horas}
-                  onChange={(e) => setFormData({ ...formData, cada_horas: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => setFormData({ ...formData, cada_horas: parseInt(e.target.value) || null })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   required
                 />

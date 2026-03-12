@@ -31,7 +31,7 @@ const handler = NextAuth({
               token: data.token,
               rol_nombre: data.user.rol_nombre,
               id_rol: data.user.id_rol,
-              id_empresa: data.user.id_empresa !== undefined ? data.user.id_empresa : 1,
+              id_empresa: data.user.id_empresa ?? null,
               modulos: data.modulos || [],
             };
             console.log('User object created:', user);

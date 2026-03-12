@@ -46,10 +46,6 @@ const SUPER_ADMIN_MENU = [
   { name: 'Administración', icon: Building2, path: '/administracion', badge: null },
 ];
 
-const ENCUESTAS_MENU = [
-  { name: 'Encuestas', icon: BarChart3, path: '/encuestas', badge: null },
-];
-
 const BASE_MENU = [
   { name: 'Dashboard', icon: Home, path: '/dashboard', badge: null },
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
@@ -242,17 +238,12 @@ export default function Sidebar() {
   }, []);
 
   const isSuperAdmin = session?.user?.id_rol === 1 && (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0');
-  const isEncuestasEmpresa = session?.user?.id_empresa === 3 || session?.user?.id_empresa === '3';
 
   const filteredMenuItems = useMemo(() => {
     if (!session?.user) return menuItems;
 
     if (isSuperAdmin) {
       return SUPER_ADMIN_MENU;
-    }
-
-    if (isEncuestasEmpresa) {
-      return ENCUESTAS_MENU;
     }
 
     if (session.user.id_rol === 1) {
@@ -262,7 +253,7 @@ export default function Sidebar() {
     const userModulos = session.user.modulos || [];
     const allowedRoutes = userModulos.map(m => m.ruta);
     return menuItems.filter(item => allowedRoutes.includes(item.path));
-  }, [session?.user, isSuperAdmin, isEncuestasEmpresa, menuItems]);
+  }, [session?.user, isSuperAdmin, menuItems]);
 
   return (
     <TooltipProvider>

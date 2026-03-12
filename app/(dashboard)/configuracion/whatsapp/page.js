@@ -20,8 +20,8 @@ import { ChevronRight, RefreshCw, Wifi, WifiOff, LogOut, QrCode, Smartphone, Clo
 // Componente para WhatsApp API (Embedded Signup)
 import WhatsAppAPIConfig from '@/components/whatsapp/WhatsAppAPIConfig';
 
-const WHATSAPP_BASE_URL = 'https://bitel-baileys.xylure.easypanel.host/session';
-const WHATSAPP_TOKEN = 'f39a8c1d7b264fb19ce2a1d0b7441e98c4f7ba3ef1cd9a0e5d2c8f03b7a5e961';
+const WHATSAPP_BASE_URL = process.env.NEXT_PUBLIC_WHATSAPP_BASE_URL;
+const WHATSAPP_TOKEN = process.env.NEXT_PUBLIC_WHATSAPP_TOKEN;
 
 export default function WhatsAppPage() {
   const { data: session } = useSession();
@@ -36,7 +36,7 @@ export default function WhatsAppPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const empresaId = session?.user?.id_empresa || 1;
+  const empresaId = session?.user?.id_empresa ?? null;
 
   const fetchQRCode = useCallback(async () => {
     try {

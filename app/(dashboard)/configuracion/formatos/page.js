@@ -75,7 +75,7 @@ export default function FormatosPage() {
       if (editingFormato) {
         await apiClient.put(`/crm/formatos/${editingFormato.id}`, formData);
       } else {
-        const id_empresa = localStorage.getItem('id_empresa') || 1;
+        const id_empresa = localStorage.getItem('id_empresa') ?? null;
         await apiClient.post('/crm/formatos', { ...formData, id_empresa: parseInt(id_empresa) });
       }
       setShowModal(false);
@@ -239,7 +239,7 @@ export default function FormatosPage() {
       longitud: campo.longitud || '',
       requerido: campo.requerido === 1,
       unico: campo.unico === 1,
-      orden: campo.orden || 1,
+      orden: campo.orden ?? null,
       placeholder: campo.placeholder || ''
     });
     setShowCampoModal(true);
@@ -631,7 +631,7 @@ export default function FormatosPage() {
                   <input
                     type="number"
                     value={campoFormData.orden}
-                    onChange={(e) => setCampoFormData({ ...campoFormData, orden: parseInt(e.target.value) || 1 })}
+                    onChange={(e) => setCampoFormData({ ...campoFormData, orden: parseInt(e.target.value) || null })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     min="1"
                   />

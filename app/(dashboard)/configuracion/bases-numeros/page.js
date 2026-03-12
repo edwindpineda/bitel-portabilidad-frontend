@@ -48,7 +48,7 @@ export default function BasesNumerosPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const id_empresa = localStorage.getItem('id_empresa') || 1;
+      const id_empresa = localStorage.getItem('id_empresa') ?? null;
       const payload = {
         ...formData,
         id_empresa: parseInt(id_empresa),

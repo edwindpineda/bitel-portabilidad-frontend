@@ -286,12 +286,6 @@ export default function DashboardPage() {
                     <ArrowRight className="h-4 w-4" />
                   </a>
                 </Button>
-                <Button variant="outline" className="w-full justify-between rounded-xl" asChild>
-                  <a href="/configuracion/planes-tarifarios">
-                    Ver Planes Tarifarios
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                </Button>
               </CardContent>
             </GlassCard>
 
