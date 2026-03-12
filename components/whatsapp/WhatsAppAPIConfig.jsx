@@ -214,13 +214,14 @@ export default function WhatsAppAPIConfig() {
         })();
       },
       {
-        config_id: '1234567890', // Reemplazar con el config_id real de Meta
+        config_id: '862972089813940', // Reemplazar con el config_id real de Meta
         response_type: 'code',
         override_default_response_type: true,
+        scope: "whatsapp_business_management,whatsapp_business_messaging,business_management",
         extras: {
           setup: {},
-          featureType: '',
-          sessionInfoVersion: '3',
+          featureType: "whatsapp_business_app_onboarding",
+          sessionInfoVersion: "3",
         },
       }
     );
