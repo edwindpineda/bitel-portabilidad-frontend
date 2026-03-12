@@ -61,7 +61,7 @@ export default function WhatsAppAPIConfig() {
   const cargarConfiguracion = useCallback(async () => {
     try {
       setEmbeddedState(prev => ({ ...prev, loading: true, error: null }));
-      const response = await whatsappEmbeddedService.obtenerConfiguracion(2);
+      const response = await whatsappEmbeddedService.obtenerConfiguracion(4);
 
       if (response.success && response.connected) {
         setEmbeddedState({
@@ -159,20 +159,23 @@ export default function WhatsAppAPIConfig() {
       (response) => {
         (async () => {
           if (response.authResponse) {
+            // Con response_type: 'code', Facebook devuelve un code, no un accessToken
+            const code = response.authResponse.code;
             const accessToken = response.authResponse.accessToken;
-            console.log('[Embedded Signup] Token obtenido');
+            const tokenToSend = code || accessToken;
+            console.log('[Embedded Signup] Token obtenido', code ? '(code)' : '(accessToken)');
 
             try {
               // Detectar el tipo de evento desde la respuesta
               // FINISH = Embedded Signup estandar
               // FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING = Coexistence
-              const eventType = response.authResponse.code ? 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' : 'FINISH';
+              const eventType = code ? 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' : 'FINISH';
 
               // Enviar token al backend para procesar
               const result = await whatsappEmbeddedService.procesarToken(
-                accessToken,
+                tokenToSend,
                 eventType,
-                2
+                4
               );
 
               if (result.success) {
@@ -214,13 +217,14 @@ export default function WhatsAppAPIConfig() {
         })();
       },
       {
-        config_id: '1234567890', // Reemplazar con el config_id real de Meta
+        config_id: '862972089813940', // Reemplazar con el config_id real de Meta
         response_type: 'code',
         override_default_response_type: true,
+        scope: "whatsapp_business_management,whatsapp_business_messaging,business_management",
         extras: {
           setup: {},
-          featureType: '',
-          sessionInfoVersion: '3',
+          featureType: "whatsapp_business_app_onboarding",
+          sessionInfoVersion: "3",
         },
       }
     );
@@ -235,7 +239,7 @@ export default function WhatsAppAPIConfig() {
     setEmbeddedState(prev => ({ ...prev, loading: true }));
 
     try {
-      const response = await whatsappEmbeddedService.desconectar(2);
+      const response = await whatsappEmbeddedService.desconectar(4);
 
       if (response.success) {
         setEmbeddedState({

@@ -34,7 +34,7 @@ const gestionUsuario = [
 const gestionWhatsApp = [
   { title: 'Catálogo', description: 'Gestionar catálogo de planes y precios', href: '/configuracion/catalogo', icon: Package, gradient: 'from-indigo-500 to-purple-500', glow: 'rgba(99,102,241,0.15)' },
   { title: 'Preguntas Frecuentes', description: 'Gestionar FAQs del sistema', href: '/configuracion/faqs', icon: HelpCircle, gradient: 'from-pink-500 to-rose-500', glow: 'rgba(236,72,153,0.15)' },
-  { title: 'Tipificaciones', description: 'Gestionar tipificaciones de leads', href: '/configuracion/tipificaciones', icon: Tags, gradient: 'from-rose-500 to-red-500', glow: 'rgba(244,63,94,0.15)' },
+  { title: 'Tipificaciones', description: 'Gestionar tipificaciones de prospectos', href: '/configuracion/tipificaciones', icon: Tags, gradient: 'from-rose-500 to-red-500', glow: 'rgba(244,63,94,0.15)' },
   { title: 'WhatsApp', description: 'Escanear QR y conectar WhatsApp', href: '/configuracion/whatsapp', icon: MessageCircle, gradient: 'from-green-500 to-emerald-500', glow: 'rgba(34,197,94,0.15)' },
   { title: 'Prompt del Bot', description: 'Configurar prompt del asistente', href: '/configuracion/prompt-bot', icon: Monitor, gradient: 'from-teal-500 to-cyan-500', glow: 'rgba(20,184,166,0.15)' },
   { title: 'Preguntas Perfilamiento', description: 'Gestionar preguntas de perfilamiento', href: '/configuracion/preguntas-perfilamiento', icon: ClipboardList, gradient: 'from-violet-500 to-purple-500', glow: 'rgba(139,92,246,0.15)' },

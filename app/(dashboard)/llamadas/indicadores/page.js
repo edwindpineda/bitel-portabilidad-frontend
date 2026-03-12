@@ -578,12 +578,104 @@ if (fechaFin) params.fecha_fin = fechaFin;
   }, [empresaInicializada, idEmpresa, fechaInicio, fechaFin]);
 
   // ─── Computed stats ───
-  
-  const stats = data;
-  const totalDuracionCampanias = (stats?.campanias || []).reduce(
-    (sum, c) => sum + (c.duracion || 0),
-    0
-  );
+  const stats = useMemo(() => {
+    if (!llamadas.length) return null;
+
+    const total = llamadas.length;
+    const conTipificacion = llamadas.filter(l => l.id_tipificacion_llamada).length;
+    const sinTipificacion = total - conTipificacion;
+    const totalDuracion = llamadas.reduce((s, l) => s + (l.duracion_seg || 0), 0);
+    const promedioDuracion = total > 0 ? Math.round(totalDuracion / total) : 0;
+    const totalMinutos = Math.round(totalDuracion / 60);
+
+    // Group by tipificacion
+    const tipMap = {};
+    llamadas.forEach(l => {
+      const key = l.tipificacion_llamada_nombre || 'Sin tipificar';
+      if (!tipMap[key]) {
+        tipMap[key] = { name: key, value: 0, color: getColorHex(l.tipificacion_llamada_color) };
+      }
+      tipMap[key].value++;
+    });
+    const tipificacionData = Object.values(tipMap).sort((a, b) => b.value - a.value);
+
+    // Group by hour
+    const hourlyMap = {};
+    HOURS.forEach(h => { hourlyMap[h] = { hour: `${h}:00`, llamadas: 0, duracion: 0 }; });
+    llamadas.forEach(l => {
+      if (!l.fecha_inicio && !l.fecha_registro) return;
+      const date = new Date(l.fecha_inicio || l.fecha_registro);
+      const h = String(date.getHours()).padStart(2, '0');
+      if (hourlyMap[h]) {
+        hourlyMap[h].llamadas++;
+        hourlyMap[h].duracion += (l.duracion_seg || 0);
+      }
+    });
+    const hourlyData = HOURS.map(h => hourlyMap[h]);
+
+    // Group by day of week
+    const dayMap = {};
+    DAYS.forEach((d, i) => { dayMap[i] = { day: d, llamadas: 0, conTip: 0, sinTip: 0, duracion: 0 }; });
+    llamadas.forEach(l => {
+      const date = new Date(l.fecha_registro || l.fecha_inicio);
+      let dow = date.getDay(); // 0=Sun
+      dow = dow === 0 ? 6 : dow - 1; // Convert to Mon=0
+      if (dayMap[dow]) {
+        dayMap[dow].llamadas++;
+        dayMap[dow].duracion += (l.duracion_seg || 0);
+        if (l.id_tipificacion_llamada) dayMap[dow].conTip++;
+        else dayMap[dow].sinTip++;
+      }
+    });
+    const weeklyData = DAYS.map((_, i) => dayMap[i]);
+
+    // Heatmap: 7 days x 12 hours
+    const heatmapData = DAYS.map(() => HOURS.map(() => 0));
+    llamadas.forEach(l => {
+      const date = new Date(l.fecha_inicio || l.fecha_registro);
+      let dow = date.getDay();
+      dow = dow === 0 ? 6 : dow - 1;
+      const h = String(date.getHours()).padStart(2, '0');
+      const hi = HOURS.indexOf(h);
+      if (hi >= 0 && dow >= 0 && dow < 7) heatmapData[dow][hi]++;
+    });
+
+    // Minutes per day (for stacked bar)
+    const minutesData = weeklyData.map(d => ({
+      day: d.day,
+      minutos: Math.round(d.duracion / 60),
+      llamadas: d.llamadas,
+    }));
+    const totalMinutosWeek = minutesData.reduce((s, d) => s + d.minutos, 0);
+    const avgMinutosDay = minutesData.length > 0 ? Math.round(totalMinutosWeek / 7) : 0;
+    const peakDay = minutesData.reduce((max, d) => d.minutos > max.minutos ? d : max, minutesData[0] || { day: '-', minutos: 0 });
+
+    // Group by campania
+    const campaniaMap = {};
+    llamadas.forEach(l => {
+      const key = l.campania_nombre || 'Sin campaña';
+      if (!campaniaMap[key]) campaniaMap[key] = { name: key, total: 0, conTip: 0, duracion: 0 };
+      campaniaMap[key].total++;
+      if (l.id_tipificacion_llamada) campaniaMap[key].conTip++;
+      campaniaMap[key].duracion += (l.duracion_seg || 0);
+    });
+    const campaniaData = Object.values(campaniaMap).sort((a, b) => b.total - a.total);
+
+    return {
+      total, conTipificacion, sinTipificacion, promedioDuracion, totalMinutos,
+      tipificacionData, hourlyData, weeklyData, heatmapData,
+      minutesData, totalMinutosWeek, avgMinutosDay, peakDay,
+      campaniaData,
+    };
+  }, [llamadas]);
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0s';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[500px]">
@@ -1033,8 +1125,8 @@ if (fechaFin) params.fecha_fin = fechaFin;
                   <Users className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold">Rendimiento por Campania</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Resumen de llamadas por campania</p>
+                  <CardTitle className="text-sm font-semibold">Rendimiento por Campaña</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">Resumen de llamadas por campaña</p>
                 </div>
               </div>
             </CardHeader>
@@ -1043,7 +1135,7 @@ if (fechaFin) params.fecha_fin = fechaFin;
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted/30 border-b">
-                      <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Campania</th>
+                      <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Campaña</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Llamadas</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Participación</th>
                       <th className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Tasa</th>

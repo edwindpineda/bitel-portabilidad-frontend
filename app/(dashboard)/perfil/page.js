@@ -248,13 +248,13 @@ export default function PerfilPage() {
 
   const quickActions = [
     { label: 'Ver Conversaciones', href: '/conversaciones', icon: MessageSquare, gradient: 'from-blue-500 to-indigo-500' },
-    { label: 'Gestionar Leads', href: '/leads', icon: Users, gradient: 'from-emerald-500 to-green-500' },
+    { label: 'Gestionar Prospectos', href: '/leads', icon: Users, gradient: 'from-emerald-500 to-green-500' },
     { label: 'Configuración', href: '/configuracion', icon: Settings, gradient: 'from-purple-500 to-violet-500' },
   ];
 
   const statCards = [
     { label: 'Conversaciones', value: stats.conversaciones, icon: MessageSquare, gradient: 'from-blue-500 to-indigo-500', glow: 'rgba(59,130,246,0.2)' },
-    { label: 'Leads', value: stats.leads, icon: TrendingUp, gradient: 'from-emerald-500 to-green-500', glow: 'rgba(16,185,129,0.2)' },
+    { label: 'Prospectos', value: stats.leads, icon: TrendingUp, gradient: 'from-emerald-500 to-green-500', glow: 'rgba(16,185,129,0.2)' },
   ];
 
   return (

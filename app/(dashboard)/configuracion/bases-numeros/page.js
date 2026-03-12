@@ -198,7 +198,7 @@ export default function BasesNumerosPage() {
             <span className="text-gray-900">Base de Numeros</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Base de Numeros</h1>
-          <p className="text-gray-600 mt-1">Gestiona las bases de numeros para campanias</p>
+          <p className="text-gray-600 mt-1">Gestiona las bases de números para campañas</p>
         </div>
         <button
           onClick={openNewModal}

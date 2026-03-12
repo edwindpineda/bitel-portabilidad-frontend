@@ -145,7 +145,6 @@ export default function EncuestasPage() {
                 className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="todos">Todas las prioridades</option>
-                <option value="0">Sin prioridad</option>
                 <option value="1">Prioridad 1</option>
                 <option value="2">Prioridad 2</option>
                 <option value="3">Prioridad 3</option>

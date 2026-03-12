@@ -176,6 +176,13 @@ export default function EncuestasListPage() {
     // Cabeceras
     const headers = [
       '#',
+      'Telefono Base',
+      'Nombre Base',
+      'Apellido Base',
+      'Departamento',
+      'Municipio',
+      'Referente',
+      'Prioridad',
       'Estado Llamada',
       'Nombre Contacto',
       'Participacion',
@@ -204,6 +211,13 @@ export default function EncuestasListPage() {
     // Filas de datos
     const rows = dataToExport.map((e, index) => [
       index + 1,
+      e.telefono_base || '',
+      e.nombre_base || '',
+      e.apellido_base || '',
+      e.departamento_base || '',
+      e.municipio_base || '',
+      e.referente_base || '',
+      e.prioridad || '',
       getEstadoTexto(e.estado_llamada),
       e.nombre_contacto || '',
       e.participacion || '',
@@ -365,7 +379,6 @@ export default function EncuestasListPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="todos">Todas las prioridades</option>
-              <option value="0">Sin prioridad</option>
               <option value="1">Prioridad 1</option>
               <option value="2">Prioridad 2</option>
               <option value="3">Prioridad 3</option>

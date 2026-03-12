@@ -53,7 +53,7 @@ const ENCUESTAS_MENU = [
 const BASE_MENU = [
   { name: 'Dashboard', icon: Home, path: '/dashboard', badge: null },
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
-  { name: 'Leads', icon: Users, path: '/leads', badge: null },
+  { name: 'Prospectos', icon: Users, path: '/leads', badge: null },
   { name: 'Clientes', icon: UserCheck, path: '/clientes', badge: null },
   { name: 'Llamadas', icon: Phone, path: '/llamadas', badge: null, submenu: [
     { name: 'Lista', path: '/llamadas' },

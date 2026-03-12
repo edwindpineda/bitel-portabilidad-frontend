@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import * as XLSX from 'xlsx';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,10 +44,10 @@ import {
   MoreHorizontal,
   Eye,
   Megaphone,
-  Tag,
-  Settings,
-  Save,
-  ArrowLeft,
+  Volume2,
+  Download,
+  Play,
+  X,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -85,27 +87,27 @@ const formatDuration = (seconds) => {
 
 export default function LlamadasPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const idCampaniaEjecucion = searchParams.get('id_campania_ejecucion');
+
   const [llamadas, setLlamadas] = useState([]);
   const [tipificaciones, setTipificaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterTipificacion, setFilterTipificacion] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedLlamada, setSelectedLlamada] = useState(null);
-  const [showConfig, setShowConfig] = useState(false);
-  const [config, setConfig] = useState({
-    dias: { lun: false, mar: false, mie: false, jue: false, vie: false, sab: false, dom: false },
-    hora_inicio: '09:00',
-    hora_fin: '18:00',
-    max_intentos: 3,
-  });
+  const [showAudioModal, setShowAudioModal] = useState(false);
+  const [selectedAudio, setSelectedAudio] = useState(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const endpoint = idCampaniaEjecucion
+        ? `/crm/llamadas/ejecucion/${idCampaniaEjecucion}`
+        : '/crm/llamadas';
       const [llamadasRes, tipRes] = await Promise.all([
-        apiClient.get('/crm/llamadas'),
+        apiClient.get(endpoint),
         apiClient.get('/crm/tipificacion-llamada'),
       ]);
       setLlamadas(llamadasRes.data || []);
@@ -119,7 +121,7 @@ export default function LlamadasPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [idCampaniaEjecucion]);
 
   const filtered = useMemo(() => {
     let list = llamadas;
@@ -131,6 +133,7 @@ export default function LlamadasPage() {
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(l =>
+        String(l.codigo_llamada || '').includes(q) ||
         l.contacto_nombre?.toLowerCase().includes(q) ||
         l.telefono?.includes(q) ||
         l.campania_nombre?.toLowerCase().includes(q) ||
@@ -156,10 +159,10 @@ export default function LlamadasPage() {
 
   const handleExport = () => {
     const data = filtered.map(l => ({
-      'ID': l.id,
+      'Codigo': l.codigo_llamada || '-',
       'Contacto': l.contacto_nombre || '-',
       'Telefono': l.telefono || '-',
-      'Campania': l.campania_nombre || '-',
+      'Campaña': l.campania_nombre || '-',
       'Tipificacion': l.tipificacion_llamada_nombre || '-',
       'Fecha Inicio': l.fecha_inicio || '-',
       'Fecha Fin': l.fecha_fin || '-',
@@ -183,19 +186,57 @@ export default function LlamadasPage() {
     return new Date(dateStr).toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  const handleViewDetail = (llamada) => {
-    setSelectedLlamada(llamada);
-    setShowDetailModal(true);
+  const handlePlayAudio = (llamada) => {
+    setSelectedAudio(llamada);
+    setShowAudioModal(true);
+  };
+
+  const getAudioUrl = (archivoLlamada) => {
+    if (!archivoLlamada) return null;
+    if (archivoLlamada.startsWith('http')) return archivoLlamada;
+    return `${process.env.NEXT_PUBLIC_API_URL || ''}/uploads/llamadas/${archivoLlamada}`;
+  };
+
+  const handleDownloadAudio = () => {
+    if (!selectedAudio?.archivo_llamada) return;
+    const url = getAudioUrl(selectedAudio.archivo_llamada);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = selectedAudio.archivo_llamada;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <div className="space-y-5">
+      {/* Banner filtro por ejecucion */}
+      {idCampaniaEjecucion && (
+        <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50 border border-purple-200">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-purple-600" />
+            <span className="text-sm font-medium text-purple-800">
+              Mostrando llamadas de la ejecucion #{idCampaniaEjecucion}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/llamadas')}
+            className="text-purple-600 hover:text-purple-800 hover:bg-purple-100 gap-1"
+          >
+            <X className="h-3.5 w-3.5" />
+            Ver todas
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Llamadas</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Registro de llamadas por empresa
+            {idCampaniaEjecucion ? `Llamadas de ejecucion #${idCampaniaEjecucion}` : 'Registro de llamadas por empresa'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -207,133 +248,9 @@ export default function LlamadasPage() {
             <FileDown className="h-4 w-4 mr-1.5" />
             Exportar
           </Button>
-          <Button size="sm" onClick={() => setShowConfig(!showConfig)} className={showConfig ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''} variant={showConfig ? 'default' : 'outline'}>
-            <Settings className="h-4 w-4 mr-1.5" />
-            Config. Llamadas
-          </Button>
         </div>
       </div>
 
-      {/* Panel Config Llamadas */}
-      {showConfig && (
-        <Card className="border-0 shadow-sm border-l-4 border-l-blue-500">
-          <CardContent className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Settings className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">Configuracion de Llamadas</h2>
-                  <p className="text-xs text-muted-foreground">Dias, horario e intentos por base</p>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowConfig(false)}>
-                <ArrowLeft className="h-4 w-4 mr-1.5" />
-                Volver
-              </Button>
-            </div>
-
-            {/* Dias */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Dias de llamada</label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: 'lun', label: 'Lun' },
-                  { key: 'mar', label: 'Mar' },
-                  { key: 'mie', label: 'Mie' },
-                  { key: 'jue', label: 'Jue' },
-                  { key: 'vie', label: 'Vie' },
-                  { key: 'sab', label: 'Sab' },
-                  { key: 'dom', label: 'Dom' },
-                ].map(d => (
-                  <button
-                    key={d.key}
-                    onClick={() => setConfig(prev => ({ ...prev, dias: { ...prev.dias, [d.key]: !prev.dias[d.key] } }))}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                      config.dias[d.key]
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
-                        : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/60'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Horario */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Horario</label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Hora inicio</label>
-                  <input
-                    type="time"
-                    value={config.hora_inicio}
-                    onChange={e => setConfig(prev => ({ ...prev, hora_inicio: e.target.value }))}
-                    className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors"
-                  />
-                </div>
-                <span className="text-muted-foreground text-sm mt-5">a</span>
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block">Hora fin</label>
-                  <input
-                    type="time"
-                    value={config.hora_fin}
-                    onChange={e => setConfig(prev => ({ ...prev, hora_fin: e.target.value }))}
-                    className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Intentos */}
-            <div>
-              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Intentos por contacto</label>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 p-1 rounded-xl bg-muted/30 border">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setConfig(prev => ({ ...prev, max_intentos: n }))}
-                      className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
-                        config.max_intentos === n
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
-                          : 'text-muted-foreground hover:bg-muted/60'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-xs text-muted-foreground">intentos maximos</span>
-              </div>
-            </div>
-
-            {/* Resumen */}
-            <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-              <p className="text-xs font-medium text-blue-800 mb-1">Resumen de configuracion</p>
-              <p className="text-xs text-blue-600">
-                {Object.entries(config.dias).filter(([, v]) => v).map(([k]) => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || 'Sin dias seleccionados'}
-                {' · '}
-                {config.hora_inicio} a {config.hora_fin}
-                {' · '}
-                {config.max_intentos} intento{config.max_intentos !== 1 ? 's' : ''}
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                <Save className="h-4 w-4" />
-                Guardar Configuracion
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!showConfig && <>
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white">
@@ -380,7 +297,7 @@ export default function LlamadasPage() {
             <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar contacto, telefono, campania..."
+                placeholder="Buscar contacto, teléfono, campaña..."
                 className="pl-9 h-9"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -420,9 +337,10 @@ export default function LlamadasPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
+                    <TableHead className="text-xs w-16">Codigo</TableHead>
                     <TableHead className="text-xs">Contacto</TableHead>
                     <TableHead className="text-xs">Telefono</TableHead>
-                    <TableHead className="text-xs">Campania</TableHead>
+                    <TableHead className="text-xs">Campaña</TableHead>
                     <TableHead className="text-xs">Tipificacion</TableHead>
                     <TableHead className="text-xs">Duracion</TableHead>
                     <TableHead className="text-xs">Fecha Inicio</TableHead>
@@ -433,6 +351,11 @@ export default function LlamadasPage() {
                 <TableBody>
                   {paginated.map((llamada) => (
                     <TableRow key={llamada.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell>
+                        <span className="text-sm font-semibold text-blue-600">
+                          #{llamada.codigo_llamada || '-'}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -499,19 +422,28 @@ export default function LlamadasPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          <Link href={`/llamadas/${llamada.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title="Ver detalle"
+                            >
+                              <Eye className="h-4 w-4 text-muted-foreground" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem onClick={() => handleViewDetail(llamada)} className="gap-2 text-xs">
-                              <Eye className="h-3.5 w-3.5" />
-                              Ver detalle
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-7 w-7 ${!llamada.archivo_llamada ? 'opacity-40 cursor-not-allowed' : ''}`}
+                            onClick={() => handlePlayAudio(llamada)}
+                            disabled={!llamada.archivo_llamada}
+                            title={llamada.archivo_llamada ? "Escuchar audio" : "Sin audio"}
+                          >
+                            <Volume2 className={`h-4 w-4 ${llamada.archivo_llamada ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -545,82 +477,63 @@ export default function LlamadasPage() {
         </CardContent>
       </Card>
 
-      </>}
-
-      {/* Modal Detalle */}
-      <Dialog open={showDetailModal} onOpenChange={(open) => { if (!open) { setShowDetailModal(false); setSelectedLlamada(null); } }}>
-        <DialogContent className="sm:max-w-lg">
+      {/* Modal Reproductor de Audio */}
+      <Dialog open={showAudioModal} onOpenChange={(open) => { if (!open) { setShowAudioModal(false); setSelectedAudio(null); } }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <Phone className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                <Volume2 className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <span>Detalle de Llamada #{selectedLlamada?.id}</span>
-                <p className="text-xs font-normal text-muted-foreground mt-0.5">Informacion completa de la llamada</p>
+                <span>Audio de Llamada #{selectedAudio?.codigo_llamada || selectedAudio?.id}</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">Reproducir grabacion de llamada</p>
               </div>
             </DialogTitle>
-            <DialogDescription className="sr-only">Detalle de la llamada</DialogDescription>
+            <DialogDescription className="sr-only">Reproductor de audio de llamada</DialogDescription>
           </DialogHeader>
-          {selectedLlamada && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-4">
+          {selectedAudio && (
+            <div className="space-y-4 py-4">
+              {/* Info de la llamada */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Contacto</p>
-                  <p className="text-sm font-medium">{selectedLlamada.contacto_nombre || '-'}</p>
+                  <p className="text-xs text-muted-foreground">Contacto</p>
+                  <p className="font-medium">{selectedAudio.contacto_nombre || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Telefono</p>
-                  <p className="text-sm font-medium">{selectedLlamada.telefono || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Documento</p>
-                  <p className="text-sm font-medium">{selectedLlamada.numero_documento || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Campania</p>
-                  <p className="text-sm font-medium">{selectedLlamada.campania_nombre || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Tipificacion</p>
-                  {selectedLlamada.tipificacion_llamada_nombre ? (
-                    <Badge
-                      variant="outline"
-                      className="text-xs font-medium border"
-                      style={{
-                        color: getColorHex(selectedLlamada.tipificacion_llamada_color),
-                        borderColor: getColorHex(selectedLlamada.tipificacion_llamada_color) + '55',
-                        backgroundColor: getColorHex(selectedLlamada.tipificacion_llamada_color) + '12',
-                      }}
-                    >
-                      {selectedLlamada.tipificacion_llamada_nombre}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Sin tipificar</span>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Duracion</p>
-                  <p className="text-sm font-medium">{formatDuration(selectedLlamada.duracion_seg)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Fecha Inicio</p>
-                  <p className="text-sm font-medium">{formatDateTime(selectedLlamada.fecha_inicio)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Fecha Fin</p>
-                  <p className="text-sm font-medium">{formatDateTime(selectedLlamada.fecha_fin)}</p>
+                  <p className="text-xs text-muted-foreground">Telefono</p>
+                  <p className="font-medium">{selectedAudio.telefono || '-'}</p>
                 </div>
               </div>
-              {selectedLlamada.provider_call_id && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Provider Call ID</p>
-                  <p className="text-xs font-mono bg-muted/50 px-2 py-1 rounded">{selectedLlamada.provider_call_id}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Fecha Registro</p>
-                <p className="text-sm">{formatDateTime(selectedLlamada.fecha_registro)}</p>
+
+              {/* Archivo info */}
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">Archivo</p>
+                <p className="text-xs font-mono truncate">{selectedAudio.archivo_llamada}</p>
+              </div>
+
+              {/* Reproductor de audio */}
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border">
+                <audio
+                  controls
+                  className="w-full"
+                  src={getAudioUrl(selectedAudio.archivo_llamada)}
+                >
+                  Tu navegador no soporta el elemento de audio.
+                </audio>
+              </div>
+
+              {/* Boton de descarga */}
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadAudio}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar audio
+                </Button>
               </div>
             </div>
           )}

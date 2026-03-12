@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import Link from 'next/link';
 import {
   Megaphone,
   Plus,
@@ -51,6 +52,7 @@ import {
   UserPlus,
   ChevronLeft,
   UserCheck2,
+  Eye,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -61,7 +63,22 @@ const ESTADOS_EJECUCION = {
   cancelado: { label: 'Cancelado', color: 'bg-gray-100 text-gray-800' },
 };
 
-const numsString = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+// Funcion para formatear el resultado JSON de ejecucion
+const formatResultado = (resultado) => {
+  if (!resultado) return null;
+  try {
+    const data = typeof resultado === 'string' ? JSON.parse(resultado) : resultado;
+    return (
+      <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap">
+        {data.total !== undefined && (<span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium">Total: {data.total}</span>)}
+        {data.completadas !== undefined && (<span className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 text-[11px] font-medium">Completadas: {data.completadas}</span>)}
+        {data.fallidas !== undefined && data.fallidas > 0 && (<span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-medium">Fallidas: {data.fallidas}</span>)}
+      </div>
+    );
+  } catch {
+    return <span className="text-muted-foreground">{resultado}</span>;
+  }
+};
 
 export default function CampaniasPage() {
   const [campanias, setCampanias] = useState([]);
@@ -75,7 +92,6 @@ export default function CampaniasPage() {
   const [editingCampania, setEditingCampania] = useState(null);
   const [selectedCampania, setSelectedCampania] = useState(null);
   const [basesAsignadas, setBasesAsignadas] = useState([]);
-  const [basesSeleccionadasIds, setBasesSeleccionadasIds] = useState([]);
   const [plantillasDisponibles, setPlantillasDisponibles] = useState([]);
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
   const [ejecuciones, setEjecuciones] = useState([]);
@@ -98,12 +114,18 @@ export default function CampaniasPage() {
     nombre: '',
     descripcion: '',
     id_formato: '',
-    id_tipo_campania: ''
+    id_tipo_campania: '',
+    id_plantilla: ''
   });
   const [basesSeleccionadas, setBasesSeleccionadas] = useState([]);
   const [searchBase, setSearchBase] = useState('');
   const [showBaseDropdown, setShowBaseDropdown] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Estados para el modal de bases
+  const [searchBaseModal, setSearchBaseModal] = useState('');
+  const [showBaseDropdownModal, setShowBaseDropdownModal] = useState(false);
+  const [basesModalPage, setBasesModalPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -144,23 +166,39 @@ export default function CampaniasPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validación explícita
+    if (!formData.id_tipo_campania) {
+      alert('Debe seleccionar un tipo de campaña');
+      return;
+    }
+    if (!formData.id_formato) {
+      alert('Debe seleccionar un formato');
+      return;
+    }
+    if (!formData.id_plantilla) {
+      alert('Debe seleccionar una plantilla');
+      return;
+    }
+
     try {
       let campaniaId;
+      const payload = {
+        nombre: formData.nombre,
+        descripcion: formData.descripcion,
+        id_tipo_campania: parseInt(formData.id_tipo_campania),
+        id_formato: parseInt(formData.id_formato),
+        id_plantilla: formData.id_plantilla ? parseInt(formData.id_plantilla) : null,
+      };
+
+      console.log('[handleSubmit] formData:', formData);
+      console.log('[handleSubmit] payload a enviar:', payload);
+
       if (editingCampania) {
-        await apiClient.put(`/crm/campanias/${editingCampania.id}`, {
-          nombre: formData.nombre,
-          descripcion: formData.descripcion,
-          id_tipo_campania: parseInt(formData.id_tipo_campania),
-          id_formato: parseInt(formData.id_formato),
-        });
+        await apiClient.put(`/crm/campanias/${editingCampania.id}`, payload);
         campaniaId = editingCampania.id;
       } else {
-        const response = await apiClient.post('/crm/campanias', {
-          nombre: formData.nombre,
-          descripcion: formData.descripcion,
-          id_tipo_campania: formData.id_tipo_campania ? parseInt(formData.id_tipo_campania) : null,
-          id_formato: parseInt(formData.id_formato),
-        });
+        const response = await apiClient.post('/crm/campanias', payload);
         campaniaId = response.data?.id;
       }
 
@@ -184,7 +222,7 @@ export default function CampaniasPage() {
       loadData();
     } catch (error) {
       console.error('Error al guardar campania:', error);
-      alert(error.msg || 'Error al guardar campania');
+      alert(error.msg || 'Error al guardar campaña');
     }
   };
 
@@ -194,7 +232,8 @@ export default function CampaniasPage() {
       nombre: campania.nombre || '',
       descripcion: campania.descripcion || '',
       id_formato: campania.id_formato ? String(campania.id_formato) : '',
-      id_tipo_campania: campania.id_tipo_campania ? String(campania.id_tipo_campania) : ''
+      id_tipo_campania: campania.id_tipo_campania ? String(campania.id_tipo_campania) : '',
+      id_plantilla: campania.id_plantilla ? String(campania.id_plantilla) : ''
     });
     setBasesSeleccionadas([]);
     setSearchBase('');
@@ -202,7 +241,7 @@ export default function CampaniasPage() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Esta seguro de eliminar esta campania?')) {
+    if (confirm('¿Está seguro de eliminar esta campaña?')) {
       try {
         await apiClient.delete(`/crm/campanias/${id}`);
         loadData();
@@ -217,7 +256,8 @@ export default function CampaniasPage() {
       nombre: '',
       descripcion: '',
       id_formato: '',
-      id_tipo_campania: ''
+      id_tipo_campania: '',
+      id_plantilla: ''
     });
     setBasesSeleccionadas([]);
     setSearchBase('');
@@ -253,6 +293,9 @@ export default function CampaniasPage() {
   // Gestionar bases de campania (modal separado)
   const handleViewBases = async (campania) => {
     setSelectedCampania(campania);
+    setBasesModalPage(1);
+    setSearchBaseModal('');
+    setShowBaseDropdownModal(false);
     try {
       const response = await apiClient.get(`/crm/campanias/${campania.id}/bases`);
       const bases = response?.data || [];
@@ -279,7 +322,7 @@ export default function CampaniasPage() {
   };
 
   const handleRemoveBase = async (id) => {
-    if (confirm('Esta seguro de quitar esta base de la campania?')) {
+    if (confirm('¿Está seguro de quitar esta base de la campaña?')) {
       try {
         await apiClient.delete(`/crm/campania-bases/${id}`);
         const response = await apiClient.get(`/crm/campanias/${selectedCampania.id}/bases`);
@@ -314,11 +357,14 @@ export default function CampaniasPage() {
     if (confirm(`Esta seguro de ejecutar la campania "${campania.nombre}"? Esto creara ejecuciones pendientes para todas las bases asignadas.`)) {
       setEjecutando(true);
       try {
+        const basesRes = await apiClient.get(`/crm/campanias/${campania.id}/bases`);
+        const bases = basesRes?.data || [];
+        const ids_base_numero = bases.map(b => b.id_base_numero);
         const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
           id_campania: campania.id,
-          ids_base_numero: basesSeleccionadasIds
+          ids_base_numero: ids_base_numero
         });
-        alert(`Ejecucion iniciada: ${response.data?.total_bases || 0} bases programadas`);
+        alert(`Ejecución iniciada: ${response.data?.data?.ids_base_numero?.length || ids_base_numero.length} bases programadas`);
         loadData();
       } catch (error) {
         console.error('Error al ejecutar campania:', error);
@@ -459,7 +505,7 @@ export default function CampaniasPage() {
 
   const STATS = [
     {
-      label: 'Campanias',
+      label: 'Campañas',
       value: totalCampanias,
       icon: Megaphone,
       gradient: 'from-indigo-500 to-indigo-600',
@@ -507,7 +553,7 @@ export default function CampaniasPage() {
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm font-medium">Cargando campanias...</span>
+            <span className="text-sm font-medium">Cargando campañas...</span>
           </div>
         </div>
       </div>
@@ -524,8 +570,8 @@ export default function CampaniasPage() {
               <Megaphone className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gradient">Campanias de Llamadas</h1>
-              <p className="text-sm text-muted-foreground">Gestiona las campanias y sus bases de numeros</p>
+              <h1 className="text-2xl font-bold tracking-tight text-gradient">Campañas de Llamadas</h1>
+              <p className="text-sm text-muted-foreground">Gestiona las campañas y sus bases de números</p>
             </div>
           </div>
         </div>
@@ -534,7 +580,7 @@ export default function CampaniasPage() {
           className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25 text-white gap-2"
         >
           <Plus className="h-4 w-4" />
-          Nueva Campania
+          Nueva Campaña
         </Button>
       </div>
 
@@ -590,7 +636,7 @@ export default function CampaniasPage() {
               </div>
               <input
                 type="text"
-                placeholder="Buscar campania..."
+                placeholder="Buscar campaña..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
@@ -608,7 +654,7 @@ export default function CampaniasPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
               <Badge variant="outline" className="gap-1 font-normal">
                 <Megaphone className="h-3 w-3" />
-                {filteredCampanias.length} campania{filteredCampanias.length !== 1 ? 's' : ''}
+                {filteredCampanias.length} campaña{filteredCampanias.length !== 1 ? 's' : ''}
               </Badge>
             </div>
           </div>
@@ -622,10 +668,11 @@ export default function CampaniasPage() {
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Nombre</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipo</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Descripcion</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Formato</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Plantilla</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Bases</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Ejecuciones</TableHead>
-              <TableHead className="w-16" />
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -635,12 +682,12 @@ export default function CampaniasPage() {
                 className="table-row-premium group"
               >
                 <TableCell>
-                  <div className="flex items-center gap-3">
+                  <Link href={`/campanias/${campania.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center group-hover:from-indigo-500/20 group-hover:to-cyan-500/20 transition-colors">
                       <Megaphone className="h-4 w-4 text-indigo-500" />
                     </div>
-                    <span className="font-semibold text-sm text-foreground">{campania.nombre}</span>
-                  </div>
+                    <span className="font-semibold text-sm text-foreground hover:text-indigo-600 transition-colors">{campania.nombre}</span>
+                  </Link>
                 </TableCell>
                 <TableCell>
                   {campania.tipo_campania_nombre ? (
@@ -651,9 +698,18 @@ export default function CampaniasPage() {
                   ) : <span className="text-muted-foreground/30 text-xs">--</span>}
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground max-w-[200px] truncate block">
-                    {campania.descripcion || '-'}
-                  </span>
+                  {campania.formato_nombre ? (
+                    <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200/50">
+                      {campania.formato_nombre}
+                    </Badge>
+                  ) : <span className="text-muted-foreground/30 text-xs">--</span>}
+                </TableCell>
+                <TableCell>
+                  {campania.plantilla_nombre ? (
+                    <Badge variant="secondary" className="text-[10px] bg-cyan-50 text-cyan-700 border border-cyan-200/50">
+                      {campania.plantilla_nombre}
+                    </Badge>
+                  ) : <span className="text-muted-foreground/30 text-xs">--</span>}
                 </TableCell>
                 <TableCell className="text-center">
                   <Button
@@ -678,59 +734,47 @@ export default function CampaniasPage() {
                   </Button>
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="h-4 w-4" />
+                  <div className="flex items-center gap-1">
+                    <Link href={`/campanias/${campania.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
+                        title="Ver detalle"
+                      >
+                        <Eye className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem
-                        onClick={() => handleEjecutar(campania)}
-                        disabled={ejecutando || campania.total_bases === 0}
-                        className="gap-2 cursor-pointer"
-                      >
-                        <Play className="h-4 w-4 text-emerald-500" />
-                        <span>Ejecutar</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleViewBases(campania)}
-                        className="gap-2 cursor-pointer"
-                      >
-                        <Database className="h-4 w-4 text-cyan-500" />
-                        <span>Ver Bases</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleViewEjecuciones(campania)}
-                        className="gap-2 cursor-pointer"
-                      >
-                        <ClipboardList className="h-4 w-4 text-amber-500" />
-                        <span>Ver Ejecuciones</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={handleViewPlantillas}
-                        className="gap-2 cursor-pointer"
-                      >
-                        <FileText className="h-4 w-4 text-violet-500" />
-                        <span>Ver Plantillas</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleEdit(campania)}
-                        className="gap-2 cursor-pointer"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span>Editar</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(campania.id)}
-                        className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Eliminar</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600"
+                      onClick={() => handleEjecutar(campania)}
+                      disabled={ejecutando || campania.total_bases === 0}
+                      title="Ejecutar"
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-8 w-8 ${campania.total_ejecuciones > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-blue-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                      onClick={() => handleEdit(campania)}
+                      disabled={campania.total_ejecuciones > 0}
+                      title={campania.total_ejecuciones > 0 ? 'No se puede editar una campaña con ejecuciones' : 'Editar'}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => handleDelete(campania.id)}
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -743,15 +787,15 @@ export default function CampaniasPage() {
               <Megaphone className="h-8 w-8 text-indigo-400" />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">
-              {searchTerm ? 'Sin resultados' : 'No hay campanias'}
+              {searchTerm ? 'Sin resultados' : 'No hay campañas'}
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              {searchTerm ? 'Intenta con otro termino de busqueda' : 'Crea tu primera campania para comenzar'}
+              {searchTerm ? 'Intenta con otro término de búsqueda' : 'Crea tu primera campaña para comenzar'}
             </p>
             {!searchTerm && (
               <Button onClick={openNewModal} variant="outline" size="sm" className="gap-2">
                 <Plus className="h-3.5 w-3.5" />
-                Crear Campania
+                Crear Campaña
               </Button>
             )}
           </div>
@@ -766,10 +810,10 @@ export default function CampaniasPage() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
                 <Megaphone className="h-4 w-4 text-white" />
               </div>
-              {editingCampania ? 'Editar Campania' : 'Nueva Campania'}
+              {editingCampania ? 'Editar Campaña' : 'Nueva Campaña'}
             </DialogTitle>
             <DialogDescription>
-              {editingCampania ? 'Modifica los datos de la campania' : 'Configura los datos de tu nueva campania'}
+              {editingCampania ? 'Modifica los datos de la campaña' : 'Configura los datos de tu nueva campaña'}
             </DialogDescription>
           </DialogHeader>
 
@@ -784,7 +828,7 @@ export default function CampaniasPage() {
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                 className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200"
-                placeholder="Nombre de la campania"
+                placeholder="Nombre de la campaña"
                 required
               />
             </div>
@@ -799,21 +843,22 @@ export default function CampaniasPage() {
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200 resize-none"
                 rows={2}
-                placeholder="Descripcion de la campania"
+                placeholder="Descripción de la campaña"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                Tipo de Campania
+                Tipo de Campaña *
               </label>
               <select
                 value={formData.id_tipo_campania}
                 onChange={(e) => setFormData({ ...formData, id_tipo_campania: e.target.value })}
                 className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
+                required
               >
-                <option value="">Sin tipo</option>
+                <option value="">Seleccionar tipo</option>
                 {tiposCampania.map((t) => (
                   <option key={t.id} value={t.id}>{t.nombre}</option>
                 ))}
@@ -829,7 +874,7 @@ export default function CampaniasPage() {
               </label>
               <select
                 value={formData.id_formato}
-                onChange={(e) => setFormData({ ...formData, id_formato: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, id_formato: e.target.value, id_plantilla: '' })}
                 className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
                 required
               >
@@ -838,6 +883,30 @@ export default function CampaniasPage() {
                   <option key={formato.id} value={formato.id}>{formato.nombre}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                Plantilla *
+              </label>
+              <select
+                value={formData.id_plantilla}
+                onChange={(e) => setFormData({ ...formData, id_plantilla: e.target.value })}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
+                disabled={!formData.id_formato}
+                required
+              >
+                <option value="">Seleccionar plantilla</option>
+                {plantillasDisponibles
+                  .filter(p => !formData.id_formato || p.id_formato === parseInt(formData.id_formato))
+                  .map((plantilla) => (
+                    <option key={plantilla.id} value={plantilla.id}>{plantilla.nombre}</option>
+                  ))}
+              </select>
+              {!formData.id_formato && (
+                <p className="text-[10px] text-muted-foreground">Selecciona un formato primero</p>
+              )}
             </div>
 
             {/* Seccion de seleccion de bases (solo para nueva campania) */}
@@ -930,129 +999,112 @@ export default function CampaniasPage() {
                 type="submit"
                 className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white gap-2"
               >
-                {editingCampania ? 'Actualizar' : 'Crear Campania'}
+                {editingCampania ? 'Actualizar' : 'Crear Campaña'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ========== MODAL: BASES DE CAMPANIA ========== */}
-      <Dialog open={showBasesModal} onOpenChange={setShowBasesModal}>
+      {/* ========== MODAL: BASES DE CAMPAÑA ========== */}
+      <Dialog open={showBasesModal} onOpenChange={(open) => { setShowBasesModal(open); if (!open) { setSearchBaseModal(''); setShowBaseDropdownModal(false); } }}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
                 <Database className="h-4 w-4 text-white" />
               </div>
-              Bases de la Campania
+              Bases de la Campaña
             </DialogTitle>
             <DialogDescription>
-              {selectedCampania?.nombre}
+              {selectedCampania?.nombre} · {basesAsignadas.length} bases asignadas · {basesAsignadas.reduce((sum, b) => sum + (b.total_numeros || 0), 0)} números totales
             </DialogDescription>
           </DialogHeader>
 
-          {/* Agregar nueva base */}
-          {basesNoAsignadas.length > 0 && (
-            <Card className="bg-muted/30 border-dashed">
-              <CardContent className="p-4">
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-                  Agregar base
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    id="addBaseSelect"
-                    className="flex-1 h-10 px-3 text-sm rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-colors border border-border"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Seleccionar base...</option>
-                    {basesNoAsignadas.map((base) => (
-                      <option key={base.id} value={base.id}>
-                        {base.nombre} - {formatos.find(f => f.id === base.id_formato)?.nombre || 'Sin formato'}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      const select = document.getElementById('addBaseSelect');
-                      if (select.value) {
-                        handleAddBase(parseInt(select.value));
-                        select.value = '';
-                      }
+          {/* Header con buscador para agregar */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Database className="h-4 w-4 text-cyan-500" />
+              Bases Asignadas
+            </h3>
+            {basesNoAsignadas.length > 0 && (
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Buscar base para agregar..."
+                    value={searchBaseModal}
+                    onChange={(e) => {
+                      setSearchBaseModal(e.target.value);
+                      setShowBaseDropdownModal(true);
                     }}
-                    className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Agregar
-                  </Button>
+                    onFocus={() => setShowBaseDropdownModal(true)}
+                    className="h-9 w-64 pl-9 pr-3 text-sm rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 border border-border"
+                  />
+                  {searchBaseModal && (
+                    <button
+                      onClick={() => { setSearchBaseModal(''); setShowBaseDropdownModal(false); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20"
+                    >
+                      <X className="h-2.5 w-2.5 text-muted-foreground" />
+                    </button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                {showBaseDropdownModal && (
+                  <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {basesNoAsignadas
+                      .filter(base => base.nombre.toLowerCase().includes(searchBaseModal.toLowerCase()))
+                      .map((base) => (
+                        <button
+                          key={base.id}
+                          type="button"
+                          onClick={() => {
+                            handleAddBase(base.id);
+                            setSearchBaseModal('');
+                            setShowBaseDropdownModal(false);
+                          }}
+                          className="w-full px-4 py-2.5 text-left hover:bg-muted/50 flex items-center justify-between transition-colors first:rounded-t-lg last:rounded-b-lg text-sm"
+                        >
+                          <span>{base.nombre}</span>
+                          <Plus className="h-3.5 w-3.5 text-cyan-500" />
+                        </button>
+                      ))}
+                    {basesNoAsignadas.filter(base => base.nombre.toLowerCase().includes(searchBaseModal.toLowerCase())).length === 0 && (
+                      <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                        No se encontraron bases
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Lista de bases asignadas */}
           <div className="rounded-xl border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 w-16">Seleccionar</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 w-12">#</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Base</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Formato</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Numeros</TableHead>
-                  <TableHead className="w-12" />
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Números</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {basesAsignadas.map((base) => (
-                  <TableRow
-                    key={base.id}
-                    className={`table-row-premium cursor-pointer ${basesSeleccionadasIds.includes(base.id_base_numero) ? 'bg-indigo-50/50' : ''}`}
-                    onClick={() => {
-                      setBasesSeleccionadasIds(prev =>
-                        prev.includes(base.id_base_numero)
-                          ? prev.filter(id => id !== base.id_base_numero)
-                          : [...prev, base.id_base_numero]
-                      );
-                    }}
-                  >
-                    <TableCell>
-                      <div className="flex items-center justify-center">
-                        <Checkbox
-                          checked={basesSeleccionadasIds.includes(base.id_base_numero)}
-                          onCheckedChange={(checked) => {
-                            setBasesSeleccionadasIds(prev =>
-                              checked
-                                ? [...prev, base.id_base_numero]
-                                : prev.filter(id => id !== base.id_base_numero)
-                            );
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-4 w-4"
-                        />
-                      </div>
-                    </TableCell>
+                {basesAsignadas
+                  .slice((basesModalPage - 1) * 50, basesModalPage * 50)
+                  .map((base, index) => (
+                  <TableRow key={base.id}>
+                    <TableCell className="text-muted-foreground font-mono text-xs">{(basesModalPage - 1) * 50 + index + 1}</TableCell>
                     <TableCell className="text-sm font-medium">{base.base_nombre}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200/50">
+                      <Badge variant="secondary" className="text-[10px]">
                         {base.formato_nombre || 'Sin formato'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center text-sm text-muted-foreground">{base.total_numeros || 0}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveBase(base.id);
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -1061,10 +1113,62 @@ export default function CampaniasPage() {
             {basesAsignadas.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12">
                 <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No hay bases asignadas a esta campania</p>
+                <p className="text-sm text-muted-foreground">No hay bases asignadas a esta campaña</p>
+              </div>
+            )}
+
+            {/* Paginación */}
+            {basesAsignadas.length > 50 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
+                <span className="text-xs text-muted-foreground">
+                  Página {basesModalPage} de {Math.ceil(basesAsignadas.length / 50)} · {basesAsignadas.length} bases
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setBasesModalPage(p => Math.max(1, p - 1))}
+                    disabled={basesModalPage <= 1}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {Array.from({ length: Math.min(5, Math.ceil(basesAsignadas.length / 50)) }, (_, i) => {
+                    const totalPages = Math.ceil(basesAsignadas.length / 50);
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (basesModalPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (basesModalPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = basesModalPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setBasesModalPage(pageNum)}
+                        className={`h-8 w-8 rounded-lg text-xs font-semibold transition-colors ${
+                          basesModalPage === pageNum
+                            ? 'bg-cyan-500 text-white'
+                            : 'text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setBasesModalPage(p => Math.min(Math.ceil(basesAsignadas.length / 50), p + 1))}
+                    disabled={basesModalPage >= Math.ceil(basesAsignadas.length / 50)}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4 rotate-180" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
+
         </DialogContent>
       </Dialog>
 
@@ -1091,7 +1195,7 @@ export default function CampaniasPage() {
                   <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
                     <Zap className="h-4 w-4 text-white" />
                   </div>
-                  Ejecuciones de Campania
+                  Ejecuciones de Campaña
                 </>
               )}
             </DialogTitle>
@@ -1113,7 +1217,6 @@ export default function CampaniasPage() {
                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Registrado</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Inicio</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Fin</TableHead>
-                    <TableHead className="w-12" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1129,8 +1232,8 @@ export default function CampaniasPage() {
                           {ESTADOS_EJECUCION[ejecucion.estado_ejecucion]?.label || ejecucion.estado_ejecucion}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
-                        {ejecucion.resultado || '-'}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {ejecucion.resultado ? formatResultado(ejecucion.resultado) : '-'}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {ejecucion.fecha_registro ? new Date(ejecucion.fecha_registro).toLocaleString() : '-'}
@@ -1141,15 +1244,6 @@ export default function CampaniasPage() {
                       <TableCell className="text-xs text-muted-foreground">
                         {ejecucion.fecha_fin ? new Date(ejecucion.fecha_fin).toLocaleString() : '-'}
                       </TableCell>
-                      <TableCell>
-                        <button
-                          onClick={() => handleVerPersonas(ejecucion)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50"
-                        >
-                          <Users className="h-3.5 w-3.5" />
-                          Personas
-                        </button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1157,7 +1251,7 @@ export default function CampaniasPage() {
               {ejecuciones.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-12">
                   <ClipboardList className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campania</p>
+                  <p className="text-sm text-muted-foreground">No hay ejecuciones registradas para esta campaña</p>
                 </div>
               )}
             </div>
@@ -1227,20 +1321,38 @@ export default function CampaniasPage() {
                     <>
                       {resultadosFiltrados.length > 0 && (
                         <div className="border rounded-xl overflow-hidden">
+                          {/* Header con Seleccionar Página */}
+                          <div className="flex items-center gap-3 px-4 py-2.5 bg-muted/30 border-b">
+                            <Checkbox
+                              checked={resultadosFiltrados.length > 0 && resultadosFiltrados.every(p => personasSeleccionadas.some(ps => ps.id === p.id))}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  const nuevas = resultadosFiltrados.filter(p => !personasSeleccionadas.some(ps => ps.id === p.id));
+                                  setPersonasSeleccionadas(prev => [...prev, ...nuevas]);
+                                } else {
+                                  setPersonasSeleccionadas(prev => prev.filter(ps => !resultadosFiltrados.some(p => p.id === ps.id)));
+                                }
+                              }}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Seleccionar página</span>
+                          </div>
                           <div className="max-h-52 overflow-y-auto">
                             {resultadosFiltrados.map((p) => {
-                              const yaAgregada = personasEjecucion.some(pe => pe.id_persona === p.id);
                               const seleccionada = personasSeleccionadas.some(ps => ps.id === p.id);
                               return (
-                                <div key={p.id} className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors border-b last:border-b-0 ${seleccionada ? 'bg-emerald-50/50' : ''}`}>
+                                <div
+                                  key={p.id}
+                                  onClick={() => handleToggleSeleccion(p)}
+                                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/40 transition-colors border-b last:border-b-0 cursor-pointer ${seleccionada ? 'bg-emerald-50/50' : ''}`}
+                                >
                                   <div className="flex items-center gap-3 min-w-0">
-                                    {!yaAgregada && (
-                                      <Checkbox
-                                        checked={seleccionada}
-                                        onCheckedChange={() => handleToggleSeleccion(p)}
-                                        className="shrink-0 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                                      />
-                                    )}
+                                    <Checkbox
+                                      checked={seleccionada}
+                                      onCheckedChange={() => handleToggleSeleccion(p)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="shrink-0 h-4 w-4"
+                                    />
                                     <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center shrink-0">
                                       <span className="text-[10px] font-bold text-emerald-600">{p.nombre_completo ? p.nombre_completo.charAt(0).toUpperCase() : '?'}</span>
                                     </div>
@@ -1249,41 +1361,32 @@ export default function CampaniasPage() {
                                       <p className="text-[11px] text-muted-foreground">{p.celular || p.dni || '--'}</p>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <Badge variant="secondary" className={`text-[10px] ${p.id_tipo_persona === 2 ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
-                                      {p.tipo_persona_nombre || (p.id_tipo_persona === 2 ? 'Cliente' : 'Prospecto')}
-                                    </Badge>
-                                    {yaAgregada ? (
-                                      <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1"><UserCheck2 className="h-3 w-3" /> Ya agregado</span>
-                                    ) : (
-                                      <button onClick={() => { handleAddPersona(p); setPersonasSeleccionadas(prev => prev.filter(ps => ps.id !== p.id)); }} className="h-7 w-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors" title="Agregar solo este">
-                                        <Plus className="h-3.5 w-3.5 text-emerald-600" />
-                                      </button>
-                                    )}
-                                  </div>
+                                  <Badge variant="secondary" className={`text-[10px] shrink-0 ${p.id_tipo_persona === 2 ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                                    {p.tipo_persona_nombre || (p.id_tipo_persona === 2 ? 'Cliente' : 'Prospecto')}
+                                  </Badge>
                                 </div>
                               );
                             })}
                           </div>
                           {/* Barra de selección múltiple */}
                           {personasSeleccionadas.length > 0 && (
-                            <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50 border-t">
-                              <span className="text-xs font-medium text-emerald-700">
-                                {personasSeleccionadas.length} persona{personasSeleccionadas.length !== 1 ? 's' : ''} seleccionada{personasSeleccionadas.length !== 1 ? 's' : ''}
-                              </span>
+                            <div className="flex items-center justify-between px-4 py-3 bg-emerald-50/50 border-t">
                               <div className="flex items-center gap-2">
-                                <button onClick={() => setPersonasSeleccionadas([])} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                  Deseleccionar
-                                </button>
-                                <button
-                                  onClick={handleAgregarLote}
-                                  disabled={agregandoLote}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-60"
-                                >
-                                  {agregandoLote ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
-                                  Agregar {personasSeleccionadas.length}
+                                <span className="text-xs font-medium text-emerald-700">
+                                  {personasSeleccionadas.length} persona{personasSeleccionadas.length !== 1 ? 's' : ''} seleccionada{personasSeleccionadas.length !== 1 ? 's' : ''}
+                                </span>
+                                <button onClick={() => setPersonasSeleccionadas([])} className="text-[10px] text-emerald-600 hover:text-emerald-800 underline transition-colors">
+                                  Limpiar selección
                                 </button>
                               </div>
+                              <button
+                                onClick={handleAgregarLote}
+                                disabled={agregandoLote}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors disabled:opacity-60"
+                              >
+                                {agregandoLote ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                                Agregar {personasSeleccionadas.length}
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1299,61 +1402,6 @@ export default function CampaniasPage() {
                 })()}
               </div>
 
-              {/* Lista de personas ya asignadas */}
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <Users className="h-3 w-3" />
-                  Personas asignadas ({personasEjecucion.length})
-                </label>
-                <div className="rounded-xl border overflow-hidden">
-                  {loadingPersonas ? (
-                    <div className="flex items-center justify-center py-8 gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
-                      <span className="text-xs text-muted-foreground">Cargando...</span>
-                    </div>
-                  ) : personasEjecucion.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/30 hover:bg-muted/30">
-                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Nombre</TableHead>
-                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Celular</TableHead>
-                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">DNI</TableHead>
-                          <TableHead className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Tipo</TableHead>
-                          <TableHead className="w-10" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {personasEjecucion.map((p) => (
-                          <TableRow key={p.id} className="table-row-premium group">
-                            <TableCell className="text-sm font-medium">{p.nombre_completo || '-'}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{p.celular || '-'}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{p.dni || '-'}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className={`text-[10px] ${p.id_tipo_persona === 2 ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
-                                {p.tipo_persona_nombre || (p.id_tipo_persona === 2 ? 'Cliente' : 'Prospecto')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <button
-                                onClick={() => handleRemovePersona(p.id)}
-                                className="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 transition-all"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-10">
-                      <Users className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                      <p className="text-sm text-muted-foreground">Sin personas asignadas</p>
-                      <p className="text-xs text-muted-foreground/60 mt-0.5">Usa el buscador para agregar</p>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           )}
         </DialogContent>
@@ -1370,7 +1418,7 @@ export default function CampaniasPage() {
               Seleccionar Plantilla
             </DialogTitle>
             <DialogDescription>
-              Elige la plantilla para la ejecucion de la campania
+              Elige la plantilla para la ejecución de la campaña
             </DialogDescription>
           </DialogHeader>
 

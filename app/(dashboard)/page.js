@@ -59,7 +59,7 @@ const stats = [
     to: '#059669',
   },
   {
-    name: 'Leads Nuevos',
+    name: 'Prospectos Nuevos',
     value: '15',
     subtitle: 'Esta semana',
     change: '+15 vs semana pasada',
@@ -320,7 +320,7 @@ export default function DashboardPage() {
                 <div className="border-t border-gray-200/60 pt-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">Nuevos Leads</p>
+                      <p className="text-sm font-medium">Nuevos Prospectos</p>
                       <p className="text-xs text-muted-foreground">Esta semana vs semana pasada</p>
                     </div>
                     <Badge variant="outline" className="text-base font-bold px-3 py-1">
