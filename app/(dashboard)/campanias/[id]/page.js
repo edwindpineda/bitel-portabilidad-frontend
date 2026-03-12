@@ -269,9 +269,12 @@ export default function CampaniaDetallePage() {
     if (confirm(`¿Está seguro de ejecutar la campaña "${campania?.nombre}"?`)) {
       setEjecutando(true);
       try {
+        const idsToSend = basesSeleccionadasIds.length > 0
+          ? basesSeleccionadasIds
+          : basesAsignadas.map(b => b.id_base_numero);
         const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
           id_campania: parseInt(campaniaId),
-          ids_base_numero: basesSeleccionadasIds.length > 0 ? basesSeleccionadasIds : undefined
+          ids_base_numero: idsToSend
         });
         alert(`Ejecución iniciada: ${response.data?.total_bases || 0} bases programadas`);
         loadCampania();
