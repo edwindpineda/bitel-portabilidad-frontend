@@ -98,6 +98,7 @@ export default function CampaniasPage() {
   const [ejecutando, setEjecutando] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [tiposCampania, setTiposCampania] = useState([]);
+  const [voces, setVoces] = useState([]);
   // Personas por ejecucion
   const [selectedEjecucion, setSelectedEjecucion] = useState(null);
   const [personasEjecucion, setPersonasEjecucion] = useState([]);
@@ -115,7 +116,8 @@ export default function CampaniasPage() {
     descripcion: '',
     id_formato: '',
     id_tipo_campania: '',
-    id_plantilla: ''
+    id_plantilla: '',
+    id_voz: ''
   });
   const [basesSeleccionadas, setBasesSeleccionadas] = useState([]);
   const [searchBase, setSearchBase] = useState('');
@@ -145,18 +147,20 @@ export default function CampaniasPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [campaniasRes, basesRes, formatosRes, plantillasRes, tiposRes] = await Promise.all([
+      const [campaniasRes, basesRes, formatosRes, plantillasRes, tiposRes, vocesRes] = await Promise.all([
         apiClient.get('/crm/campanias'),
         apiClient.get('/crm/bases-numeros'),
         apiClient.get('/crm/formatos'),
         apiClient.get('/crm/plantillas'),
         apiClient.get('/crm/tipos-campania'),
+        apiClient.get('/crm/voces'),
       ]);
       setCampanias(campaniasRes?.data || []);
       setBasesDisponibles(basesRes?.data || []);
       setFormatos(formatosRes?.data || []);
       setPlantillasDisponibles(plantillasRes?.data || []);
       setTiposCampania(tiposRes?.data || []);
+      setVoces(vocesRes?.data || []);
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {
@@ -180,6 +184,10 @@ export default function CampaniasPage() {
       alert('Debe seleccionar una plantilla');
       return;
     }
+    if (!formData.id_voz) {
+      alert('Debe seleccionar una voz del agente');
+      return;
+    }
 
     try {
       let campaniaId;
@@ -189,6 +197,7 @@ export default function CampaniasPage() {
         id_tipo_campania: parseInt(formData.id_tipo_campania),
         id_formato: parseInt(formData.id_formato),
         id_plantilla: formData.id_plantilla ? parseInt(formData.id_plantilla) : null,
+        id_voz: parseInt(formData.id_voz),
       };
 
       console.log('[handleSubmit] formData:', formData);
@@ -233,7 +242,8 @@ export default function CampaniasPage() {
       descripcion: campania.descripcion || '',
       id_formato: campania.id_formato ? String(campania.id_formato) : '',
       id_tipo_campania: campania.id_tipo_campania ? String(campania.id_tipo_campania) : '',
-      id_plantilla: campania.id_plantilla ? String(campania.id_plantilla) : ''
+      id_plantilla: campania.id_plantilla ? String(campania.id_plantilla) : '',
+      id_voz: campania.id_voz ? String(campania.id_voz) : ''
     });
     setBasesSeleccionadas([]);
     setSearchBase('');
@@ -257,7 +267,8 @@ export default function CampaniasPage() {
       descripcion: '',
       id_formato: '',
       id_tipo_campania: '',
-      id_plantilla: ''
+      id_plantilla: '',
+      id_voz: ''
     });
     setBasesSeleccionadas([]);
     setSearchBase('');
@@ -804,7 +815,7 @@ export default function CampaniasPage() {
 
       {/* ========== MODAL: CREATE/EDIT CAMPAIGN ========== */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
@@ -818,95 +829,123 @@ export default function CampaniasPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                Nombre *
-              </label>
-              <input
-                type="text"
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200"
-                placeholder="Nombre de la campaña"
-                required
-              />
+            {/* Fila 1: Nombre y Tipo de Campaña */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                  placeholder="Nombre de la campaña"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                  Tipo de Campaña *
+                </label>
+                <select
+                  value={formData.id_tipo_campania}
+                  onChange={(e) => setFormData({ ...formData, id_tipo_campania: e.target.value })}
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                  required
+                >
+                  <option value="">Seleccionar tipo</option>
+                  {tiposCampania.map((t) => (
+                    <option key={t.id} value={t.id}>{t.nombre}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
+            {/* Fila 2: Descripción (ancho completo) */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-                Descripcion
+                Descripción
               </label>
               <textarea
                 value={formData.descripcion}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200 resize-none"
+                className="w-full px-3 py-2.5 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors resize-none"
                 rows={2}
                 placeholder="Descripción de la campaña"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-violet-500" />
-                Tipo de Campaña *
-              </label>
-              <select
-                value={formData.id_tipo_campania}
-                onChange={(e) => setFormData({ ...formData, id_tipo_campania: e.target.value })}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
-                required
-              >
-                <option value="">Seleccionar tipo</option>
-                {tiposCampania.map((t) => (
-                  <option key={t.id} value={t.id}>{t.nombre}</option>
-                ))}
-              </select>
-            </div>
-
             <Separator />
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                Formato *
-              </label>
-              <select
-                value={formData.id_formato}
-                onChange={(e) => setFormData({ ...formData, id_formato: e.target.value, id_plantilla: '' })}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
-                required
-              >
-                <option value="">Seleccionar formato</option>
-                {formatos.map((formato) => (
-                  <option key={formato.id} value={formato.id}>{formato.nombre}</option>
-                ))}
-              </select>
+            {/* Fila 3: Formato y Plantilla */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Formato *
+                </label>
+                <select
+                  value={formData.id_formato}
+                  onChange={(e) => setFormData({ ...formData, id_formato: e.target.value, id_plantilla: '' })}
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                  required
+                >
+                  <option value="">Seleccionar formato</option>
+                  {formatos.map((formato) => (
+                    <option key={formato.id} value={formato.id}>{formato.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                  Plantilla *
+                </label>
+                <select
+                  value={formData.id_plantilla}
+                  onChange={(e) => setFormData({ ...formData, id_plantilla: e.target.value })}
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors disabled:bg-muted/50 disabled:cursor-not-allowed"
+                  disabled={!formData.id_formato}
+                  required
+                >
+                  <option value="">Seleccionar plantilla</option>
+                  {plantillasDisponibles
+                    .filter(p => !formData.id_formato || p.id_formato === parseInt(formData.id_formato))
+                    .map((plantilla) => (
+                      <option key={plantilla.id} value={plantilla.id}>{plantilla.nombre}</option>
+                    ))}
+                </select>
+                {!formData.id_formato && (
+                  <p className="text-[10px] text-muted-foreground">Selecciona un formato primero</p>
+                )}
+              </div>
             </div>
 
+            {/* Fila 4: Voz del Agente (ancho completo) */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-                Plantilla *
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Voz del Agente *
               </label>
               <select
-                value={formData.id_plantilla}
-                onChange={(e) => setFormData({ ...formData, id_plantilla: e.target.value })}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors"
-                disabled={!formData.id_formato}
+                value={formData.id_voz}
                 required
+                onChange={(e) => setFormData({ ...formData, id_voz: e.target.value })}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
               >
-                <option value="">Seleccionar plantilla</option>
-                {plantillasDisponibles
-                  .filter(p => !formData.id_formato || p.id_formato === parseInt(formData.id_formato))
-                  .map((plantilla) => (
-                    <option key={plantilla.id} value={plantilla.id}>{plantilla.nombre}</option>
-                  ))}
+                <option value="">Seleccione una voz</option>
+                {voces.map((voz) => (
+                  <option key={voz.id} value={voz.id}>
+                    {voz.nacionalidad} - {voz.genero}
+                  </option>
+                ))}
               </select>
-              {!formData.id_formato && (
-                <p className="text-[10px] text-muted-foreground">Selecciona un formato primero</p>
-              )}
             </div>
 
             {/* Seccion de seleccion de bases (solo para nueva campania) */}
@@ -931,7 +970,7 @@ export default function CampaniasPage() {
                       }}
                       onFocus={() => setShowBaseDropdown(true)}
                       placeholder="Buscar base por nombre..."
-                      className="w-full h-10 pl-9 pr-3 text-sm rounded-xl bg-muted/40 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors border border-transparent focus:border-indigo-200"
+                      className="w-full h-10 pl-9 pr-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
                     />
                   </div>
 
