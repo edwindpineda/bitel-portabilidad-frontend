@@ -163,6 +163,7 @@ export default function LlamadasPage() {
       'Contacto': l.contacto_nombre || '-',
       'Telefono': l.telefono || '-',
       'Campaña': l.campania_nombre || '-',
+      'Estado': l.estado_llamada_nombre || '-',
       'Tipificacion': l.tipificacion_llamada_nombre || '-',
       'Fecha Inicio': l.fecha_inicio || '-',
       'Fecha Fin': l.fecha_fin || '-',
@@ -341,6 +342,7 @@ export default function LlamadasPage() {
                     <TableHead className="text-xs">Contacto</TableHead>
                     <TableHead className="text-xs">Telefono</TableHead>
                     <TableHead className="text-xs">Campaña</TableHead>
+                    <TableHead className="text-xs">Estado</TableHead>
                     <TableHead className="text-xs">Tipificacion</TableHead>
                     <TableHead className="text-xs">Duracion</TableHead>
                     <TableHead className="text-xs">Fecha Inicio</TableHead>
@@ -383,6 +385,25 @@ export default function LlamadasPage() {
                           </div>
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {llamada.estado_llamada_nombre ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium border"
+                            style={{
+                              color: getColorHex(llamada.estado_llamada_color),
+                              borderColor: getColorHex(llamada.estado_llamada_color) + '55',
+                              backgroundColor: getColorHex(llamada.estado_llamada_color) + '12',
+                            }}
+                          >
+                            {llamada.estado_llamada_nombre}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            -
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>

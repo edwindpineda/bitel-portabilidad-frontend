@@ -232,6 +232,7 @@ export default function CampaniaDetallePage() {
         max_intentos: configLlamadas.max_intentos,
         horarios_por_dia: configLlamadas.horarios_por_dia,
       });
+      setShowConfigLlamadas(false);
       alert('Configuración guardada exitosamente');
     } catch (error) {
       console.error('Error al guardar config:', error);
@@ -453,6 +454,41 @@ export default function CampaniaDetallePage() {
           </Button>
         </div>
       </div>
+
+      {/* Detalle de la Campaña */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Campaña</p>
+              <p className="text-sm font-medium">
+                {campania.tipo_campania_nombre || <span className="text-muted-foreground">No definido</span>}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Formato</p>
+              <p className="text-sm font-medium">
+                {campania.formato_nombre || <span className="text-muted-foreground">No definido</span>}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Plantilla</p>
+              <p className="text-sm font-medium">
+                {campania.plantilla_nombre || <span className="text-muted-foreground">No definida</span>}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Voz del Agente</p>
+              <p className="text-sm font-medium">
+                {campania.voz_nacionalidad && campania.voz_genero
+                  ? `${campania.voz_nacionalidad} - ${campania.voz_genero}`
+                  : <span className="text-muted-foreground">No definida</span>
+                }
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

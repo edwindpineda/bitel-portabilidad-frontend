@@ -209,6 +209,26 @@ export default function LlamadaDetailPage() {
                 </div>
               </div>
               <div>
+                <p className="text-xs text-muted-foreground mb-1">Estado</p>
+                {llamada.estado_llamada_nombre ? (
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-medium border"
+                    style={{
+                      color: getColorHex(llamada.estado_llamada_color),
+                      borderColor: getColorHex(llamada.estado_llamada_color) + '55',
+                      backgroundColor: getColorHex(llamada.estado_llamada_color) + '12',
+                    }}
+                  >
+                    {llamada.estado_llamada_nombre}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    -
+                  </Badge>
+                )}
+              </div>
+              <div>
                 <p className="text-xs text-muted-foreground mb-1">Tipificacion</p>
                 {llamada.tipificacion_llamada_nombre ? (
                   <Badge

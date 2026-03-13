@@ -3,41 +3,10 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-// Cargar PromptEditor dinámicamente (solo en cliente)
-const PromptEditor = dynamic(() => import('@/components/PromptEditor'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-96 bg-gray-100 rounded-lg">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-    </div>
-  )
-});
-
-// Campos fijos de base_numero_detalle
-const CAMPOS_FIJOS = [
-  { nombre_campo: 'telefono', etiqueta: 'Telefono' },
-  { nombre_campo: 'nombre', etiqueta: 'Nombre' },
-  { nombre_campo: 'correo', etiqueta: 'Correo' },
-  { nombre_campo: 'tipo_documento', etiqueta: 'Tipo Documento' },
-  { nombre_campo: 'numero_documento', etiqueta: 'Numero Documento' },
-];
 
 export default function PlantillasPage() {
   const [plantillas, setPlantillas] = useState([]);
-  const [formatos, setFormatos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingPlantilla, setEditingPlantilla] = useState(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [camposFormato, setCamposFormato] = useState([]);
-
-  const [formData, setFormData] = useState({
-    id_formato: '',
-    nombre: '',
-    descripcion: '',
-    prompt: ''
-  });
 
   useEffect(() => {
     loadData();
@@ -46,109 +15,25 @@ export default function PlantillasPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [plantillasRes, formatosRes] = await Promise.all([
-        apiClient.get('/crm/plantillas'),
-        apiClient.get('/crm/formatos')
-      ]);
-      setPlantillas(plantillasRes?.data || []);
-      setFormatos(formatosRes?.data || []);
+      const response = await apiClient.get('/crm/plantillas');
+      setPlantillas(response?.data || []);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      console.error('Error al cargar plantillas:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadCamposFormato = async (idFormato) => {
-    if (!idFormato) {
-      setCamposFormato([]);
-      return;
-    }
-    try {
-      const response = await apiClient.get(`/crm/formatos/${idFormato}`);
-      const campos = response?.data?.campos || [];
-      setCamposFormato(campos);
-    } catch (error) {
-      console.error('Error al cargar campos:', error);
-      setCamposFormato([]);
-    }
-  };
-
-  const handleFormatoChange = (e) => {
-    const idFormato = e.target.value;
-    setFormData({ ...formData, id_formato: idFormato });
-    loadCamposFormato(idFormato);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingPlantilla) {
-        await apiClient.put(`/crm/plantillas/${editingPlantilla.id}`, formData);
-      } else {
-        await apiClient.post('/crm/plantillas', formData);
-      }
-      setEditingPlantilla(null);
-      setIsCreating(false);
-      resetForm();
-      loadData();
-    } catch (error) {
-      console.error('Error al guardar plantilla:', error);
-      alert(error.msg || 'Error al guardar plantilla');
-    }
-  };
-
-  const handleEdit = async (plantilla) => {
-    setEditingPlantilla(plantilla);
-    setIsCreating(false);
-    setFormData({
-      id_formato: plantilla.id_formato || '',
-      nombre: plantilla.nombre || '',
-      descripcion: plantilla.descripcion || '',
-      prompt: plantilla.prompt || ''
-    });
-    await loadCamposFormato(plantilla.id_formato);
   };
 
   const handleDelete = async (id) => {
     if (confirm('¿Está seguro de eliminar esta plantilla?')) {
       try {
         await apiClient.delete(`/crm/plantillas/${id}`);
-        if (editingPlantilla?.id === id) {
-          setEditingPlantilla(null);
-          resetForm();
-        }
         loadData();
       } catch (error) {
         console.error('Error al eliminar plantilla:', error);
       }
     }
   };
-
-  const resetForm = () => {
-    setFormData({
-      id_formato: '',
-      nombre: '',
-      descripcion: '',
-      prompt: ''
-    });
-    setCamposFormato([]);
-  };
-
-  const handleNewPlantilla = () => {
-    setEditingPlantilla(null);
-    setIsCreating(true);
-    resetForm();
-  };
-
-  const handleCancel = () => {
-    setEditingPlantilla(null);
-    setIsCreating(false);
-    resetForm();
-  };
-
-  // Todos los campos disponibles (fijos + formato)
-  const allCampos = [...CAMPOS_FIJOS, ...camposFormato];
 
   if (loading) {
     return (
@@ -157,8 +42,6 @@ export default function PlantillasPage() {
       </div>
     );
   }
-
-  const showEditor = isCreating || editingPlantilla;
 
   return (
     <div>
@@ -172,205 +55,78 @@ export default function PlantillasPage() {
           <h1 className="text-2xl font-bold text-gray-900">Plantillas de Prompts</h1>
           <p className="text-gray-600 mt-1">Gestiona las plantillas de prompts para campañas</p>
         </div>
-        {!showEditor && (
-          <button
-            onClick={handleNewPlantilla}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center space-x-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Nueva Plantilla</span>
-          </button>
-        )}
+        <Link
+          href="/configuracion/plantillas/nueva"
+          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center space-x-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Nueva Plantilla</span>
+        </Link>
       </div>
 
-      {showEditor ? (
-        /* Vista de edicion inline */
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">
-              {editingPlantilla ? 'Editar Plantilla' : 'Nueva Plantilla'}
-            </h2>
-            <button
-              onClick={handleCancel}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Columna izquierda: Datos basicos */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Formato *</label>
-                  <select
-                    value={formData.id_formato}
-                    onChange={handleFormatoChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    required
-                  >
-                    <option value="">Seleccionar formato...</option>
-                    {formatos.map((formato) => (
-                      <option key={formato.id} value={formato.id}>{formato.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                  <input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="Nombre de la plantilla"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                  <textarea
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    rows={3}
-                    placeholder="Descripción opcional"
-                  />
-                </div>
-
-                {/* Info sobre variables */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <h4 className="text-sm font-medium text-blue-800 mb-2">Variables disponibles</h4>
-                  <p className="text-xs text-blue-600 mb-2">
-                    Usa <code className="bg-blue-100 px-1 rounded">{'{{variable}}'}</code> para insertar datos dinámicos.
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {CAMPOS_FIJOS.map((campo) => (
-                      <span
-                        key={campo.nombre_campo}
-                        className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700"
-                      >
-                        {campo.etiqueta}
-                      </span>
-                    ))}
-                    {camposFormato.map((campo) => (
-                      <span
-                        key={campo.id}
-                        className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700"
-                      >
-                        {campo.etiqueta || campo.nombre_campo}
-                      </span>
-                    ))}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Formato</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {plantillas.map((plantilla) => (
+              <tr key={plantilla.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{plantilla.nombre}</div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-500 max-w-xs truncate">{plantilla.descripcion || '-'}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    {plantilla.formato_nombre || 'Sin formato'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {plantilla.fecha_registro ? new Date(plantilla.fecha_registro).toLocaleDateString() : '-'}
                   </div>
-                </div>
-              </div>
-
-              {/* Columna derecha: Editor de Prompt estilo VS Code */}
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prompt *
-                  <span className="ml-2 text-xs text-gray-400">(Instrucciones completas del agente de voz)</span>
-                </label>
-
-                {/* Editor Monaco estilo VS Code */}
-                <div style={{ height: '400px' }}>
-                  <PromptEditor
-                    value={formData.prompt}
-                    onChange={(value) => setFormData({ ...formData, prompt: value || '' })}
-                    campos={allCampos}
-                    height="100%"
-                    placeholder="Escribe aquí el prompt completo del agente de voz..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Botones de accion - fuera del grid para asegurar visibilidad */}
-            <div className="flex justify-end space-x-3 pt-4 mt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                {editingPlantilla ? 'Actualizar' : 'Crear'} Plantilla
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : (
-        /* Vista de lista */
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Formato</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <Link
+                    href={`/configuracion/plantillas/${plantilla.id}`}
+                    className="text-primary-600 hover:text-primary-900 mr-3"
+                    title="Editar"
+                  >
+                    <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(plantilla.id)}
+                    className="text-red-600 hover:text-red-900"
+                    title="Eliminar"
+                  >
+                    <svg className="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {plantillas.map((plantilla) => (
-                <tr key={plantilla.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{plantilla.nombre}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500 max-w-xs truncate">{plantilla.descripcion || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      {plantilla.formato_nombre || 'Sin formato'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {plantilla.fecha_registro ? new Date(plantilla.fecha_registro).toLocaleDateString() : '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(plantilla)}
-                      className="text-primary-600 hover:text-primary-900 mr-3"
-                      title="Editar"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(plantilla.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Eliminar"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
+        </table>
 
-          {plantillas.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No hay plantillas registradas. Crea una nueva plantilla para comenzar.
-            </div>
-          )}
-        </div>
-      )}
+        {plantillas.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No hay plantillas registradas. Crea una nueva plantilla para comenzar.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
