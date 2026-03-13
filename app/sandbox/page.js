@@ -41,6 +41,7 @@ import {
 } from "@/lib/sandboxService";
 
 const SANDBOX_SESSION_CONFIG_KEY = "sandbox_config_session";
+const MESSAGES_POLLING_INTERVAL_MS = 2500;
 
 // ==================== Componente ConfigDialog ====================
 function ConfigDialog({ open, onOpenChange, config, onSave }) {
@@ -446,17 +447,42 @@ export default function SandboxPage() {
     }
   };
 
-  const loadMessages = async (chatId) => {
-    setLoadingMessages(true);
+  const loadMessages = async (chatId, options = {}) => {
+    const { showLoader = true } = options;
+
+    if (showLoader) {
+      setLoadingMessages(true);
+    }
+
     try {
       const data = await getMessages(chatId);
       setMessages(Array.isArray(data) ? data : []);
     } catch {
-      setMessages([]);
+      if (showLoader) {
+        setMessages([]);
+      }
     } finally {
-      setLoadingMessages(false);
+      if (showLoader) {
+        setLoadingMessages(false);
+      }
     }
   };
+
+  // Actualiza mensajes automaticamente mientras un chat esta seleccionado.
+  useEffect(() => {
+    if (!selectedChat?.id) {
+      return;
+    }
+
+    const chatId = selectedChat.id;
+    const intervalId = setInterval(() => {
+      loadMessages(chatId, { showLoader: false });
+    }, MESSAGES_POLLING_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [selectedChat?.id]);
 
   const handleSelectChat = (chat) => {
     setSelectedChat(chat);
