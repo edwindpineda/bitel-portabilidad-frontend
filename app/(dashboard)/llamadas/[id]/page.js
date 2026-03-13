@@ -27,6 +27,8 @@ import {
   Loader2,
   AlertCircle,
   Hash,
+  MessageSquareText,
+  X,
 } from 'lucide-react';
 
 const COLOR_MAP = {
@@ -74,6 +76,9 @@ export default function LlamadaDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
+  const [showTranscripcionModal, setShowTranscripcionModal] = useState(false);
+  const [transcripciones, setTranscripciones] = useState([]);
+  const [loadingTranscripcion, setLoadingTranscripcion] = useState(false);
 
   useEffect(() => {
     const loadLlamada = async () => {
@@ -81,6 +86,11 @@ export default function LlamadaDetailPage() {
         setLoading(true);
         const res = await apiClient.get(`/crm/llamadas/${params.id}`);
         setLlamada(res.data);
+
+        // Cargar transcripciones si hay provider_call_id
+        if (res.data?.provider_call_id) {
+          loadTranscripciones(res.data.provider_call_id);
+        }
       } catch (err) {
         console.error('Error al cargar llamada:', err);
         setError('No se pudo cargar la informacion de la llamada');
@@ -93,6 +103,18 @@ export default function LlamadaDetailPage() {
       loadLlamada();
     }
   }, [params.id]);
+
+  const loadTranscripciones = async (providerCallId) => {
+    try {
+      setLoadingTranscripcion(true);
+      const res = await apiClient.get(`/crm/transcripciones/${providerCallId}`);
+      setTranscripciones(res.data || []);
+    } catch (err) {
+      console.error('Error al cargar transcripciones:', err);
+    } finally {
+      setLoadingTranscripcion(false);
+    }
+  };
 
   const getAudioUrl = (archivoLlamada) => {
     if (!archivoLlamada) return null;
@@ -207,6 +229,26 @@ export default function LlamadaDetailPage() {
                   <Megaphone className="h-3.5 w-3.5 text-muted-foreground" />
                   <p className="text-sm font-medium">{llamada.campania_nombre || '-'}</p>
                 </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Estado</p>
+                {llamada.estado_llamada_nombre ? (
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-medium border"
+                    style={{
+                      color: getColorHex(llamada.estado_llamada_color),
+                      borderColor: getColorHex(llamada.estado_llamada_color) + '55',
+                      backgroundColor: getColorHex(llamada.estado_llamada_color) + '12',
+                    }}
+                  >
+                    {llamada.estado_llamada_nombre}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    -
+                  </Badge>
+                )}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Tipificacion</p>
@@ -333,6 +375,44 @@ export default function LlamadaDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Transcripcion */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquareText className="h-4 w-4 text-emerald-500" />
+                Transcripcion
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingTranscripcion ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : transcripciones.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="bg-muted/50 rounded-lg p-3 max-h-24 overflow-hidden">
+                    <p className="text-xs text-muted-foreground line-clamp-4">
+                      {transcripciones.slice(0, 3).map(t => `${t.speaker}: ${t.texto}`).join(' ')}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setShowTranscripcionModal(true)}
+                    className="w-full gap-2"
+                    variant="outline"
+                  >
+                    <MessageSquareText className="h-4 w-4" />
+                    Ver Transcripcion ({transcripciones.length} mensajes)
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <MessageSquareText className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Sin transcripcion disponible</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Stats rapidos */}
           <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white">
             <CardContent className="p-4">
@@ -350,26 +430,105 @@ export default function LlamadaDetailPage() {
         </div>
       </div>
 
-      {/* Modal Reproductor de Audio */}
-      <Dialog open={showAudioModal} onOpenChange={setShowAudioModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
+      {/* Modal Reproductor de Audio - Custom */}
+      {showAudioModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/80"
+            onClick={() => setShowAudioModal(false)}
+          />
+          {/* Modal */}
+          <div
+            className="relative z-50 bg-background border rounded-xl shadow-lg p-6"
+            style={{ width: '90%', maxWidth: '600px' }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowAudioModal(false)}
+              className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
               <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
                 <Volume2 className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <span>Audio de Llamada #{llamada.codigo_llamada || llamada.id}</span>
+                <h2 className="text-lg font-semibold">Audio de Llamada #{llamada.codigo_llamada || llamada.id}</h2>
+                <p className="text-xs text-muted-foreground">Reproducir grabacion de llamada</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Info de la llamada */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Contacto</p>
+                  <p className="font-medium">{llamada.contacto_nombre || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Telefono</p>
+                  <p className="font-medium">{llamada.telefono || '-'}</p>
+                </div>
+              </div>
+
+              {/* Archivo info */}
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">Archivo</p>
+                <p className="text-xs font-mono truncate">{llamada.archivo_llamada}</p>
+              </div>
+
+              {/* Reproductor de audio */}
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border">
+                <audio
+                  controls
+                  style={{ width: '100%' }}
+                  src={getAudioUrl(llamada.archivo_llamada)}
+                >
+                  Tu navegador no soporta el elemento de audio.
+                </audio>
+              </div>
+
+              {/* Boton de descarga */}
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadAudio}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar audio
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Transcripcion */}
+      <Dialog open={showTranscripcionModal} onOpenChange={setShowTranscripcionModal}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <MessageSquareText className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <span>Transcripcion de Llamada #{llamada.codigo_llamada || llamada.id}</span>
                 <p className="text-xs font-normal text-muted-foreground mt-0.5">
-                  Reproducir grabacion de llamada
+                  {transcripciones.length} mensajes en la conversacion
                 </p>
               </div>
             </DialogTitle>
-            <DialogDescription className="sr-only">Reproductor de audio de llamada</DialogDescription>
+            <DialogDescription className="sr-only">Transcripcion de la llamada</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Info de la llamada */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground">Contacto</p>
                 <p className="font-medium">{llamada.contacto_nombre || '-'}</p>
@@ -378,36 +537,43 @@ export default function LlamadaDetailPage() {
                 <p className="text-xs text-muted-foreground">Telefono</p>
                 <p className="font-medium">{llamada.telefono || '-'}</p>
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Duracion</p>
+                <p className="font-medium">{formatDuration(llamada.duracion_seg)}</p>
+              </div>
             </div>
 
-            {/* Archivo info */}
-            <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-              <p className="text-xs font-mono truncate">{llamada.archivo_llamada}</p>
-            </div>
-
-            {/* Reproductor de audio */}
-            <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border">
-              <audio
-                controls
-                className="w-full"
-                src={getAudioUrl(llamada.archivo_llamada)}
-              >
-                Tu navegador no soporta el elemento de audio.
-              </audio>
-            </div>
-
-            {/* Boton de descarga */}
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadAudio}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Descargar audio
-              </Button>
+            {/* Transcripcion en formato chat */}
+            <div className="bg-muted/30 rounded-xl p-4 border max-h-[45vh] overflow-y-auto space-y-3">
+              {transcripciones.length > 0 ? (
+                transcripciones.map((t, idx) => {
+                  const speakerLower = t.speaker?.toLowerCase();
+                  const isAI = speakerLower === 'ai' || speakerLower === 'agent' || speakerLower === 'agente';
+                  return (
+                    <div
+                      key={t.id || idx}
+                      className={`flex ${isAI ? 'justify-start' : 'justify-end'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                          isAI
+                            ? 'bg-blue-500 text-white rounded-tl-none'
+                            : 'bg-emerald-500 text-white rounded-tr-none'
+                        }`}
+                      >
+                        <p className={`text-[10px] font-medium mb-1 ${isAI ? 'text-blue-100' : 'text-emerald-100'}`}>
+                          {isAI ? 'Asistente IA' : (t.speaker === 'humano' ? 'Usuario' : t.speaker)}
+                        </p>
+                        <p className="text-sm leading-relaxed">{t.texto}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Sin transcripcion disponible
+                </p>
+              )}
             </div>
           </div>
         </DialogContent>

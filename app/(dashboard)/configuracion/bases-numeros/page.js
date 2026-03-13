@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { apiClient } from '@/lib/api';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+const formatNumber = (num) => {
+  return (num || 0).toLocaleString('es-PE');
+};
+
 export default function BasesNumerosPage() {
+  const { data: session } = useSession();
   const [bases, setBases] = useState([]);
   const [formatos, setFormatos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +23,8 @@ export default function BasesNumerosPage() {
   const [detalles, setDetalles] = useState([]);
   const [detallesPagination, setDetallesPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressInfo, setProgressInfo] = useState({ total: 0, procesados: 0, nuevos: 0, omitidos: 0, mensaje: '' });
   const [uploadResult, setUploadResult] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -145,35 +154,119 @@ export default function BasesNumerosPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-    setUploadResult(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1800000); // 30 minutos
 
     try {
+      setUploading(true);
+      setUploadProgress(0);
+      setUploadResult(null);
+      setProgressInfo({ total: 0, procesados: 0, nuevos: 0, omitidos: 0, mensaje: 'Subiendo archivo...' });
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3020/api';
+
       const formDataUpload = new FormData();
       formDataUpload.append('archivo', file);
       formDataUpload.append('id_base_numero', selectedBase.id);
 
-      const response = await apiClient.upload('/crm/bases-numeros/upload', formDataUpload);
+      const response = await fetch(`${API_URL}/crm/bases-numeros/upload`, {
+        method: 'POST',
+        body: formDataUpload,
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${session?.accessToken}`
+        }
+      });
 
-      setUploadResult(response.data);
-      loadData();
+      clearTimeout(timeoutId);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        console.log('SSE raw buffer:', buffer);
+
+        // Procesar eventos SSE
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              console.log('SSE event received:', data);
+
+              if (data.tipo === 'inicio') {
+                flushSync(() => {
+                  setProgressInfo(prev => ({ ...prev, mensaje: data.mensaje }));
+                });
+              } else if (data.tipo === 'progreso') {
+                flushSync(() => {
+                  setProgressInfo({
+                    total: data.total || 0,
+                    procesados: data.procesados || 0,
+                    nuevos: data.nuevos || 0,
+                    omitidos: data.omitidos || 0,
+                    mensaje: data.mensaje || 'Procesando...'
+                  });
+                  if (data.porcentaje !== undefined) {
+                    setUploadProgress(data.porcentaje);
+                  } else if (data.total > 0) {
+                    setUploadProgress(Math.round((data.procesados / data.total) * 100));
+                  }
+                });
+              } else if (data.tipo === 'completado') {
+                flushSync(() => {
+                  setUploadProgress(100);
+                  setUploadResult({
+                    exito: data.exito,
+                    totalProcesados: data.data?.totalProcesados || 0,
+                    insertados: data.data?.insertados || 0,
+                    erroresValidacion: data.data?.erroresValidacion || 0,
+                    erroresDuplicados: data.data?.erroresDuplicados || 0,
+                    detalleErroresValidacion: data.data?.detalleErroresValidacion || [],
+                    detalleErroresDuplicados: data.data?.detalleErroresDuplicados || []
+                  });
+                });
+                loadData();
+              } else if (data.tipo === 'error') {
+                flushSync(() => {
+                  setUploadResult({
+                    error: true,
+                    msg: data.mensaje
+                  });
+                });
+              } else if (data.tipo === 'error_estructura') {
+                flushSync(() => {
+                  setUploadResult({
+                    error: 'estructura_invalida',
+                    msg: data.mensaje,
+                    columnasFaltantes: data.columnasFaltantes,
+                    columnasSobrantes: data.columnasSobrantes,
+                    columnasEsperadas: data.columnasEsperadas,
+                    columnasArchivo: data.columnasArchivo
+                  });
+                });
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error al subir archivo:', error);
-      // Capturar toda la respuesta de error incluyendo detalles de estructura
-      if (error && typeof error === 'object') {
-        setUploadResult({
-          error: error.error || 'error',
-          msg: error.msg || 'Error al procesar el archivo',
-          columnasFaltantes: error.columnasFaltantes,
-          columnasSobrantes: error.columnasSobrantes,
-          columnasEsperadas: error.columnasEsperadas,
-          columnasArchivo: error.columnasArchivo
-        });
-      } else {
-        setUploadResult({ error: 'Error al procesar el archivo' });
-      }
+      setUploadResult({ error: 'Error al procesar el archivo' });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setProgressInfo({ total: 0, procesados: 0, nuevos: 0, omitidos: 0, mensaje: '' });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -346,8 +439,8 @@ export default function BasesNumerosPage() {
 
       {/* Modal Upload */}
       {showUploadModal && selectedBase && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-[80%] max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Cargar Archivo</h2>
@@ -382,25 +475,66 @@ export default function BasesNumerosPage() {
               </div>
 
               {uploading && (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                  <span className="ml-2 text-gray-600">Procesando archivo...</span>
+                <div className="py-4 space-y-4">
+                  <div className="flex items-center justify-center gap-2 text-gray-600 text-sm mb-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+                    <span>{progressInfo.mensaje || 'Procesando...'}</span>
+                  </div>
+
+                  {/* Barra de progreso */}
+                  <div className="w-full bg-gray-200 rounded-full h-4">
+                    <div
+                      className="bg-primary-600 h-4 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-center text-sm font-medium text-gray-700">{uploadProgress}%</div>
+
+                  {/* Indicadores - siempre visibles */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                    <div className="bg-blue-50 rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-blue-600">{formatNumber(progressInfo.total)}</div>
+                      <div className="text-xs text-blue-700">Total filas</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-gray-600">{formatNumber(progressInfo.procesados)}</div>
+                      <div className="text-xs text-gray-700">Procesados</div>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-green-600">{formatNumber(progressInfo.nuevos)}</div>
+                      <div className="text-xs text-green-700">Validos</div>
+                    </div>
+                    <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-yellow-600">{formatNumber(progressInfo.omitidos)}</div>
+                      <div className="text-xs text-yellow-700">Con errores</div>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {uploadResult && !uploadResult.error && (
+              {uploadResult && uploadResult.exito && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h4 className="font-medium text-green-800 mb-2">Carga completada</h4>
-                  <ul className="text-sm text-green-700 space-y-1">
-                    <li>Total procesados: {uploadResult.totalProcesados}</li>
-                    <li>Insertados: {uploadResult.insertados}</li>
-                    {uploadResult.erroresValidacion > 0 && (
-                      <li className="text-yellow-700">Errores de validacion: {uploadResult.erroresValidacion}</li>
-                    )}
-                    {uploadResult.erroresDuplicados > 0 && (
-                      <li className="text-yellow-700">Duplicados: {uploadResult.erroresDuplicados}</li>
-                    )}
-                  </ul>
+
+                  {/* Resumen con indicadores */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-white rounded-lg p-3 text-center border border-green-200">
+                      <div className="text-2xl font-bold text-blue-600">{formatNumber(uploadResult.totalProcesados)}</div>
+                      <div className="text-xs text-gray-600">Total procesados</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 text-center border border-green-200">
+                      <div className="text-2xl font-bold text-green-600">{formatNumber(uploadResult.insertados)}</div>
+                      <div className="text-xs text-gray-600">Insertados</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 text-center border border-green-200">
+                      <div className="text-2xl font-bold text-yellow-600">{formatNumber(uploadResult.erroresValidacion)}</div>
+                      <div className="text-xs text-gray-600">Errores validacion</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 text-center border border-green-200">
+                      <div className="text-2xl font-bold text-orange-600">{formatNumber(uploadResult.erroresDuplicados)}</div>
+                      <div className="text-xs text-gray-600">Duplicados</div>
+                    </div>
+                  </div>
 
                   {uploadResult.detalleErroresValidacion?.length > 0 && (
                     <div className="mt-3">
@@ -408,6 +542,17 @@ export default function BasesNumerosPage() {
                       <ul className="text-xs text-yellow-600 mt-1 max-h-32 overflow-y-auto">
                         {uploadResult.detalleErroresValidacion.map((err, idx) => (
                           <li key={idx}>Fila {err.fila}: {err.errores.join(', ')}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {uploadResult.detalleErroresDuplicados?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium text-orange-700">Duplicados (primeros 10):</p>
+                      <ul className="text-xs text-orange-600 mt-1 max-h-32 overflow-y-auto">
+                        {uploadResult.detalleErroresDuplicados.map((err, idx) => (
+                          <li key={idx}>{typeof err === 'string' ? err : JSON.stringify(err)}</li>
                         ))}
                       </ul>
                     </div>
