@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Settings,
   Plus,
@@ -28,15 +29,18 @@ import {
 } from "@/components/ui/dialog";
 import toast from "react-hot-toast";
 import {
-  getConfiguracion,
+  getConfiguracionById,
+  getConfiguraciones,
   saveConfiguracion,
-  updateConfiguracion,
   getChats,
   createChat,
   deleteChat,
   getMessages,
   sendMessage,
+  sendMessageWebhookMock,
 } from "@/lib/sandboxService";
+
+const SANDBOX_SESSION_CONFIG_KEY = "sandbox_config_session";
 
 // ==================== Componente ConfigDialog ====================
 function ConfigDialog({ open, onOpenChange, config, onSave }) {
@@ -56,19 +60,13 @@ function ConfigDialog({ open, onOpenChange, config, onSave }) {
       toast.error("Todos los campos son obligatorios");
       return;
     }
+    const data = { url_bot_service: urlBot.trim(), canal: canal.trim() };
     setSaving(true);
     try {
-      const data = { url_bot_service: urlBot.trim(), canal: canal.trim() };
-      if (config?.id) {
-        await updateConfiguracion(config.id, data);
-      } else {
-        await saveConfiguracion(data);
-      }
-      toast.success("Configuración guardada");
-      onSave({ ...config, ...data });
+      await onSave(data);
       onOpenChange(false);
     } catch {
-      toast.error("Error al guardar la configuración");
+      toast.error("No se pudo guardar la configuración");
     } finally {
       setSaving(false);
     }
@@ -310,6 +308,34 @@ function ChatBubble({ message }) {
 
 // ==================== Componente Principal ====================
 export default function SandboxPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const resolveConfigIdFromUrl = useCallback(() => {
+    const queryId =
+      searchParams.get("id") ||
+      searchParams.get("configId") ||
+      searchParams.get("config_id");
+
+    if (queryId) {
+      const parsedQueryId = Number(queryId);
+      if (Number.isInteger(parsedQueryId) && parsedQueryId > 0) {
+        return parsedQueryId;
+      }
+    }
+
+    const pathMatch = pathname?.match(/\/sandbox\/(?:id[:/]?)?(\d+)$/i);
+    if (pathMatch?.[1]) {
+      const parsedPathId = Number(pathMatch[1]);
+      if (Number.isInteger(parsedPathId) && parsedPathId > 0) {
+        return parsedPathId;
+      }
+    }
+
+    return null;
+  }, [pathname, searchParams]);
+
+  const configId = resolveConfigIdFromUrl();
   const [config, setConfig] = useState(null);
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -324,6 +350,19 @@ export default function SandboxPage() {
   const [successChatId, setSuccessChatId] = useState(null);
   const messagesEndRef = useRef(null);
 
+  const shouldUseWebhookMock = useCallback(() => {
+    const normalizedConfigCanal = (config?.canal || "").trim().toLowerCase();
+    const normalizedChatCanal = (selectedChat?.canal || selectedChat?.channel || "")
+      .trim()
+      .toLowerCase();
+
+    return (
+      Number(config?.id) === 3 ||
+      normalizedConfigCanal === "carlos-test" ||
+      normalizedChatCanal === "carlos-test"
+    );
+  }, [config?.id, config?.canal, selectedChat?.canal, selectedChat?.channel]);
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
@@ -332,18 +371,61 @@ export default function SandboxPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Cargar configuración al montar
+  // Si llega ?id=123, carga configuración desde BD; si no, usa sessionStorage.
   useEffect(() => {
     const loadConfig = async () => {
+      const hasConfigId = Number.isInteger(configId) && configId > 0;
+
+      if (hasConfigId) {
+        let dbConfig = null;
+
+        try {
+          dbConfig = await getConfiguracionById(configId);
+        } catch {
+          // Fallback por si el endpoint por id no está disponible en backend
+        }
+
+        if (!dbConfig?.url_bot_service || !dbConfig?.canal) {
+          try {
+            const allConfigs = await getConfiguraciones();
+            dbConfig = allConfigs.find((item) => Number(item?.id) === configId) || null;
+          } catch {
+            // Se maneja abajo con mensaje único
+          }
+        }
+
+        if (dbConfig?.url_bot_service && dbConfig?.canal) {
+          setConfig(dbConfig);
+          sessionStorage.setItem(SANDBOX_SESSION_CONFIG_KEY, JSON.stringify(dbConfig));
+          return;
+        }
+
+        toast.error(`No se pudo cargar la configuración id ${configId}`);
+
+        setConfig(null);
+        setSelectedChat(null);
+        setChats([]);
+        setMessages([]);
+        sessionStorage.removeItem(SANDBOX_SESSION_CONFIG_KEY);
+        return;
+      }
+
       try {
-        const data = await getConfiguracion();
-        setConfig(data);
+        const rawConfig = sessionStorage.getItem(SANDBOX_SESSION_CONFIG_KEY);
+        if (!rawConfig) return;
+
+        const parsedConfig = JSON.parse(rawConfig);
+        if (parsedConfig?.url_bot_service && parsedConfig?.canal) {
+          setConfig(parsedConfig);
+        }
       } catch {
-        // Sin configuración aún
+        // Si el valor guardado está corrupto, se ignora para no bloquear la UI
+        sessionStorage.removeItem(SANDBOX_SESSION_CONFIG_KEY);
       }
     };
+
     loadConfig();
-  }, []);
+  }, [configId]);
 
   // Cargar chats cuando hay config con canal
   useEffect(() => {
@@ -412,10 +494,21 @@ export default function SandboxPage() {
         message: text,
         type: "text",
         url: "",
+        url_bot_service: config.url_bot_service,
+        canal: config.canal,
       };
 
-      console.log("[Sandbox] payload enviado:", payload);
-      await sendMessage(selectedChat.id, payload);
+      const useWebhookMock = shouldUseWebhookMock();
+
+      console.log("[Sandbox] payload enviado:", payload, {
+        endpoint: useWebhookMock ? "webhook-mock" : "default",
+      });
+
+      if (useWebhookMock) {
+        await sendMessageWebhookMock(selectedChat.id, payload);
+      } else {
+        await sendMessage(selectedChat.id, payload);
+      }
       // Recargar mensajes para obtener respuesta del bot
       setTimeout(() => loadMessages(selectedChat.id), 1500);
     } catch {
@@ -440,8 +533,28 @@ export default function SandboxPage() {
     }
   };
 
-  const handleConfigSave = (newConfig) => {
-    setConfig(newConfig);
+  const handleConfigSave = async (newConfig) => {
+    const normalizeValue = (value) => (value || "").trim().toLowerCase();
+
+    const configs = await getConfiguraciones();
+    const existingConfig = configs.find(
+      (item) =>
+        normalizeValue(item?.url_bot_service) === normalizeValue(newConfig.url_bot_service) &&
+        normalizeValue(item?.canal) === normalizeValue(newConfig.canal)
+    );
+
+    const effectiveConfig = existingConfig || (await saveConfiguracion(newConfig));
+
+    if (existingConfig) {
+      toast("La configuración ya existe en BD. Se usará la existente.", {
+        icon: "ℹ️",
+      });
+    } else {
+      toast.success("Configuración creada en BD y guardada en esta sesión");
+    }
+
+    setConfig(effectiveConfig);
+    sessionStorage.setItem(SANDBOX_SESSION_CONFIG_KEY, JSON.stringify(effectiveConfig));
   };
 
   const handleNewChat = (chat) => {
