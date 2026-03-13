@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,9 @@ const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '113216902556
 // COMPONENTE PRINCIPAL
 // ============================================
 export default function WhatsAppAPIConfig() {
+  const { data: session } = useSession();
+  const empresaId = session?.user?.id_empresa;
+
   // Estado del Embedded Signup
   const [embeddedState, setEmbeddedState] = useState({
     loading: true,
@@ -192,6 +196,24 @@ export default function WhatsAppAPIConfig() {
                   canSendMessages: true,
                   error: null,
                 });
+
+                // Guardar configuracion en la BD local (configuracion_whatsapp)
+                if (empresaId && result.data) {
+                  try {
+                    await whatsappEmbeddedService.guardarConfiguracionLocal(empresaId, {
+                      app_id: result.data.app_id,
+                      phone_number_id: result.data.phone_number_id,
+                      app_secret: result.data.app_secret,
+                      access_token: tokenToSend,
+                      waba_id: result.data.waba_id,
+                      phone_number: result.data.phone_number,
+                      token_expiration: result.data.token_expiration,
+                    });
+                    console.log('[Embedded Signup] Configuracion guardada en BD local');
+                  } catch (dbError) {
+                    console.error('[Embedded Signup] Error guardando en BD local:', dbError);
+                  }
+                }
               } else {
                 setEmbeddedState(prev => ({
                   ...prev,
