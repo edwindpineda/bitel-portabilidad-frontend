@@ -498,68 +498,86 @@ export default function LlamadasPage() {
         </CardContent>
       </Card>
 
-      {/* Modal Reproductor de Audio */}
-      <Dialog open={showAudioModal} onOpenChange={(open) => { if (!open) { setShowAudioModal(false); setSelectedAudio(null); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
+      {/* Modal Reproductor de Audio - Custom */}
+      {showAudioModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/80"
+            onClick={() => { setShowAudioModal(false); setSelectedAudio(null); }}
+          />
+          {/* Modal */}
+          <div
+            className="relative z-50 bg-background border rounded-xl shadow-lg p-6"
+            style={{ width: '90%', maxWidth: '600px' }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => { setShowAudioModal(false); setSelectedAudio(null); }}
+              className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
               <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
                 <Volume2 className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <span>Audio de Llamada #{selectedAudio?.codigo_llamada || selectedAudio?.id}</span>
-                <p className="text-xs font-normal text-muted-foreground mt-0.5">Reproducir grabacion de llamada</p>
-              </div>
-            </DialogTitle>
-            <DialogDescription className="sr-only">Reproductor de audio de llamada</DialogDescription>
-          </DialogHeader>
-          {selectedAudio && (
-            <div className="space-y-4 py-4">
-              {/* Info de la llamada */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Contacto</p>
-                  <p className="font-medium">{selectedAudio.contacto_nombre || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Telefono</p>
-                  <p className="font-medium">{selectedAudio.telefono || '-'}</p>
-                </div>
-              </div>
-
-              {/* Archivo info */}
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-                <p className="text-xs font-mono truncate">{selectedAudio.archivo_llamada}</p>
-              </div>
-
-              {/* Reproductor de audio */}
-              <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border">
-                <audio
-                  controls
-                  className="w-full"
-                  src={getAudioUrl(selectedAudio.archivo_llamada)}
-                >
-                  Tu navegador no soporta el elemento de audio.
-                </audio>
-              </div>
-
-              {/* Boton de descarga */}
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadAudio}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Descargar audio
-                </Button>
+                <h2 className="text-lg font-semibold">Audio de Llamada #{selectedAudio?.codigo_llamada || selectedAudio?.id}</h2>
+                <p className="text-xs text-muted-foreground">Reproducir grabacion de llamada</p>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
+            {selectedAudio && (
+              <div className="space-y-4">
+                {/* Info de la llamada */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contacto</p>
+                    <p className="font-medium">{selectedAudio.contacto_nombre || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Telefono</p>
+                    <p className="font-medium">{selectedAudio.telefono || '-'}</p>
+                  </div>
+                </div>
+
+                {/* Archivo info */}
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Archivo</p>
+                  <p className="text-xs font-mono truncate">{selectedAudio.archivo_llamada}</p>
+                </div>
+
+                {/* Reproductor de audio */}
+                <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border">
+                  <audio
+                    controls
+                    style={{ width: '100%' }}
+                    src={getAudioUrl(selectedAudio.archivo_llamada)}
+                  >
+                    Tu navegador no soporta el elemento de audio.
+                  </audio>
+                </div>
+
+                {/* Boton de descarga */}
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadAudio}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Descargar audio
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
