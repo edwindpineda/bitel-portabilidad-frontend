@@ -495,7 +495,7 @@ export default function SandboxPage() {
         type: "text",
         url: "",
         url_bot_service: config.url_bot_service,
-        canal: config.canal,
+        session_id: config.canal.id,
       };
 
       const useWebhookMock = shouldUseWebhookMock();
