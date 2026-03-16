@@ -25,9 +25,8 @@ import ConfirmEnvioModal from '@/components/whatsapp/ConfirmEnvioModal';
 
 const ESTADO_STYLES = {
   pendiente: { className: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500 animate-pulse', label: 'Pendiente' },
-  en_proceso: { className: 'bg-blue-100 text-blue-800', dot: 'bg-blue-500 animate-pulse', label: 'En Proceso' },
-  completado: { className: 'bg-green-100 text-green-800', dot: 'bg-green-500', label: 'Completado' },
-  fallido: { className: 'bg-red-100 text-red-800', dot: 'bg-red-500', label: 'Fallido' },
+  enviado: { className: 'bg-blue-100 text-blue-800', dot: 'bg-blue-500', label: 'Enviado' },
+  entregado: { className: 'bg-green-100 text-green-800', dot: 'bg-green-500', label: 'Entregado' },
   cancelado: { className: 'bg-gray-100 text-gray-800', dot: 'bg-gray-500', label: 'Cancelado' },
 };
 
@@ -151,7 +150,7 @@ export default function EnviosMasivosPage() {
           descripcion: formData.descripcion,
           cantidad: selectedPersonas.length,
           fecha_envio: datosEnvio.fechaEnvio || null,
-          estado_envio: datosEnvio.envioInstantaneo ? 'pendiente' : 'programado',
+          estado_envio: 'pendiente',
         });
 
         const envioId = envioRes?.data?.id;
@@ -254,7 +253,7 @@ export default function EnviosMasivosPage() {
   // Stats
   const totalEnvios = envios.length;
   const totalPendientes = envios.filter(e => e.estado_envio === 'pendiente').length;
-  const totalCompletados = envios.filter(e => e.estado_envio === 'completado').length;
+  const totalEntregados = envios.filter(e => e.estado_envio === 'entregado').length;
   const totalPersonasCount = envios.reduce((sum, e) => sum + (e.cantidad || 0), 0);
 
   if (loading) {
@@ -318,9 +317,9 @@ export default function EnviosMasivosPage() {
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                  <p className="text-sm text-muted-foreground">Completados</p>
+                  <p className="text-sm text-muted-foreground">Entregados</p>
                 </div>
-                <p className="text-3xl font-bold text-green-600 mt-1">{totalCompletados}</p>
+                <p className="text-3xl font-bold text-green-600 mt-1">{totalEntregados}</p>
               </div>
               <div className="p-3 bg-green-50 rounded-xl">
                 <CheckCircle2 className="w-6 h-6 text-green-500" />
@@ -445,7 +444,7 @@ export default function EnviosMasivosPage() {
                           </TooltipTrigger>
                           <TooltipContent>Ver Detalle</TooltipContent>
                         </Tooltip>
-                        {envio.estado_envio !== 'completado' && (
+                        {envio.estado_envio !== 'entregado' && (
                           <>
                             <Tooltip>
                               <TooltipTrigger asChild>
