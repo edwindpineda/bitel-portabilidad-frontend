@@ -10,9 +10,7 @@ import {
   Bot,
   User,
   Trash2,
-  Image as ImageIcon,
-  Paperclip,
-  X,
+  AlertCircle,
   CheckCircle,
   Circle,
 } from "lucide-react";
@@ -260,7 +258,7 @@ function MediaContent({ message, isUser }) {
 // ==================== Componente ChatBubble ====================
 function ChatBubble({ message }) {
   const isUser = message.direction === "outgoing";
-  const hasMedia = ["image", "video", "pdf"].includes(message.type) && message.url;
+  const isFailed = !!message.failed;
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
@@ -274,26 +272,40 @@ function ChatBubble({ message }) {
         )}
         <div
           className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-            isUser
+            isFailed
+              ? "bg-destructive/10 text-destructive border border-destructive/30 rounded-br-md"
+              : isUser
               ? "bg-primary text-primary-foreground rounded-br-md"
               : "bg-muted text-foreground rounded-bl-md"
           }`}
         >
           <MediaContent message={message} isUser={isUser} />
-          <p
-            className={`text-[10px] mt-1 ${
-              isUser
-                ? "text-primary-foreground/60"
-                : "text-muted-foreground"
-            }`}
-          >
-            {message.fecha_hora
-              ? new Date(message.fecha_hora).toLocaleTimeString("es-PE", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : ""}
-          </p>
+          <div className={`flex items-center gap-1 mt-1 ${
+            isUser && !isFailed ? "justify-end" : ""
+          }`}>
+            {isFailed && (
+              <span className="flex items-center gap-1 text-[10px] text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                No se pudo enviar
+              </span>
+            )}
+            {!isFailed && (
+              <p
+                className={`text-[10px] ${
+                  isUser
+                    ? "text-primary-foreground/60"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {message.fecha_hora
+                  ? new Date(message.fecha_hora).toLocaleTimeString("es-PE", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </p>
+            )}
+          </div>
         </div>
         {isUser && (
           <Avatar className="h-8 w-8 shrink-0">
@@ -582,7 +594,12 @@ export default function SandboxPage() {
         await sendMessage(selectedChat.id, payload);
       }
     } catch {
-      toast.error("Error al enviar el mensaje");
+      // Marcar el mensaje optimista como fallido y restaurar el input para reintentar
+      setMessages((prev) =>
+        prev.map((m) => (m.id === tempMsg.id ? { ...m, failed: true } : m))
+      );
+      setInputMessage(text);
+      toast.error("El bot no está disponible. Puedes reintentar.", { duration: 4000 });
     } finally {
       setSending(false);
       // Re-habilitar polling y cargar mensajes con un pequeño delay para
