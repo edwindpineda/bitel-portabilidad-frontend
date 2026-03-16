@@ -349,7 +349,9 @@ export default function SandboxPage() {
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [successChatId, setSuccessChatId] = useState(null);
+  const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const isSendingRef = useRef(false);
 
   const shouldUseWebhookMock = useCallback(() => {
     const normalizedConfigCanal = (config?.canal || "").trim().toLowerCase();
@@ -364,13 +366,39 @@ export default function SandboxPage() {
     );
   }, [config?.id, config?.canal, selectedChat?.canal, selectedChat?.channel]);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = useCallback((behavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceToBottom < 120;
+  }, []);
+
+  const areMessagesEquivalent = useCallback((prevMessages, nextMessages) => {
+    if (!Array.isArray(prevMessages) || !Array.isArray(nextMessages)) return false;
+    if (prevMessages.length !== nextMessages.length) return false;
+
+    for (let i = 0; i < prevMessages.length; i += 1) {
+      const prevMsg = prevMessages[i];
+      const nextMsg = nextMessages[i];
+
+      if (
+        prevMsg?.id !== nextMsg?.id ||
+        prevMsg?.fecha_hora !== nextMsg?.fecha_hora ||
+        prevMsg?.message !== nextMsg?.message ||
+        prevMsg?.direction !== nextMsg?.direction
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }, []);
 
   // Si llega ?id=123, carga configuración desde BD; si no, usa sessionStorage.
   useEffect(() => {
@@ -449,6 +477,7 @@ export default function SandboxPage() {
 
   const loadMessages = async (chatId, options = {}) => {
     const { showLoader = true } = options;
+    const shouldAutoScroll = showLoader || isNearBottom();
 
     if (showLoader) {
       setLoadingMessages(true);
@@ -456,7 +485,20 @@ export default function SandboxPage() {
 
     try {
       const data = await getMessages(chatId);
-      setMessages(Array.isArray(data) ? data : []);
+      const nextMessages = Array.isArray(data) ? data : [];
+
+      setMessages((prevMessages) => {
+        if (areMessagesEquivalent(prevMessages, nextMessages)) {
+          return prevMessages;
+        }
+        return nextMessages;
+      });
+
+      if (shouldAutoScroll) {
+        requestAnimationFrame(() => {
+          scrollToBottom(showLoader ? "auto" : "smooth");
+        });
+      }
     } catch {
       if (showLoader) {
         setMessages([]);
@@ -476,13 +518,15 @@ export default function SandboxPage() {
 
     const chatId = selectedChat.id;
     const intervalId = setInterval(() => {
-      loadMessages(chatId, { showLoader: false });
+      if (!isSendingRef.current) {
+        loadMessages(chatId, { showLoader: false });
+      }
     }, MESSAGES_POLLING_INTERVAL_MS);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [selectedChat?.id]);
+  }, [selectedChat?.id, isNearBottom, areMessagesEquivalent, scrollToBottom]);
 
   const handleSelectChat = (chat) => {
     setSelectedChat(chat);
@@ -499,6 +543,7 @@ export default function SandboxPage() {
     }
 
     setSending(true);
+    isSendingRef.current = true;
     setInputMessage("");
 
     // Mensaje optimista del usuario
@@ -514,6 +559,7 @@ export default function SandboxPage() {
       }
     };
     setMessages((prev) => [...prev, tempMsg]);
+    requestAnimationFrame(() => scrollToBottom("smooth"));
 
     try {
       const payload = {
@@ -521,7 +567,7 @@ export default function SandboxPage() {
         type: "text",
         url: "",
         url_bot_service: config.url_bot_service,
-        session_id: config.canal.id,
+        session_id: selectedChat.id,
       };
 
       const useWebhookMock = shouldUseWebhookMock();
@@ -535,12 +581,16 @@ export default function SandboxPage() {
       } else {
         await sendMessage(selectedChat.id, payload);
       }
-      // Recargar mensajes para obtener respuesta del bot
-      setTimeout(() => loadMessages(selectedChat.id), 1500);
     } catch {
       toast.error("Error al enviar el mensaje");
     } finally {
       setSending(false);
+      // Re-habilitar polling y cargar mensajes con un pequeño delay para
+      // que el backend termine de procesar la respuesta del bot antes de leer.
+      setTimeout(() => {
+        isSendingRef.current = false;
+        loadMessages(selectedChat.id, { showLoader: false });
+      }, 1500);
     }
   };
 
@@ -722,6 +772,7 @@ export default function SandboxPage() {
 
             {/* Mensajes */}
             <div
+              ref={messagesContainerRef}
               className="flex-1 overflow-y-auto px-6 py-4"
               style={{
                 backgroundImage:
