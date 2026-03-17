@@ -40,17 +40,7 @@ import {
   Settings,
   Phone,
   Save,
-  Eye,
-  Volume2,
-  Download,
 } from 'lucide-react';
-
-// Helper para obtener URL de audio
-const getAudioUrl = (archivoLlamada) => {
-  if (!archivoLlamada) return null;
-  if (archivoLlamada.startsWith('http')) return archivoLlamada;
-  return `${process.env.NEXT_PUBLIC_API_URL || ''}/uploads/llamadas/${archivoLlamada}`;
-};
 
 const ESTADOS_EJECUCION = {
   pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
@@ -122,19 +112,11 @@ export default function CampaniaDetallePage() {
   const [ejecucionesPage, setEjecucionesPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  // Modal de llamadas
-  const [showLlamadasModal, setShowLlamadasModal] = useState(false);
-  const [selectedEjecucionLlamadas, setSelectedEjecucionLlamadas] = useState(null);
-  const [llamadasResultados, setLlamadasResultados] = useState([]);
-  const [loadingLlamadas, setLoadingLlamadas] = useState(false);
 
   // Configuracion de llamadas
   const [showConfigLlamadas, setShowConfigLlamadas] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
 
-  // Modal de audio
-  const [showAudioModalCampania, setShowAudioModalCampania] = useState(false);
-  const [selectedAudioLlamada, setSelectedAudioLlamada] = useState(null);
   const [configLlamadas, setConfigLlamadas] = useState({
     horarios_por_dia: {
       lun: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
@@ -338,43 +320,7 @@ export default function CampaniaDetallePage() {
     setShowPersonasModal(true);
   };
 
-  // ===== LLAMADAS POR EJECUCION =====
-  const cargarLlamadas = async (idEjecucion) => {
-    try {
-      setLoadingLlamadas(true);
-      const res = await apiClient.get(`/crm/llamadas/ejecucion/${idEjecucion}`);
-      setLlamadasResultados(res?.data || []);
-    } catch (error) {
-      console.error('Error al cargar llamadas:', error);
-      setLlamadasResultados([]);
-    } finally {
-      setLoadingLlamadas(false);
-    }
-  };
 
-  const handleVerLlamadas = (ejecucion) => {
-    setSelectedEjecucionLlamadas(ejecucion);
-    setLlamadasResultados([]);
-    cargarLlamadas(ejecucion.id);
-    setShowLlamadasModal(true);
-  };
-
-  // ===== AUDIO MODAL FUNCIONES =====
-  const handlePlayAudioCampania = (llamada) => {
-    setSelectedAudioLlamada(llamada);
-    setShowAudioModalCampania(true);
-  };
-
-  const handleDownloadAudioCampania = () => {
-    if (!selectedAudioLlamada?.archivo_llamada) return;
-    const url = getAudioUrl(selectedAudioLlamada.archivo_llamada);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = selectedAudioLlamada.archivo_llamada;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const basesNoAsignadas = basesDisponibles.filter(
     base => !basesAsignadas.some(ba => ba.id_base_numero === base.id)
@@ -906,7 +852,7 @@ export default function CampaniaDetallePage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleVerLlamadas(ejecucion)}
+                        onClick={() => router.push(`/campanias/${campaniaId}/ejecuciones/${ejecucion.id}/llamadas`)}
                         className="h-8 text-purple-500 hover:text-purple-600 hover:bg-purple-50 gap-1"
                       >
                         <Phone className="h-3.5 w-3.5" />
@@ -1177,187 +1123,6 @@ export default function CampaniaDetallePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Llamadas */}
-      <Dialog open={showLlamadasModal} onOpenChange={setShowLlamadasModal}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-white" />
-              </div>
-              Llamadas — Ejecucion #{selectedEjecucionLlamadas?.id}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedEjecucionLlamadas?.base_nombre} · {llamadasResultados.length} llamada{llamadasResultados.length !== 1 ? 's' : ''}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {loadingLlamadas ? (
-              <div className="flex items-center justify-center py-10 gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
-                <span className="text-xs text-muted-foreground">Cargando llamadas...</span>
-              </div>
-            ) : llamadasResultados.length > 0 ? (
-              <div className="border rounded-xl overflow-hidden">
-                <div className="max-h-96 overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Codigo</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Contacto</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Telefono</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70">Tipificacion</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70 text-center">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {llamadasResultados.map((llamada) => (
-                        <TableRow key={llamada.id} className="hover:bg-muted/20">
-                          <TableCell className="font-mono text-xs text-purple-600 font-semibold">
-                            #{llamada.codigo_llamada || llamada.id}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
-                                <span className="text-[10px] font-bold text-purple-600">
-                                  {llamada.contacto_nombre ? llamada.contacto_nombre.charAt(0).toUpperCase() : '?'}
-                                </span>
-                              </div>
-                              <span className="text-sm font-medium">{llamada.contacto_nombre || 'Sin nombre'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {llamada.telefono || '-'}
-                          </TableCell>
-                          <TableCell>
-                            {llamada.tipificacion_llamada_nombre ? (
-                              <Badge variant="secondary" className="text-[10px]">
-                                {llamada.tipificacion_llamada_nombre}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Sin tipificar</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={`h-7 w-7 ${!llamada.archivo_llamada ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                onClick={() => handlePlayAudioCampania(llamada)}
-                                disabled={!llamada.archivo_llamada}
-                                title={llamada.archivo_llamada ? "Escuchar audio" : "Sin audio"}
-                              >
-                                <Volume2 className={`h-3.5 w-3.5 ${llamada.archivo_llamada ? 'text-purple-500' : 'text-muted-foreground'}`} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => router.push(`/llamadas/${llamada.id}`)}
-                                className="h-7 w-7 text-purple-500 hover:text-purple-700 hover:bg-purple-50"
-                                title="Ver detalle"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 border rounded-xl">
-                <Phone className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No hay llamadas registradas</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Reproductor de Audio - Custom */}
-      {showAudioModalCampania && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
-          {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-black/80"
-            onClick={() => { setShowAudioModalCampania(false); setSelectedAudioLlamada(null); }}
-          />
-          {/* Modal */}
-          <div
-            className="relative z-[101] bg-background border rounded-xl shadow-lg p-6 pointer-events-auto"
-            style={{ width: '90%', maxWidth: '600px' }}
-          >
-            {/* Close button */}
-            <button
-              onClick={() => { setShowAudioModalCampania(false); setSelectedAudioLlamada(null); }}
-              className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                <Volume2 className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">Audio de Llamada #{selectedAudioLlamada?.codigo_llamada || selectedAudioLlamada?.id}</h2>
-                <p className="text-xs text-muted-foreground">Reproducir grabacion de llamada</p>
-              </div>
-            </div>
-
-            {selectedAudioLlamada && (
-              <div className="space-y-4">
-                {/* Info de la llamada */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Contacto</p>
-                    <p className="font-medium">{selectedAudioLlamada.contacto_nombre || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Telefono</p>
-                    <p className="font-medium">{selectedAudioLlamada.telefono || '-'}</p>
-                  </div>
-                </div>
-
-                {/* Archivo info */}
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-                  <p className="text-xs font-mono truncate">{selectedAudioLlamada.archivo_llamada}</p>
-                </div>
-
-                {/* Reproductor de audio */}
-                <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border">
-                  <audio
-                    controls
-                    style={{ width: '100%' }}
-                    src={getAudioUrl(selectedAudioLlamada.archivo_llamada)}
-                  >
-                    Tu navegador no soporta el elemento de audio.
-                  </audio>
-                </div>
-
-                {/* Boton de descarga */}
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadAudioCampania}
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Descargar audio
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

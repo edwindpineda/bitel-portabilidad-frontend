@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/api';
 import Link from 'next/link';
@@ -22,11 +22,27 @@ export default function UsuariosAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
 
+  // Estados para el searchable select de empresa
+  const [empresaSearchTerm, setEmpresaSearchTerm] = useState('');
+  const [showEmpresaDropdown, setShowEmpresaDropdown] = useState(false);
+  const empresaDropdownRef = useRef(null);
+
   useEffect(() => {
     if (session?.accessToken) {
       fetchData();
     }
   }, [session?.accessToken]);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (empresaDropdownRef.current && !empresaDropdownRef.current.contains(event.target)) {
+        setShowEmpresaDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -115,6 +131,32 @@ export default function UsuariosAdminPage() {
     return empresa?.nombre || 'Desconocida';
   };
 
+  // Obtener nombre de la empresa seleccionada para el filtro
+  const getSelectedEmpresaName = () => {
+    if (!filterEmpresa) return '';
+    if (filterEmpresa === 'sin_empresa') return 'Sin empresa';
+    const empresa = empresas.find(e => e.id === parseInt(filterEmpresa));
+    return empresa?.nombre || '';
+  };
+
+  // Filtrar empresas según búsqueda
+  const filteredEmpresas = empresas.filter(empresa =>
+    empresa.nombre?.toLowerCase().includes(empresaSearchTerm.toLowerCase())
+  );
+
+  // Seleccionar empresa del dropdown
+  const handleSelectEmpresa = (value, nombre = '') => {
+    setFilterEmpresa(value);
+    setEmpresaSearchTerm(nombre);
+    setShowEmpresaDropdown(false);
+  };
+
+  // Limpiar filtro de empresa
+  const handleClearEmpresa = () => {
+    setFilterEmpresa('');
+    setEmpresaSearchTerm('');
+  };
+
   // Filtrar usuarios: solo activos + busqueda + filtro por empresa
   const filteredUsuarios = usuarios.filter(usuario => {
     // Solo usuarios activos (comparación flexible para string o number)
@@ -192,19 +234,74 @@ export default function UsuariosAdminPage() {
             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
-        <select
-          value={filterEmpresa}
-          onChange={(e) => setFilterEmpresa(e.target.value)}
-          className="px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white min-w-[200px]"
-        >
-          <option value="">Todas las empresas</option>
-          <option value="sin_empresa">Sin empresa</option>
-          {empresas.map((empresa) => (
-            <option key={empresa.id} value={empresa.id}>
-              {empresa.nombre}
-            </option>
-          ))}
-        </select>
+        <div className="relative min-w-[250px]" ref={empresaDropdownRef}>
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar empresa..."
+            value={filterEmpresa ? getSelectedEmpresaName() : empresaSearchTerm}
+            onChange={(e) => {
+              setEmpresaSearchTerm(e.target.value);
+              setFilterEmpresa('');
+              setShowEmpresaDropdown(true);
+            }}
+            onFocus={() => setShowEmpresaDropdown(true)}
+            className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+          />
+          {filterEmpresa ? (
+            <button
+              type="button"
+              onClick={handleClearEmpresa}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          ) : (
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          )}
+          {showEmpresaDropdown && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-auto">
+              <button
+                type="button"
+                onClick={() => handleSelectEmpresa('', '')}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-700"
+              >
+                Todas las empresas
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectEmpresa('sin_empresa', 'Sin empresa')}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-600"
+              >
+                Sin empresa
+              </button>
+              {filteredEmpresas.length > 0 ? (
+                filteredEmpresas.map((empresa) => (
+                  <button
+                    key={empresa.id}
+                    type="button"
+                    onClick={() => handleSelectEmpresa(empresa.id.toString(), empresa.nombre)}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-900"
+                  >
+                    {empresa.nombre}
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-2 text-gray-500 text-sm">No se encontraron empresas</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Table */}

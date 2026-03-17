@@ -8,6 +8,7 @@ import Link from 'next/link';
 export default function EmpresasPage() {
   const { data: session } = useSession();
   const [empresas, setEmpresas] = useState([]);
+  const [tools, setTools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingEmpresa, setEditingEmpresa] = useState(null);
@@ -17,6 +18,8 @@ export default function EmpresasPage() {
     direccion: '',
     telefono: '',
     email: '',
+    canal: '',
+    id_tool: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -24,6 +27,7 @@ export default function EmpresasPage() {
   useEffect(() => {
     if (session?.accessToken) {
       fetchEmpresas();
+      fetchTools();
     }
   }, [session?.accessToken]);
 
@@ -38,6 +42,15 @@ export default function EmpresasPage() {
       setError('Error al cargar empresas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTools = async () => {
+    try {
+      const response = await apiClient.get('/crm/admin/tools');
+      setTools(response?.data || []);
+    } catch (error) {
+      console.error('Error al cargar tools:', error);
     }
   };
 
@@ -56,7 +69,7 @@ export default function EmpresasPage() {
       }
       setShowModal(false);
       setEditingEmpresa(null);
-      setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '' });
+      setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '', canal: '', id_tool: '' });
       fetchEmpresas();
     } catch (error) {
       setError(error.response?.data?.msg || 'Error al guardar empresa');
@@ -71,6 +84,8 @@ export default function EmpresasPage() {
       direccion: empresa.direccion || '',
       telefono: empresa.telefono || '',
       email: empresa.email || '',
+      canal: empresa.canal || '',
+      id_tool: empresa.id_tool || '',
     });
     setShowModal(true);
   };
@@ -88,7 +103,7 @@ export default function EmpresasPage() {
 
   const openNewModal = () => {
     setEditingEmpresa(null);
-    setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '' });
+    setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '', canal: '', id_tool: '' });
     setShowModal(true);
   };
 
@@ -153,6 +168,8 @@ export default function EmpresasPage() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">RUC</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Telefono</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Canal</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Tool</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Estado</th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Acciones</th>
               </tr>
@@ -165,6 +182,8 @@ export default function EmpresasPage() {
                   <td className="px-6 py-4 text-sm text-gray-600">{empresa.ruc || '-'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{empresa.email || '-'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{empresa.telefono || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{empresa.canal ?? '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{empresa.tool_nombre || '-'}</td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleToggleEstado(empresa)}
@@ -199,60 +218,90 @@ export default function EmpresasPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4">
             <div className="p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingEmpresa ? 'Editar Empresa' : 'Nueva Empresa'}
               </h2>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                <input
-                  type="text"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  required
-                />
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                  <input
+                    type="text"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">RUC</label>
+                  <input
+                    type="text"
+                    value={formData.ruc}
+                    onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
+                  <input
+                    type="text"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Direccion</label>
+                  <input
+                    type="text"
+                    value={formData.direccion}
+                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Canal *</label>
+                  <input
+                    type="number"
+                    value={formData.canal}
+                    onChange={(e) => setFormData({ ...formData, canal: parseInt(e.target.value) || '' })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    step="1"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tool *</label>
+                  <select
+                    value={formData.id_tool}
+                    onChange={(e) => setFormData({ ...formData, id_tool: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Seleccionar tool</option>
+                    {tools.map((tool) => (
+                      <option key={tool.id} value={tool.id}>
+                        {tool.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">RUC</label>
-                <input
-                  type="text"
-                  value={formData.ruc}
-                  onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
-                <input
-                  type="text"
-                  value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Direccion</label>
-                <input
-                  type="text"
-                  value={formData.direccion}
-                  onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div className="flex space-x-3 pt-4">
+              <div className="flex space-x-3 pt-6">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
