@@ -56,6 +56,23 @@ const ESTADOS_EJECUCION = {
   cancelado: { label: 'Cancelado', color: 'bg-gray-100 text-gray-800' },
 };
 
+// Función para convertir hora 24h a formato AM/PM
+const formatHora24ToAMPM = (hora24) => {
+  if (!hora24) return '';
+  const [hours, minutes] = hora24.split(':');
+  const h = parseInt(hours, 10);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${minutes} ${period}`;
+};
+
+// Función para formatear horario completo (ej: "09:00-18:00" -> "9:00 AM - 6:00 PM")
+const formatHorarioAMPM = (horario) => {
+  if (!horario) return '';
+  const [inicio, fin] = horario.split('-');
+  return `${formatHora24ToAMPM(inicio)} - ${formatHora24ToAMPM(fin)}`;
+};
+
 // Funcion para formatear el resultado JSON de ejecucion
 const formatResultado = (resultado) => {
   if (!resultado) return null;
@@ -593,13 +610,15 @@ export default function CampaniaDetallePage() {
             {/* Tabla de horarios por día */}
             <div>
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Horarios por día de la semana</label>
-              <p className="text-xs text-muted-foreground mb-3">Formato: HH:MM-HH:MM (ej: 09:00-18:00). Dejar vacío para desactivar el día.</p>
+              <p className="text-xs text-muted-foreground mb-3">Seleccione hora de inicio y fin para cada día. Deje vacío para desactivar el día.</p>
               <div className="rounded-xl border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
                       <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 w-24">Día</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Horario (HH:MM-HH:MM)</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Hora Inicio</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Hora Fin</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 w-16"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -611,26 +630,80 @@ export default function CampaniaDetallePage() {
                       { key: 'viernes_horario', label: 'Viernes' },
                       { key: 'sabado_horario', label: 'Sábado' },
                       { key: 'domingo_horario', label: 'Domingo' },
-                    ].map(d => (
-                      <TableRow key={d.key} className={configLlamadas[d.key] ? 'bg-teal-50/50' : ''}>
-                        <TableCell className="font-medium text-sm">{d.label}</TableCell>
-                        <TableCell>
-                          <input
-                            type="text"
-                            placeholder="09:00-18:00"
-                            value={configLlamadas[d.key] || ''}
-                            onChange={e => {
-                              const value = e.target.value || null;
-                              setConfigLlamadas(prev => ({
-                                ...prev,
-                                [d.key]: value
-                              }));
-                            }}
-                            className="h-9 w-32 px-3 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    ].map(d => {
+                      const horario = configLlamadas[d.key] || '';
+                      const [horaInicio, horaFin] = horario ? horario.split('-') : ['', ''];
+
+                      const handleHorarioChange = (tipo, valor) => {
+                        const inicio = tipo === 'inicio' ? valor : horaInicio;
+                        const fin = tipo === 'fin' ? valor : horaFin;
+                        const nuevoHorario = inicio && fin ? `${inicio}-${fin}` : null;
+                        setConfigLlamadas(prev => ({
+                          ...prev,
+                          [d.key]: nuevoHorario
+                        }));
+                      };
+
+                      const opcionesHoras = [
+                        { value: '06:00', label: '6:00 AM' },
+                        { value: '07:00', label: '7:00 AM' },
+                        { value: '08:00', label: '8:00 AM' },
+                        { value: '09:00', label: '9:00 AM' },
+                        { value: '10:00', label: '10:00 AM' },
+                        { value: '11:00', label: '11:00 AM' },
+                        { value: '12:00', label: '12:00 PM' },
+                        { value: '13:00', label: '1:00 PM' },
+                        { value: '14:00', label: '2:00 PM' },
+                        { value: '15:00', label: '3:00 PM' },
+                        { value: '16:00', label: '4:00 PM' },
+                        { value: '17:00', label: '5:00 PM' },
+                        { value: '18:00', label: '6:00 PM' },
+                        { value: '19:00', label: '7:00 PM' },
+                        { value: '20:00', label: '8:00 PM' },
+                        { value: '21:00', label: '9:00 PM' },
+                        { value: '22:00', label: '10:00 PM' },
+                      ];
+
+                      return (
+                        <TableRow key={d.key} className={configLlamadas[d.key] ? 'bg-teal-50/50' : ''}>
+                          <TableCell className="font-medium text-sm">{d.label}</TableCell>
+                          <TableCell>
+                            <select
+                              value={horaInicio}
+                              onChange={e => handleHorarioChange('inicio', e.target.value)}
+                              className="h-9 w-28 px-2 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors cursor-pointer"
+                            >
+                              <option value="">--:--</option>
+                              {opcionesHoras.map(hora => (
+                                <option key={hora.value} value={hora.value}>{hora.label}</option>
+                              ))}
+                            </select>
+                          </TableCell>
+                          <TableCell>
+                            <select
+                              value={horaFin}
+                              onChange={e => handleHorarioChange('fin', e.target.value)}
+                              className="h-9 w-28 px-2 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors cursor-pointer"
+                            >
+                              <option value="">--:--</option>
+                              {opcionesHoras.map(hora => (
+                                <option key={hora.value} value={hora.value}>{hora.label}</option>
+                              ))}
+                            </select>
+                          </TableCell>
+                          <TableCell>
+                            {configLlamadas[d.key] && (
+                              <button
+                                onClick={() => setConfigLlamadas(prev => ({ ...prev, [d.key]: null }))}
+                                className="text-xs text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -663,13 +736,13 @@ export default function CampaniaDetallePage() {
             <div className="p-4 rounded-xl bg-teal-50/50 border border-teal-100">
               <p className="text-xs font-medium text-teal-800 mb-1">Resumen de configuración</p>
               <div className="text-xs text-teal-600 space-y-0.5">
-                {configLlamadas.lunes_horario && <p><span className="font-medium">Lunes</span>: {configLlamadas.lunes_horario}</p>}
-                {configLlamadas.martes_horario && <p><span className="font-medium">Martes</span>: {configLlamadas.martes_horario}</p>}
-                {configLlamadas.miercoles_horario && <p><span className="font-medium">Miércoles</span>: {configLlamadas.miercoles_horario}</p>}
-                {configLlamadas.jueves_horario && <p><span className="font-medium">Jueves</span>: {configLlamadas.jueves_horario}</p>}
-                {configLlamadas.viernes_horario && <p><span className="font-medium">Viernes</span>: {configLlamadas.viernes_horario}</p>}
-                {configLlamadas.sabado_horario && <p><span className="font-medium">Sábado</span>: {configLlamadas.sabado_horario}</p>}
-                {configLlamadas.domingo_horario && <p><span className="font-medium">Domingo</span>: {configLlamadas.domingo_horario}</p>}
+                {configLlamadas.lunes_horario && <p><span className="font-medium">Lunes</span>: {formatHorarioAMPM(configLlamadas.lunes_horario)}</p>}
+                {configLlamadas.martes_horario && <p><span className="font-medium">Martes</span>: {formatHorarioAMPM(configLlamadas.martes_horario)}</p>}
+                {configLlamadas.miercoles_horario && <p><span className="font-medium">Miércoles</span>: {formatHorarioAMPM(configLlamadas.miercoles_horario)}</p>}
+                {configLlamadas.jueves_horario && <p><span className="font-medium">Jueves</span>: {formatHorarioAMPM(configLlamadas.jueves_horario)}</p>}
+                {configLlamadas.viernes_horario && <p><span className="font-medium">Viernes</span>: {formatHorarioAMPM(configLlamadas.viernes_horario)}</p>}
+                {configLlamadas.sabado_horario && <p><span className="font-medium">Sábado</span>: {formatHorarioAMPM(configLlamadas.sabado_horario)}</p>}
+                {configLlamadas.domingo_horario && <p><span className="font-medium">Domingo</span>: {formatHorarioAMPM(configLlamadas.domingo_horario)}</p>}
                 {!configLlamadas.lunes_horario && !configLlamadas.martes_horario && !configLlamadas.miercoles_horario &&
                  !configLlamadas.jueves_horario && !configLlamadas.viernes_horario && !configLlamadas.sabado_horario &&
                  !configLlamadas.domingo_horario && (
