@@ -44,6 +44,8 @@ import {
   Phone,
   Save,
   Eye,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -130,6 +132,13 @@ export default function CampaniaDetallePage() {
   // Configuracion de llamadas
   const [showConfigLlamadas, setShowConfigLlamadas] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+
+  // Modal de confirmación de ejecución
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Modal de resultado
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultModal, setResultModal] = useState({ type: 'success', title: '', message: '' });
 
   const [configLlamadas, setConfigLlamadas] = useState({
     lunes_horario: null,
@@ -292,25 +301,38 @@ export default function CampaniaDetallePage() {
     }
   };
 
-  const handleEjecutar = async () => {
-    if (confirm(`¿Está seguro de ejecutar la campaña "${campania?.nombre}"?`)) {
-      setEjecutando(true);
-      try {
-        const idsToSend = basesSeleccionadasIds.length > 0
-          ? basesSeleccionadasIds
-          : basesAsignadas.map(b => b.id_base_numero);
-        const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
-          id_campania: parseInt(campaniaId),
-          ids_base_numero: idsToSend
-        });
-        alert(`Ejecución iniciada: ${response.data?.total_bases || 0} bases programadas`);
-        loadCampania();
-      } catch (error) {
-        console.error('Error al ejecutar campaña:', error);
-        alert(error.msg || 'Error al ejecutar campaña');
-      } finally {
-        setEjecutando(false);
-      }
+  const handleEjecutar = () => {
+    setShowConfirmModal(true);
+  };
+
+  const confirmarEjecucion = async () => {
+    setShowConfirmModal(false);
+    setEjecutando(true);
+    try {
+      const idsToSend = basesSeleccionadasIds.length > 0
+        ? basesSeleccionadasIds
+        : basesAsignadas.map(b => b.id_base_numero);
+      const response = await apiClient.post('/crm/campania-ejecuciones/ejecutar', {
+        id_campania: parseInt(campaniaId),
+        ids_base_numero: idsToSend
+      });
+      setResultModal({
+        type: 'success',
+        title: 'Ejecución Iniciada',
+        message: `Se han programado ${response.data?.total_bases || 0} bases para ejecutar. Las llamadas se procesarán en segundo plano.`
+      });
+      setShowResultModal(true);
+      loadCampania();
+    } catch (error) {
+      console.error('Error al ejecutar campaña:', error);
+      setResultModal({
+        type: 'error',
+        title: 'Error al Ejecutar',
+        message: error.msg || 'Ocurrió un error al ejecutar la campaña. Por favor intente nuevamente.'
+      });
+      setShowResultModal(true);
+    } finally {
+      setEjecutando(false);
     }
   };
 
@@ -1286,6 +1308,79 @@ export default function CampaniaDetallePage() {
                 </div>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmación */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <Play className="h-5 w-5 text-amber-600" />
+              </div>
+              <span>Confirmar Ejecución</span>
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              ¿Está seguro de ejecutar la campaña <strong>"{campania?.nombre}"</strong>?
+              {basesSeleccionadasIds.length > 0 ? (
+                <span className="block mt-2 text-sm">
+                  Se ejecutarán <strong>{basesSeleccionadasIds.length}</strong> base(s) seleccionada(s).
+                </span>
+              ) : (
+                <span className="block mt-2 text-sm">
+                  Se ejecutarán todas las <strong>{basesAsignadas.length}</strong> base(s) asignadas.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmarEjecucion}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Ejecutar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Resultado */}
+      <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {resultModal.type === 'success' ? (
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-red-600" />
+                </div>
+              )}
+              <span>{resultModal.title}</span>
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {resultModal.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-4">
+            <Button
+              onClick={() => setShowResultModal(false)}
+              className={resultModal.type === 'success'
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-red-600 hover:bg-red-700 text-white'}
+            >
+              Aceptar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
