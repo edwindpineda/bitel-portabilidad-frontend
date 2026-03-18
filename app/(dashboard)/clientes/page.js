@@ -61,7 +61,7 @@ const COLOR_MAP = {
   'amarillo': '#EAB308',
   'verde': '#22C55E',
   'azul': '#3B82F6',
-  'indigo': '#6366F1',
+  'indigo': '#14B8A6',
   'cyan': '#06B6D4',
   'teal': '#14B8A6',
   'gris': '#6B7280',

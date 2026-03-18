@@ -28,7 +28,7 @@ const COLOR_MAP = {
   'amarillo': '#EAB308',
   'verde': '#22C55E',
   'azul': '#3B82F6',
-  'indigo': '#6366F1',
+  'indigo': '#14B8A6',
   'cyan': '#06B6D4',
   'teal': '#14B8A6',
   'gris': '#6B7280',
@@ -192,7 +192,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-full flex flex-col items-center justify-center h-64 gap-3" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
         <p className="text-sm text-muted-foreground">Cargando dashboard...</p>
       </div>
     );
@@ -211,7 +211,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-violet-600 flex items-center justify-center shadow-lg shadow-teal-500/25">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -224,7 +224,7 @@ export default function DashboardPage() {
               variant="outline"
               size="sm"
               onClick={loadDashboardStats}
-              className="gap-2 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+              className="gap-2 rounded-xl border-teal-200 text-teal-600 hover:bg-teal-50 hover:border-teal-300 transition-all duration-200"
             >
               <RefreshCw className="h-4 w-4" />
               Actualizar
@@ -232,7 +232,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200"
+              className="gap-2 rounded-xl border-teal-200 text-teal-600 hover:bg-teal-50 hover:border-teal-300 transition-all duration-200"
             >
               <Filter className="h-4 w-4" />
               Filtros
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                       <Activity className="h-5 w-5 text-white" />
                     </div>
                     <div>

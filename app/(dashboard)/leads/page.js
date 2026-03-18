@@ -81,7 +81,7 @@ const COLOR_MAP = {
   'amarillo': '#EAB308',
   'verde': '#22C55E',
   'azul': '#3B82F6',
-  'indigo': '#6366F1',
+  'indigo': '#14B8A6',
   'cyan': '#06B6D4',
   'teal': '#14B8A6',
   'gris': '#6B7280',
@@ -417,9 +417,9 @@ export default function LeadsPage() {
   const stats = [
     {
       key: 'total', label: 'Total Prospectos', value: statsData.total,
-      icon: Users, gradient: 'from-indigo-600 via-indigo-500 to-blue-500',
-      glow: 'rgba(99, 102, 241, 0.35)', iconBg: 'from-indigo-500 to-blue-500',
-      ring: 'ring-indigo-500/20', change: '+12%',
+      icon: Users, gradient: 'from-teal-600 via-teal-500 to-blue-500',
+      glow: 'rgba(99, 102, 241, 0.35)', iconBg: 'from-teal-500 to-blue-500',
+      ring: 'ring-teal-500/20', change: '+12%',
     },
     {
       key: 'completos', label: 'Datos Completos', value: statsData.completos,
@@ -445,10 +445,10 @@ export default function LeadsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
         <div className="relative">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-indigo-500/25 animate-float">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-teal-500/25 animate-float">
             <Users className="h-8 w-8 text-white" />
           </div>
-          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center">
+          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-cyan-400 to-teal-500 flex items-center justify-center">
             <Loader2 className="h-3 w-3 text-white animate-spin" />
           </div>
         </div>
@@ -471,9 +471,9 @@ export default function LeadsPage() {
       >
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-cyan-400/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-indigo-400/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-teal-400/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/3" />
         <div className="absolute top-6 right-20 w-2 h-2 rounded-full bg-cyan-400/60 animate-float" style={{ animationDelay: '0.5s' }} />
-        <div className="absolute top-16 right-40 w-1.5 h-1.5 rounded-full bg-indigo-300/40 animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-16 right-40 w-1.5 h-1.5 rounded-full bg-teal-300/40 animate-float" style={{ animationDelay: '1s' }} />
         <div className="absolute bottom-8 right-32 w-1 h-1 rounded-full bg-cyan-300/50 animate-float" style={{ animationDelay: '1.5s' }} />
 
         <div className="relative z-10 flex items-center justify-between">
@@ -481,7 +481,7 @@ export default function LeadsPage() {
             <div
               className="h-14 w-14 rounded-2xl flex items-center justify-center shadow-2xl"
               style={{
-                background: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
+                background: 'linear-gradient(135deg, #06b6d4 0%, #14B8A6 100%)',
                 boxShadow: '0 8px 32px -4px rgba(6, 182, 212, 0.4)',
               }}
             >
@@ -489,7 +489,7 @@ export default function LeadsPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">Pipeline de Prospectos</h1>
-              <p className="text-indigo-200/70 text-sm mt-0.5">
+              <p className="text-teal-200/70 text-sm mt-0.5">
                 {leads.length.toLocaleString()} personas en tu sistema
               </p>
             </div>
@@ -499,7 +499,7 @@ export default function LeadsPage() {
               variant="ghost"
               size="sm"
               onClick={loadData}
-              className="gap-2 h-9 text-indigo-200 hover:text-white hover:bg-white/10 border border-white/10"
+              className="gap-2 h-9 text-teal-200 hover:text-white hover:bg-white/10 border border-white/10"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Actualizar
@@ -589,15 +589,15 @@ export default function LeadsPage() {
           <div className="flex items-center gap-3">
             {/* Search - Premium glass style */}
             <div className="relative flex-1 max-w-sm group">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
-                <Search className="h-3 w-3 text-indigo-500 group-focus-within:text-cyan-500 transition-colors" />
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                <Search className="h-3 w-3 text-teal-500 group-focus-within:text-cyan-500 transition-colors" />
               </div>
               <input
                 type="text"
                 placeholder="Buscar nombre, celular, DNI..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-9 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
+                className="w-full h-9 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
               />
               {searchTerm && (
                 <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors">
@@ -614,7 +614,7 @@ export default function LeadsPage() {
                   onClick={() => handleDateRangeChange(range.value)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
                     dateRange === range.value
-                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                      ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/25'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
@@ -625,7 +625,7 @@ export default function LeadsPage() {
                 <DropdownMenuTrigger asChild>
                   <button className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                     ['6m', '12m', 'custom'].includes(dateRange)
-                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                      ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/25'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}>
                     Mas...
@@ -648,9 +648,9 @@ export default function LeadsPage() {
               onClick={() => setShowFilters(!showFilters)}
               className={`gap-2 h-9 rounded-xl px-3 transition-all duration-300 ${
                 showFilters
-                  ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-indigo-500 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25'
+                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white border-teal-500 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/25'
                   : hasActiveFilters
-                    ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    ? 'border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100'
                     : ''
               }`}
             >
@@ -658,7 +658,7 @@ export default function LeadsPage() {
               Filtros
               {activeFilterCount > 0 && (
                 <span className={`h-5 min-w-[20px] flex items-center justify-center text-[10px] font-bold px-1.5 rounded-full ${
-                  showFilters ? 'bg-white/25 text-white' : 'bg-indigo-500 text-white'
+                  showFilters ? 'bg-white/25 text-white' : 'bg-teal-500 text-white'
                 }`}>
                   {activeFilterCount}
                 </span>
@@ -685,14 +685,14 @@ export default function LeadsPage() {
           {/* Custom dates */}
           {dateRange === 'custom' && (
             <div className="flex items-center gap-3 px-1 py-2 rounded-xl bg-muted/30">
-              <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+              <div className="h-8 w-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                <Calendar className="h-3.5 w-3.5 text-teal-500" />
               </div>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="h-9 px-3 text-xs rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                className="h-9 px-3 text-xs rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
               <span className="text-xs text-muted-foreground font-medium">hasta</span>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="h-9 px-3 text-xs rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                className="h-9 px-3 text-xs rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
             </div>
           )}
 
@@ -704,11 +704,11 @@ export default function LeadsPage() {
                 {/* Estado */}
                 <div className="flex flex-col gap-1 min-w-[160px]">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-teal-500" />
                     Estado
                   </label>
                   <select value={selectedEstado} onChange={(e) => setSelectedEstado(e.target.value)}
-                    className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                    className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                     <option value="">Todos los estados</option>
                     {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                   </select>
@@ -722,7 +722,7 @@ export default function LeadsPage() {
                       Asesor
                     </label>
                     <select value={selectedAsesorFilter} onChange={(e) => setSelectedAsesorFilter(e.target.value)}
-                      className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                       <option value="">Todos los asesores</option>
                       {asesoresFilter.map((a) => <option key={a.id} value={a.id}>{a.username}</option>)}
                     </select>
@@ -759,7 +759,7 @@ export default function LeadsPage() {
                     Periodo
                   </label>
                   <select value={dateRange} onChange={(e) => handleDateRangeChange(e.target.value)}
-                    className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                    className="h-8 px-2.5 text-xs rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                     {DATE_RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
@@ -783,14 +783,14 @@ export default function LeadsPage() {
             }}
           >
             <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                 <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-semibold text-indigo-700">
+              <span className="text-sm font-semibold text-teal-700">
                 {selectedLeads.length} prospecto{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
               </span>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setSelectedLeads([])} className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+            <Button size="sm" variant="ghost" onClick={() => setSelectedLeads([])} className="h-7 text-xs text-teal-600 hover:text-teal-700 hover:bg-teal-50">
               Deseleccionar todo
             </Button>
           </div>
@@ -808,23 +808,23 @@ export default function LeadsPage() {
                     />
                   </TableHead>
                 )}
-                <TableHead className="w-16 text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">ID</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 min-w-[180px]">Nombre</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">DNI</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Celular</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Estado</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Plan</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipif. Asesor</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Asesor</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Fecha</TableHead>
-                <TableHead className="w-16 text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Acciones</TableHead>
+                <TableHead className="w-16 text-[10px] font-bold uppercase tracking-widest text-teal-500/70">ID</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 min-w-[180px]">Nombre</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">DNI</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Celular</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Estado</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Plan</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Tipif. Asesor</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Asesor</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Fecha</TableHead>
+                <TableHead className="w-16 text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedLeads.map((lead) => (
                 <TableRow
                   key={lead.id}
-                  className={`table-row-premium group ${selectedLeads.includes(lead.id) ? 'bg-indigo-50/50' : ''}`}
+                  className={`table-row-premium group ${selectedLeads.includes(lead.id) ? 'bg-teal-50/50' : ''}`}
                 >
                   {selectionMode && (
                     <TableCell className="pl-5">
@@ -898,8 +898,8 @@ export default function LeadsPage() {
                   <TableCell>
                     {lead.asesor_nombre ? (
                       <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
-                          <span className="text-[10px] font-bold text-indigo-600">{lead.asesor_nombre.charAt(0).toUpperCase()}</span>
+                        <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-teal-600">{lead.asesor_nombre.charAt(0).toUpperCase()}</span>
                         </div>
                         <span className="text-sm text-muted-foreground">{lead.asesor_nombre}</span>
                       </div>
@@ -912,7 +912,7 @@ export default function LeadsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600"
+                          className="h-8 w-8 rounded-lg transition-all duration-200 hover:bg-teal-50 hover:text-teal-600"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -962,7 +962,7 @@ export default function LeadsPage() {
                 background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
               }}
             >
-              <Users className="h-9 w-9 text-indigo-400" />
+              <Users className="h-9 w-9 text-teal-400" />
             </div>
             <p className="text-base font-semibold">
               {hasActiveFilters ? 'No se encontraron resultados' : 'Sin prospectos registrados'}
@@ -974,7 +974,7 @@ export default function LeadsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-5 gap-2 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                className="mt-5 gap-2 rounded-xl border-teal-200 text-teal-600 hover:bg-teal-50"
                 onClick={clearFilters}
               >
                 <XCircle className="h-3.5 w-3.5" />
@@ -1034,7 +1034,7 @@ export default function LeadsPage() {
                       onClick={() => goToPage(i)}
                       className={`h-8 min-w-[32px] px-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
                         currentPage === i
-                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                          ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/30'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >
@@ -1078,7 +1078,7 @@ export default function LeadsPage() {
               <div
                 className="h-10 w-10 rounded-xl flex items-center justify-center shadow-lg"
                 style={{
-                  background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
+                  background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)',
                   boxShadow: '0 8px 24px -4px rgba(99, 102, 241, 0.3)',
                 }}
               >
@@ -1094,9 +1094,9 @@ export default function LeadsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 mb-4">
-              <CheckCircle2 className="h-4 w-4 text-indigo-500" />
-              <span className="text-sm font-medium text-indigo-700">
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-teal-50 mb-4">
+              <CheckCircle2 className="h-4 w-4 text-teal-500" />
+              <span className="text-sm font-medium text-teal-700">
                 {selectedLeads.length} prospecto{selectedLeads.length > 1 ? 's' : ''} seleccionado{selectedLeads.length > 1 ? 's' : ''}
               </span>
             </div>
@@ -1104,7 +1104,7 @@ export default function LeadsPage() {
               <p className="text-center text-muted-foreground py-8 text-sm">No hay asesores disponibles</p>
             ) : (
               <select value={selectedAsesorId} onChange={(e) => setSelectedAsesorId(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                className="w-full h-11 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                 <option value="">Seleccionar asesor...</option>
                 {asesores.map((a) => <option key={a.id} value={a.id}>{a.username} - {a.email}</option>)}
               </select>
@@ -1115,7 +1115,7 @@ export default function LeadsPage() {
             <Button
               onClick={() => handleAssignAsesor(selectedAsesorId)}
               disabled={!selectedAsesorId || assigningAsesor}
-              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+              className="gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/25"
             >
               {assigningAsesor && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {assigningAsesor ? 'Asignando...' : 'Confirmar Asignacion'}
@@ -1159,24 +1159,24 @@ export default function LeadsPage() {
                   <div>
                     <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Nombre Completo</label>
                     <input type="text" value={editingLead.nombre_completo} onChange={(e) => handleEditChange('nombre_completo', e.target.value)}
-                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="Nombre completo" />
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors" placeholder="Nombre completo" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-medium mb-1.5 block text-muted-foreground">DNI</label>
                       <input type="text" value={editingLead.dni} onChange={(e) => handleEditChange('dni', e.target.value)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="DNI" maxLength={8} />
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors" placeholder="DNI" maxLength={8} />
                     </div>
                     <div>
                       <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Celular</label>
                       <input type="text" value={editingLead.celular} onChange={(e) => handleEditChange('celular', e.target.value)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="Celular" maxLength={9} />
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors" placeholder="Celular" maxLength={9} />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Direccion</label>
                     <input type="text" value={editingLead.direccion} onChange={(e) => handleEditChange('direccion', e.target.value)}
-                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors" placeholder="Direccion" />
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors" placeholder="Direccion" />
                   </div>
                 </div>
               </div>
@@ -1196,7 +1196,7 @@ export default function LeadsPage() {
                     <div>
                       <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Estado</label>
                       <select value={editingLead.id_estado || ''} onChange={(e) => handleEditChange('id_estado', e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                         <option value="">Seleccionar</option>
                         {estados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
                       </select>
@@ -1205,7 +1205,7 @@ export default function LeadsPage() {
                   <div>
                     <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Tipificacion Asesor</label>
                     <select value={editingLead.id_tipificacion_asesor ? String(editingLead.id_tipificacion_asesor) : ''} onChange={(e) => handleEditChange('id_tipificacion_asesor', e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                       <option value="">Seleccionar</option>
                       {tipificaciones.filter(t => t.flag_asesor == 1).map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
                     </select>
@@ -1213,7 +1213,7 @@ export default function LeadsPage() {
                   <div>
                     <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Plan</label>
                     <select value={editingLead.id_plan || ''} onChange={(e) => handleEditChange('id_plan', e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                      className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                       <option value="">Seleccionar</option>
                       {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                     </select>
@@ -1222,7 +1222,7 @@ export default function LeadsPage() {
                     <div>
                       <label className="text-xs font-medium mb-1.5 block text-muted-foreground">Asesor</label>
                       <select value={editingLead.id_asesor || ''} onChange={(e) => handleEditChange('id_asesor', e.target.value ? parseInt(e.target.value) : null)}
-                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-background transition-colors">
+                        className="w-full h-10 px-4 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors">
                         <option value="">Sin asesor</option>
                         {asesoresFilter.map((a) => <option key={a.id} value={a.id}>{a.username}</option>)}
                       </select>
@@ -1237,7 +1237,7 @@ export default function LeadsPage() {
             <Button
               onClick={handleSaveLead}
               disabled={savingLead}
-              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+              className="gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/25"
             >
               {savingLead && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {savingLead ? 'Guardando...' : 'Guardar Cambios'}
@@ -1333,7 +1333,7 @@ export default function LeadsPage() {
                 <div
                   className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-xl"
                   style={{
-                    background: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
+                    background: 'linear-gradient(135deg, #06b6d4 0%, #14B8A6 100%)',
                     boxShadow: '0 8px 24px -4px rgba(6, 182, 212, 0.4)',
                   }}
                 >
@@ -1343,7 +1343,7 @@ export default function LeadsPage() {
                 </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <p className="text-base font-bold truncate">{detailLead.nombre_completo || 'Sin nombre'}</p>
-                  <p className="text-indigo-200 text-sm">{detailLead.celular || detailLead.contacto_celular || 'Sin celular'}</p>
+                  <p className="text-teal-200 text-sm">{detailLead.celular || detailLead.contacto_celular || 'Sin celular'}</p>
                 </div>
                 {detailLead.estado_nombre && (
                   <span
@@ -1369,7 +1369,7 @@ export default function LeadsPage() {
                   { icon: User, label: 'Asesor', value: detailLead.asesor_nombre, color: 'indigo' },
                   { icon: Clock, label: 'Registro', value: formatDate(detailLead.fecha_registro), color: 'rose' },
                 ].map((item) => {
-                  const colorMap = { blue: '#3b82f6', emerald: '#10b981', violet: '#8b5cf6', amber: '#f59e0b', cyan: '#06b6d4', indigo: '#6366f1', rose: '#f43f5e' };
+                  const colorMap = { blue: '#3b82f6', emerald: '#10b981', violet: '#8b5cf6', amber: '#f59e0b', cyan: '#06b6d4', indigo: '#14B8A6', rose: '#f43f5e' };
                   const c = colorMap[item.color];
                   return (
                     <div key={item.label} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -1408,14 +1408,14 @@ export default function LeadsPage() {
               <div>
                 <Separator className="mb-4" />
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center">
-                    <MessageSquare className="h-3.5 w-3.5 text-indigo-500" />
+                  <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center">
+                    <MessageSquare className="h-3.5 w-3.5 text-teal-500" />
                   </div>
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Perfilamiento</p>
                 </div>
                 {loadingPerfilamiento ? (
                   <div className="flex items-center justify-center py-8 gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                    <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
                     <span className="text-xs text-muted-foreground">Cargando respuestas...</span>
                   </div>
                 ) : perfilamientoData.length > 0 ? (
@@ -1442,7 +1442,7 @@ export default function LeadsPage() {
             <Button variant="outline" onClick={() => { setShowDetailModal(false); setDetailLead(null); }} className="rounded-xl">Cerrar</Button>
             <Button
               onClick={() => { setShowDetailModal(false); handleOpenEditModal(detailLead); }}
-              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+              className="gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/25"
             >
               <Pencil className="h-3.5 w-3.5" /> Editar Prospecto
             </Button>

@@ -125,7 +125,7 @@ export default function EmpresasPage() {
         <button
           onClick={openNewModal}
           className="flex items-center space-x-2 px-4 py-2 text-white rounded-xl transition-all"
-          style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)' }}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -150,7 +150,7 @@ export default function EmpresasPage() {
       <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
           </div>
         ) : empresas.length === 0 ? (
           <div className="text-center p-12">
@@ -187,7 +187,7 @@ export default function EmpresasPage() {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleToggleEstado(empresa)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
                         empresa.estado_registro == 1 ? 'bg-green-500' : 'bg-gray-300'
                       }`}
                     >
@@ -201,7 +201,7 @@ export default function EmpresasPage() {
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => handleEdit(empresa)}
-                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -232,7 +232,7 @@ export default function EmpresasPage() {
                     type="text"
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -242,7 +242,7 @@ export default function EmpresasPage() {
                     type="text"
                     value={formData.ruc}
                     onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -251,7 +251,7 @@ export default function EmpresasPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -260,7 +260,7 @@ export default function EmpresasPage() {
                     type="text"
                     value={formData.telefono}
                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
                 <div className="col-span-2">
@@ -269,7 +269,7 @@ export default function EmpresasPage() {
                     type="text"
                     value={formData.direccion}
                     onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -278,7 +278,7 @@ export default function EmpresasPage() {
                     type="number"
                     value={formData.canal}
                     onChange={(e) => setFormData({ ...formData, canal: parseInt(e.target.value) || '' })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     step="1"
                     min="0"
                     required
@@ -289,7 +289,7 @@ export default function EmpresasPage() {
                   <select
                     value={formData.id_tool}
                     onChange={(e) => setFormData({ ...formData, id_tool: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   >
                     <option value="">Seleccionar tool</option>
@@ -312,7 +312,7 @@ export default function EmpresasPage() {
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 text-white rounded-xl transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)' }}
                 >
                   {editingEmpresa ? 'Actualizar' : 'Crear'}
                 </button>

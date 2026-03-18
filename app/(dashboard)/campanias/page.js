@@ -519,8 +519,8 @@ export default function CampaniasPage() {
       label: 'Campañas',
       value: totalCampanias,
       icon: Megaphone,
-      gradient: 'from-indigo-500 to-indigo-600',
-      iconBg: 'from-indigo-500 to-indigo-600',
+      gradient: 'from-teal-500 to-teal-600',
+      iconBg: 'from-teal-500 to-teal-600',
       glow: 'rgba(99, 102, 241, 0.15)',
       change: 'Total',
     },
@@ -558,7 +558,7 @@ export default function CampaniasPage() {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg animate-pulse">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg animate-pulse">
               <Megaphone className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -577,7 +577,7 @@ export default function CampaniasPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
               <Megaphone className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -588,7 +588,7 @@ export default function CampaniasPage() {
         </div>
         <Button
           onClick={openNewModal}
-          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 shadow-lg shadow-indigo-500/25 text-white gap-2"
+          className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/25 text-white gap-2"
         >
           <Plus className="h-4 w-4" />
           Nueva Campaña
@@ -642,15 +642,15 @@ export default function CampaniasPage() {
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-md group">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center">
-                <Search className="h-3 w-3 text-indigo-500 group-focus-within:text-cyan-500 transition-colors" />
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                <Search className="h-3 w-3 text-teal-500 group-focus-within:text-cyan-500 transition-colors" />
               </div>
               <input
                 type="text"
                 placeholder="Buscar campaña..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
+                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
               />
               {searchTerm && (
                 <button
@@ -677,13 +677,13 @@ export default function CampaniasPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Nombre</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Tipo</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Formato</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Plantilla</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Bases</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70 text-center">Ejecuciones</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Acciones</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Nombre</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Tipo</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Formato</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Plantilla</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Bases</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Ejecuciones</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -694,10 +694,10 @@ export default function CampaniasPage() {
               >
                 <TableCell>
                   <Link href={`/campanias/${campania.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center group-hover:from-indigo-500/20 group-hover:to-cyan-500/20 transition-colors">
-                      <Megaphone className="h-4 w-4 text-indigo-500" />
+                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center group-hover:from-teal-500/20 group-hover:to-cyan-500/20 transition-colors">
+                      <Megaphone className="h-4 w-4 text-teal-500" />
                     </div>
-                    <span className="font-semibold text-sm text-foreground hover:text-indigo-600 transition-colors">{campania.nombre}</span>
+                    <span className="font-semibold text-sm text-foreground hover:text-teal-600 transition-colors">{campania.nombre}</span>
                   </Link>
                 </TableCell>
                 <TableCell>
@@ -750,7 +750,7 @@ export default function CampaniasPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-indigo-500 hover:bg-indigo-50 hover:text-indigo-600"
+                        className="h-8 w-8 text-teal-500 hover:bg-teal-50 hover:text-teal-600"
                         title="Ver detalle"
                       >
                         <Eye className="h-4 w-4" />
@@ -794,8 +794,8 @@ export default function CampaniasPage() {
 
         {filteredCampanias.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 px-6">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center mb-4">
-              <Megaphone className="h-8 w-8 text-indigo-400" />
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center mb-4">
+              <Megaphone className="h-8 w-8 text-teal-400" />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">
               {searchTerm ? 'Sin resultados' : 'No hay campañas'}
@@ -818,7 +818,7 @@ export default function CampaniasPage() {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                 <Megaphone className="h-4 w-4 text-white" />
               </div>
               {editingCampania ? 'Editar Campaña' : 'Nueva Campaña'}
@@ -833,14 +833,14 @@ export default function CampaniasPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-teal-500" />
                   Nombre *
                 </label>
                 <input
                   type="text"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors"
                   placeholder="Nombre de la campaña"
                   required
                 />
@@ -854,7 +854,7 @@ export default function CampaniasPage() {
                 <select
                   value={formData.id_tipo_campania}
                   onChange={(e) => setFormData({ ...formData, id_tipo_campania: e.target.value })}
-                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors"
                   required
                 >
                   <option value="">Seleccionar tipo</option>
@@ -874,7 +874,7 @@ export default function CampaniasPage() {
               <textarea
                 value={formData.descripcion}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors resize-none"
+                className="w-full px-3 py-2.5 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors resize-none"
                 rows={2}
                 placeholder="Descripción de la campaña"
               />
@@ -892,7 +892,7 @@ export default function CampaniasPage() {
                 <select
                   value={formData.id_formato}
                   onChange={(e) => setFormData({ ...formData, id_formato: e.target.value, id_plantilla: '' })}
-                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors"
                   required
                 >
                   <option value="">Seleccionar formato</option>
@@ -910,7 +910,7 @@ export default function CampaniasPage() {
                 <select
                   value={formData.id_plantilla}
                   onChange={(e) => setFormData({ ...formData, id_plantilla: e.target.value })}
-                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors disabled:bg-muted/50 disabled:cursor-not-allowed"
+                  className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors disabled:bg-muted/50 disabled:cursor-not-allowed"
                   disabled={!formData.id_formato}
                   required
                 >
@@ -937,7 +937,7 @@ export default function CampaniasPage() {
                 value={formData.id_voz}
                 required
                 onChange={(e) => setFormData({ ...formData, id_voz: e.target.value })}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                className="w-full h-10 px-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors"
               >
                 <option value="">Seleccione una voz</option>
                 {voces.map((voz) => (
@@ -970,7 +970,7 @@ export default function CampaniasPage() {
                       }}
                       onFocus={() => setShowBaseDropdown(true)}
                       placeholder="Buscar base por nombre..."
-                      className="w-full h-10 pl-9 pr-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                      className="w-full h-10 pl-9 pr-3 text-sm rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-colors"
                     />
                   </div>
 
@@ -1012,13 +1012,13 @@ export default function CampaniasPage() {
                         <Badge
                           key={base.id}
                           variant="secondary"
-                          className="gap-1.5 pl-3 pr-1.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200/50"
+                          className="gap-1.5 pl-3 pr-1.5 py-1.5 bg-teal-50 text-teal-700 border border-teal-200/50"
                         >
                           {base.nombre}
                           <button
                             type="button"
                             onClick={() => handleRemoveBaseFromSelection(base.id)}
-                            className="ml-1 h-4 w-4 rounded-full bg-indigo-200/50 hover:bg-indigo-300/50 flex items-center justify-center transition-colors"
+                            className="ml-1 h-4 w-4 rounded-full bg-teal-200/50 hover:bg-teal-300/50 flex items-center justify-center transition-colors"
                           >
                             <X className="h-2.5 w-2.5" />
                           </button>
@@ -1036,7 +1036,7 @@ export default function CampaniasPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white gap-2"
+                className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white gap-2"
               >
                 {editingCampania ? 'Actualizar' : 'Crear Campaña'}
               </Button>

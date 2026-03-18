@@ -88,30 +88,26 @@ export default function LoginPage() {
       {/* Panel izquierdo - Branding */}
       <div
         className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}
       >
         {/* Círculos decorativos */}
-        <div className="absolute top-20 left-20 w-72 h-72 bg-cyan-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-2xl"></div>
+        <div className="absolute top-20 left-20 w-72 h-72 bg-teal-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-teal-300/10 rounded-full blur-2xl"></div>
 
         {/* Contenido */}
         <div className="relative z-10 flex flex-col justify-center items-center w-full px-12">
           {/* Logo */}
-          <div
-            className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl mb-8"
-            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
-          >
-            <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-          </div>
+          <img
+            src="/aiyou_logo.png"
+            alt="AI-YOU"
+            className="h-20 w-auto mb-8"
+          />
 
-          <h1 className="text-5xl font-bold text-white mb-4">AI-YOU</h1>
-          <p className="text-xl text-indigo-200 mb-8">CRM Inteligente</p>
+          <p className="text-xl text-teal-100 mb-8">CRM Inteligente</p>
 
           <div className="max-w-md text-center">
-            <p className="text-indigo-200/80 text-lg leading-relaxed">
+            <p className="text-teal-200/80 text-lg leading-relaxed">
               Sistema inteligente de gestión de prospectos y ventas potenciado con Inteligencia Artificial
             </p>
           </div>
@@ -124,7 +120,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <p className="text-sm text-indigo-200">Gestión de Prospectos</p>
+              <p className="text-sm text-teal-100">Gestión de Prospectos</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -132,7 +128,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <p className="text-sm text-indigo-200">WhatsApp</p>
+              <p className="text-sm text-teal-100">WhatsApp</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -140,7 +136,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </div>
-              <p className="text-sm text-indigo-200">Llamadas con IA</p>
+              <p className="text-sm text-teal-100">Llamadas con IA</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -148,7 +144,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <p className="text-sm text-indigo-200">Reportes</p>
+              <p className="text-sm text-teal-100">Reportes</p>
             </div>
           </div>
         </div>
@@ -159,15 +155,12 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo móvil */}
           <div className="lg:hidden text-center mb-8">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4"
-              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
-            >
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">AI-YOU</h1>
+            <img
+              src="/aiyou_isotipo.png"
+              alt="AI-YOU"
+              className="h-14 w-auto mx-auto mb-4"
+            />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-500 to-cyan-400 bg-clip-text text-transparent">AI-YOU</h1>
           </div>
 
           {/* Header */}
@@ -207,7 +200,7 @@ export default function LoginPage() {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
                     placeholder="Ingresa tu usuario"
                     disabled={loading}
                   />
@@ -231,7 +224,7 @@ export default function LoginPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
                     placeholder="Ingresa tu contraseña"
                     disabled={loading}
                   />
@@ -244,7 +237,7 @@ export default function LoginPage() {
                   <input
                     id="remember"
                     type="checkbox"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
                   />
                   <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
                     Recordarme
@@ -257,7 +250,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className="w-full py-3.5 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: loading ? '#9ca3af' : 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
+                style={{ background: loading ? '#9ca3af' : 'linear-gradient(135deg, #14B8A6 0%, #22D3EE 100%)' }}
               >
                 {loading ? (
                   <>

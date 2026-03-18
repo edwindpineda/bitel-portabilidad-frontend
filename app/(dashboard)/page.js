@@ -107,7 +107,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-violet-600 flex items-center justify-center shadow-lg shadow-teal-500/25">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
         <GlassCard>
           <CardHeader className="pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                 <Activity className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                     key={conv.id}
                     className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50/80 transition-colors cursor-pointer"
                   >
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal-500 to-violet-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                       {conv.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">

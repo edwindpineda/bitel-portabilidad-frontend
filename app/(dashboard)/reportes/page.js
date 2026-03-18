@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 
 const FUNNEL_COLORS = [
-  { bg: 'from-blue-500 to-indigo-600', text: 'text-white', light: 'bg-blue-500/10', textColor: 'text-blue-600', border: 'border-blue-200', glow: 'rgba(59,130,246,0.2)' },
+  { bg: 'from-blue-500 to-teal-600', text: 'text-white', light: 'bg-blue-500/10', textColor: 'text-blue-600', border: 'border-blue-200', glow: 'rgba(59,130,246,0.2)' },
   { bg: 'from-emerald-500 to-green-600', text: 'text-white', light: 'bg-emerald-500/10', textColor: 'text-emerald-600', border: 'border-emerald-200', glow: 'rgba(16,185,129,0.2)' },
   { bg: 'from-amber-500 to-yellow-600', text: 'text-white', light: 'bg-amber-500/10', textColor: 'text-amber-600', border: 'border-amber-200', glow: 'rgba(234,179,8,0.2)' },
 ];
@@ -159,7 +159,7 @@ export default function ReportesPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
           <p className="text-sm text-muted-foreground">Cargando reportes...</p>
         </div>
       </div>
@@ -202,10 +202,10 @@ export default function ReportesPage() {
   ];
 
   const statCardsLeft = [
-    { value: '00:00:30', label: 'Avg Ready Time', gradient: 'from-blue-500 to-indigo-500', glow: 'rgba(59,130,246,0.15)' },
+    { value: '00:00:30', label: 'Avg Ready Time', gradient: 'from-blue-500 to-teal-500', glow: 'rgba(59,130,246,0.15)' },
     { value: '00:00:30', label: 'Avg Talk Time', gradient: 'from-emerald-500 to-teal-500', glow: 'rgba(16,185,129,0.15)' },
     { value: '20%', label: '% atendidas', gradient: 'from-teal-500 to-cyan-500', glow: 'rgba(20,184,166,0.15)' },
-    { value: '21', label: 'Agentes conectados', gradient: 'from-indigo-500 to-violet-500', glow: 'rgba(99,102,241,0.15)' },
+    { value: '21', label: 'Agentes conectados', gradient: 'from-teal-500 to-violet-500', glow: 'rgba(99,102,241,0.15)' },
   ];
 
   const statCardsRight = [
@@ -232,7 +232,7 @@ export default function ReportesPage() {
               onClick={() => setTipoReporte('mensajes')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 tipoReporte === 'mensajes'
-                  ? 'bg-white shadow-md text-indigo-600'
+                  ? 'bg-white shadow-md text-teal-600'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -243,7 +243,7 @@ export default function ReportesPage() {
               onClick={() => setTipoReporte('llamadas')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 tipoReporte === 'llamadas'
-                  ? 'bg-white shadow-md text-indigo-600'
+                  ? 'bg-white shadow-md text-teal-600'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -256,19 +256,19 @@ export default function ReportesPage() {
 
       {/* ========== FILTERS CARD ========== */}
       <Card className="border-0 shadow-md overflow-hidden animate-fade-in" style={{ animationDelay: '50ms' }}>
-        <div className="h-1 bg-gradient-to-r from-indigo-500 to-cyan-500" />
+        <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-500" />
         <CardContent className="p-5">
           <div className="flex flex-wrap gap-4 items-end">
             {/* Date range */}
             <div className="min-w-[180px]">
               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
                 Periodo
               </label>
               <select
                 value={dateRange}
                 onChange={(e) => handleDateRangeChange(e.target.value)}
-                className="w-full px-4 py-2.5 bg-muted/40 rounded-xl text-sm text-foreground outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white border border-transparent focus:border-indigo-200 transition-all cursor-pointer"
+                className="w-full px-4 py-2.5 bg-muted/40 rounded-xl text-sm text-foreground outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-white border border-transparent focus:border-teal-200 transition-all cursor-pointer"
               >
                 {DATE_RANGES.map((range) => (
                   <option key={range.value} value={range.value}>{range.label}</option>
@@ -288,7 +288,7 @@ export default function ReportesPage() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-muted/40 rounded-xl text-sm text-foreground outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white border border-transparent focus:border-indigo-200 transition-all"
+                    className="w-full px-4 py-2.5 bg-muted/40 rounded-xl text-sm text-foreground outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-white border border-transparent focus:border-teal-200 transition-all"
                   />
                 </div>
                 <div className="min-w-[150px]">
@@ -300,7 +300,7 @@ export default function ReportesPage() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-muted/40 rounded-xl text-sm text-foreground outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white border border-transparent focus:border-indigo-200 transition-all"
+                    className="w-full px-4 py-2.5 bg-muted/40 rounded-xl text-sm text-foreground outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-white border border-transparent focus:border-teal-200 transition-all"
                   />
                 </div>
               </>
@@ -318,7 +318,7 @@ export default function ReportesPage() {
               {/* Refresh */}
               <Button
                 onClick={loadFunnelData}
-                className="gap-2 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all"
+                className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all"
               >
                 <RefreshCw className="w-4 h-4" />
                 Actualizar
@@ -331,7 +331,7 @@ export default function ReportesPage() {
             <>
               <Separator className="my-4" />
               <div className="flex items-center gap-2 text-sm">
-                <Badge className="bg-indigo-500/10 text-indigo-600 border-0 gap-1.5">
+                <Badge className="bg-teal-500/10 text-teal-600 border-0 gap-1.5">
                   <Filter className="w-3 h-3" />
                   {DATE_RANGES.find(r => r.value === dateRange)?.label}
                   {dateRange === 'custom' && dateFrom && dateTo && ` (${dateFrom} - ${dateTo})`}
@@ -348,7 +348,7 @@ export default function ReportesPage() {
           <div className="h-1 bg-gradient-to-r from-blue-500 via-emerald-500 to-amber-500" />
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white shadow-md">
                 <BarChart3 className="w-5 h-5" />
               </div>
               <div>
@@ -444,11 +444,11 @@ export default function ReportesPage() {
                 </div>
 
                 {/* Conversion Rates Card */}
-                <Card className="border-0 shadow-sm overflow-hidden bg-gradient-to-br from-indigo-500/5 via-blue-500/5 to-cyan-500/5 animate-fade-in">
-                  <div className="h-1 bg-gradient-to-r from-indigo-500 to-cyan-500" />
+                <Card className="border-0 shadow-sm overflow-hidden bg-gradient-to-br from-teal-500/5 via-blue-500/5 to-cyan-500/5 animate-fade-in">
+                  <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-500" />
                   <CardContent className="p-5">
                     <div className="flex items-center gap-2.5 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                         <Target className="w-4 h-4 text-white" />
                       </div>
                       <h3 className="text-sm font-bold text-foreground">Tasas de Conversión</h3>
@@ -490,8 +490,8 @@ export default function ReportesPage() {
 
             {!funnelData && (
               <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center">
-                  <BarChart3 className="w-8 h-8 text-indigo-400" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center">
+                  <BarChart3 className="w-8 h-8 text-teal-400" />
                 </div>
                 <p className="text-foreground font-semibold">No hay datos disponibles</p>
                 <p className="text-sm text-muted-foreground mt-1">Intenta con otro rango de fechas</p>
@@ -506,10 +506,10 @@ export default function ReportesPage() {
           <div className="space-y-6">
             {/* Total de Llamadas Card */}
             <Card className="border-0 shadow-md overflow-hidden animate-fade-in" style={{ animationDelay: '100ms' }}>
-              <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+              <div className="h-1 bg-gradient-to-r from-blue-500 to-teal-500" />
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white shadow-md">
                     <PhoneCall className="w-5 h-5" />
                   </div>
                   <div>
@@ -521,7 +521,7 @@ export default function ReportesPage() {
                 {/* Today stat */}
                 <div className="flex items-center gap-4 mb-6">
                   <span className="text-sm font-semibold text-muted-foreground">Llamadas hoy</span>
-                  <div className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-lg shadow-md">
+                  <div className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-teal-500 text-white font-bold text-lg shadow-md">
                     600
                   </div>
                 </div>
@@ -608,10 +608,10 @@ export default function ReportesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-b border-border/50">
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Campaña</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Estado</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Última actualización</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Reglas activas</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Campaña</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Estado</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Última actualización</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Reglas activas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -654,15 +654,15 @@ export default function ReportesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent border-b border-border/50">
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Campaña</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Activos</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Libres</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Llamando</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Respuestas</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">No atend.</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Fallidas</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Dropped</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">%</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Campaña</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Activos</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Libres</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Llamando</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Respuestas</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">No atend.</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Fallidas</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Dropped</TableHead>
+                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">%</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -689,7 +689,7 @@ export default function ReportesPage() {
                             <span className="text-sm font-semibold text-amber-600">{activa.dropped}</span>
                           </TableCell>
                           <TableCell>
-                            <Badge className="bg-indigo-500/10 text-indigo-600 border-0 text-[11px] font-bold">{activa.porcentaje}</Badge>
+                            <Badge className="bg-teal-500/10 text-teal-600 border-0 text-[11px] font-bold">{activa.porcentaje}</Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -714,9 +714,9 @@ export default function ReportesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-b border-border/50">
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Campaña</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Teléfono</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/70">Inicio de llamada</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Campaña</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Teléfono</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Inicio de llamada</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

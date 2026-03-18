@@ -197,7 +197,7 @@ export default function UsuariosAdminPage() {
         <button
           onClick={openNewModal}
           className="flex items-center space-x-2 px-4 py-2 text-white rounded-xl transition-all"
-          style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)' }}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -231,7 +231,7 @@ export default function UsuariosAdminPage() {
             placeholder="Buscar por username..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
         </div>
         <div className="relative min-w-[250px]" ref={empresaDropdownRef}>
@@ -250,7 +250,7 @@ export default function UsuariosAdminPage() {
               setShowEmpresaDropdown(true);
             }}
             onFocus={() => setShowEmpresaDropdown(true)}
-            className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+            className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
           />
           {filterEmpresa ? (
             <button
@@ -308,7 +308,7 @@ export default function UsuariosAdminPage() {
       <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
           </div>
         ) : filteredUsuarios.length === 0 ? (
           <div className="text-center p-12">
@@ -335,7 +335,7 @@ export default function UsuariosAdminPage() {
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">{usuario.id}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)' }}>
                         {usuario.username?.charAt(0).toUpperCase()}
                       </div>
                       <span className="text-sm text-gray-900">{usuario.username}</span>
@@ -354,7 +354,7 @@ export default function UsuariosAdminPage() {
                     <div className="flex items-center justify-end space-x-2">
                       <button
                         onClick={() => handleEdit(usuario)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -393,7 +393,7 @@ export default function UsuariosAdminPage() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -405,7 +405,7 @@ export default function UsuariosAdminPage() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required={!editingUsuario}
                 />
               </div>
@@ -414,7 +414,7 @@ export default function UsuariosAdminPage() {
                 <select
                   value={formData.id_empresa}
                   onChange={(e) => setFormData({ ...formData, id_empresa: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 >
                   <option value="">Sin empresa asignada</option>
                   {empresas.map((empresa) => (
@@ -435,7 +435,7 @@ export default function UsuariosAdminPage() {
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 text-white rounded-xl transition-all"
-                  style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)' }}
                 >
                   {editingUsuario ? 'Actualizar' : 'Crear'}
                 </button>

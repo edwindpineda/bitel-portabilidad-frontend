@@ -1150,8 +1150,8 @@ export default function ConversacionesPage() {
                           {/* AI Bot label - on outgoing bot messages */}
                           {isOutgoing && (
                             <div className="flex items-center gap-1 mb-0.5">
-                              <Bot className="h-3 w-3 text-[#6366f1]" />
-                              <span className="text-[11px] font-semibold text-[#6366f1]">AI Bot</span>
+                              <Bot className="h-3 w-3 text-[#14B8A6]" />
+                              <span className="text-[11px] font-semibold text-[#14B8A6]">AI Bot</span>
                             </div>
                           )}
 

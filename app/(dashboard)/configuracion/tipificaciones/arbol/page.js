@@ -139,7 +139,7 @@ export default function TipificacionesArbolPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
@@ -197,7 +197,7 @@ export default function TipificacionesArbolPage() {
               <p>No hay tipificaciones configuradas</p>
               <Link
                 href="/configuracion/tipificaciones"
-                className="mt-4 inline-block text-indigo-600 hover:text-indigo-700"
+                className="mt-4 inline-block text-teal-600 hover:text-teal-700"
               >
                 Crear tipificación
               </Link>

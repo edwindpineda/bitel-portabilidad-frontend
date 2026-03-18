@@ -931,7 +931,7 @@ if (fechaFin) params.fecha_fin = fechaFin;
           <GlassCard>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-teal-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <BarChart3 className="h-5 w-5 text-white" />
                 </div>
                 <div>
@@ -1032,7 +1032,7 @@ if (fechaFin) params.fecha_fin = fechaFin;
           <GlassCard>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                   <Users className="h-5 w-5 text-white" />
                 </div>
                 <div>

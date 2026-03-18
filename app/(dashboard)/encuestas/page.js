@@ -185,7 +185,7 @@ export default function EncuestasPage() {
               <div className="text-xs text-gray-500">Completados</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="text-2xl font-bold text-indigo-600">
+              <div className="text-2xl font-bold text-teal-600">
                 {statsPersonas?.total > 0 ? ((statsPersonas?.ejecutados / statsPersonas?.total) * 100).toFixed(1) : 0}%
               </div>
               <div className="text-xs text-gray-500">% Ejec/Total</div>

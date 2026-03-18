@@ -22,6 +22,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import {
   Megaphone,
   ArrowLeft,
@@ -33,6 +35,7 @@ import {
   Tag,
   Users,
   ChevronLeft,
+  ChevronRight,
   Plus,
   Trash2,
   Search,
@@ -40,6 +43,7 @@ import {
   Settings,
   Phone,
   Save,
+  Eye,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -106,6 +110,16 @@ export default function CampaniaDetallePage() {
   // Busqueda de bases
   const [searchBase, setSearchBase] = useState('');
   const [showBaseDropdown, setShowBaseDropdown] = useState(false);
+  const [searchBaseAsignada, setSearchBaseAsignada] = useState('');
+
+  // Modal detalle de base
+  const [showDetalleBase, setShowDetalleBase] = useState(false);
+  const [selectedBase, setSelectedBase] = useState(null);
+  const [detalleBaseNumeros, setDetalleBaseNumeros] = useState([]);
+  const [loadingDetalleBase, setLoadingDetalleBase] = useState(false);
+  const [detalleBasePage, setDetalleBasePage] = useState(1);
+  const [detalleBasePagination, setDetalleBasePagination] = useState({ total: 0, totalPages: 1 });
+  const [searchDetalleBase, setSearchDetalleBase] = useState('');
 
   // Paginación de bases y ejecuciones
   const [basesPage, setBasesPage] = useState(1);
@@ -118,15 +132,13 @@ export default function CampaniaDetallePage() {
   const [savingConfig, setSavingConfig] = useState(false);
 
   const [configLlamadas, setConfigLlamadas] = useState({
-    horarios_por_dia: {
-      lun: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-      mar: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-      mie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-      jue: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-      vie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-      sab: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-      dom: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-    },
+    lunes_horario: null,
+    martes_horario: null,
+    miercoles_horario: null,
+    jueves_horario: null,
+    viernes_horario: null,
+    sabado_horario: null,
+    domingo_horario: null,
     max_intentos: 3,
   });
 
@@ -168,37 +180,14 @@ export default function CampaniaDetallePage() {
       const res = await apiClient.get(`/crm/campanias/${campaniaId}/config-llamadas`);
       const config = res?.data;
       if (config) {
-        // Si existe horarios_por_dia, usarlo; sino migrar desde dias_llamada
-        let horariosPorDia = {
-          lun: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-          mar: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-          mie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-          jue: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-          vie: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-          sab: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-          dom: { activo: false, hora_inicio: '09:00', hora_fin: '18:00' },
-        };
-
-        if (config.horarios_por_dia) {
-          // Parsear si viene como string
-          const parsed = typeof config.horarios_por_dia === 'string'
-            ? JSON.parse(config.horarios_por_dia)
-            : config.horarios_por_dia;
-          horariosPorDia = { ...horariosPorDia, ...parsed };
-        } else if (config.dias_llamada) {
-          // Migración: convertir formato antiguo al nuevo
-          const diasArray = (config.dias_llamada || '').split(',').map(d => d.trim().toLowerCase());
-          const horaInicio = config.hora_inicio?.substring(0, 5) || '09:00';
-          const horaFin = config.hora_fin?.substring(0, 5) || '18:00';
-          diasArray.forEach(dia => {
-            if (horariosPorDia[dia]) {
-              horariosPorDia[dia] = { activo: true, hora_inicio: horaInicio, hora_fin: horaFin };
-            }
-          });
-        }
-
         setConfigLlamadas({
-          horarios_por_dia: horariosPorDia,
+          lunes_horario: config.lunes_horario || null,
+          martes_horario: config.martes_horario || null,
+          miercoles_horario: config.miercoles_horario || null,
+          jueves_horario: config.jueves_horario || null,
+          viernes_horario: config.viernes_horario || null,
+          sabado_horario: config.sabado_horario || null,
+          domingo_horario: config.domingo_horario || null,
           max_intentos: config.max_intentos || 3,
         });
       }
@@ -210,23 +199,28 @@ export default function CampaniaDetallePage() {
   const handleSaveConfigLlamadas = async () => {
     try {
       setSavingConfig(true);
-      // Obtener días activos
-      const diasActivos = Object.entries(configLlamadas.horarios_por_dia)
-        .filter(([, config]) => config.activo)
-        .map(([dia]) => dia);
 
-      if (diasActivos.length === 0) {
-        alert('Debe seleccionar al menos un día');
+      // Validar que al menos un día tenga horario
+      const tieneAlgunDia = configLlamadas.lunes_horario || configLlamadas.martes_horario ||
+                           configLlamadas.miercoles_horario || configLlamadas.jueves_horario ||
+                           configLlamadas.viernes_horario || configLlamadas.sabado_horario ||
+                           configLlamadas.domingo_horario;
+
+      if (!tieneAlgunDia) {
+        alert('Debe configurar al menos un día');
         setSavingConfig(false);
         return;
       }
 
       await apiClient.post(`/crm/campanias/${campaniaId}/config-llamadas`, {
-        dias_llamada: diasActivos.join(','),
-        hora_inicio: configLlamadas.horarios_por_dia.lun.hora_inicio,
-        hora_fin: configLlamadas.horarios_por_dia.lun.hora_fin,
         max_intentos: configLlamadas.max_intentos,
-        horarios_por_dia: configLlamadas.horarios_por_dia,
+        lunes_horario: configLlamadas.lunes_horario,
+        martes_horario: configLlamadas.martes_horario,
+        miercoles_horario: configLlamadas.miercoles_horario,
+        jueves_horario: configLlamadas.jueves_horario,
+        viernes_horario: configLlamadas.viernes_horario,
+        sabado_horario: configLlamadas.sabado_horario,
+        domingo_horario: configLlamadas.domingo_horario,
       });
       setShowConfigLlamadas(false);
       alert('Configuración guardada exitosamente');
@@ -259,6 +253,42 @@ export default function CampaniaDetallePage() {
       } catch (error) {
         console.error('Error al quitar base:', error);
       }
+    }
+  };
+
+  const handleToggleActivo = async (id) => {
+    try {
+      const response = await apiClient.patch(`/crm/campania-bases/${id}/toggle-activo`);
+      // Actualizar el estado local
+      setBasesAsignadas(prev =>
+        prev.map(base =>
+          base.id === id ? { ...base, activo: response.data.activo } : base
+        )
+      );
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+      alert(error.msg || 'Error al cambiar estado de la base');
+    }
+  };
+
+  const handleVerDetalleBase = async (base, page = 1) => {
+    setSelectedBase(base);
+    setShowDetalleBase(true);
+    setLoadingDetalleBase(true);
+    setDetalleBasePage(page);
+
+    try {
+      const response = await apiClient.get(`/crm/bases-numeros/${base.id_base_numero}/detalles?page=${page}&limit=20`);
+      setDetalleBaseNumeros(response.data || []);
+      setDetalleBasePagination({
+        total: response.total || 0,
+        totalPages: response.totalPages || 1
+      });
+    } catch (error) {
+      console.error('Error al cargar detalle:', error);
+      setDetalleBaseNumeros([]);
+    } finally {
+      setLoadingDetalleBase(false);
     }
   };
 
@@ -331,7 +361,7 @@ export default function CampaniaDetallePage() {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg animate-pulse">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg animate-pulse">
               <Megaphone className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -394,7 +424,7 @@ export default function CampaniaDetallePage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
               <Megaphone className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -423,11 +453,25 @@ export default function CampaniaDetallePage() {
           )}
           <Button
             onClick={handleEjecutar}
-            disabled={ejecutando || basesAsignadas.length === 0}
+            disabled={ejecutando || basesAsignadas.length === 0 || ejecuciones.some(e => e.estado_ejecucion === 'en_proceso')}
             className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white gap-2"
           >
-            {ejecutando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Ejecutar Campaña
+            {ejecutando ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Ejecutando...
+              </>
+            ) : ejecuciones.some(e => e.estado_ejecucion === 'en_proceso') ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                En Ejecución
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Ejecutar Campaña
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -435,12 +479,29 @@ export default function CampaniaDetallePage() {
       {/* Detalle de la Campaña */}
       <Card>
         <CardContent className="p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="space-y-1">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Campaña</p>
               <p className="text-sm font-medium">
                 {campania.tipo_campania_nombre || <span className="text-muted-foreground">No definido</span>}
               </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Estado</p>
+              {ejecuciones.some(e => e.estado_ejecucion === 'en_proceso') ? (
+                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  En Ejecución
+                </Badge>
+              ) : ejecuciones.length === 0 ? (
+                <Badge variant="secondary" className="text-muted-foreground">
+                  Sin ejecutar
+                </Badge>
+              ) : (
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                  Disponible
+                </Badge>
+              )}
             </div>
             <div className="space-y-1">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Formato</p>
@@ -510,75 +571,40 @@ export default function CampaniaDetallePage() {
             {/* Tabla de horarios por día */}
             <div>
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">Horarios por día de la semana</label>
+              <p className="text-xs text-muted-foreground mb-3">Formato: HH:MM-HH:MM (ej: 09:00-18:00). Dejar vacío para desactivar el día.</p>
               <div className="rounded-xl border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70 w-24">Día</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70 w-20 text-center">Activo</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70">Hora Inicio</TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-blue-500/70">Hora Fin</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 w-24">Día</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Horario (HH:MM-HH:MM)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {[
-                      { key: 'lun', label: 'Lunes' },
-                      { key: 'mar', label: 'Martes' },
-                      { key: 'mie', label: 'Miércoles' },
-                      { key: 'jue', label: 'Jueves' },
-                      { key: 'vie', label: 'Viernes' },
-                      { key: 'sab', label: 'Sábado' },
-                      { key: 'dom', label: 'Domingo' },
+                      { key: 'lunes_horario', label: 'Lunes' },
+                      { key: 'martes_horario', label: 'Martes' },
+                      { key: 'miercoles_horario', label: 'Miércoles' },
+                      { key: 'jueves_horario', label: 'Jueves' },
+                      { key: 'viernes_horario', label: 'Viernes' },
+                      { key: 'sabado_horario', label: 'Sábado' },
+                      { key: 'domingo_horario', label: 'Domingo' },
                     ].map(d => (
-                      <TableRow key={d.key} className={configLlamadas.horarios_por_dia[d.key]?.activo ? 'bg-blue-50/50' : ''}>
+                      <TableRow key={d.key} className={configLlamadas[d.key] ? 'bg-teal-50/50' : ''}>
                         <TableCell className="font-medium text-sm">{d.label}</TableCell>
-                        <TableCell className="text-center">
-                          <Checkbox
-                            checked={configLlamadas.horarios_por_dia[d.key]?.activo || false}
-                            onCheckedChange={(checked) => {
-                              setConfigLlamadas(prev => ({
-                                ...prev,
-                                horarios_por_dia: {
-                                  ...prev.horarios_por_dia,
-                                  [d.key]: { ...prev.horarios_por_dia[d.key], activo: checked }
-                                }
-                              }));
-                            }}
-                            className="h-5 w-5"
-                          />
-                        </TableCell>
                         <TableCell>
                           <input
-                            type="time"
-                            value={configLlamadas.horarios_por_dia[d.key]?.hora_inicio || '09:00'}
+                            type="text"
+                            placeholder="09:00-18:00"
+                            value={configLlamadas[d.key] || ''}
                             onChange={e => {
+                              const value = e.target.value || null;
                               setConfigLlamadas(prev => ({
                                 ...prev,
-                                horarios_por_dia: {
-                                  ...prev.horarios_por_dia,
-                                  [d.key]: { ...prev.horarios_por_dia[d.key], hora_inicio: e.target.value }
-                                }
+                                [d.key]: value
                               }));
                             }}
-                            disabled={!configLlamadas.horarios_por_dia[d.key]?.activo}
-                            className="h-9 w-28 px-3 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <input
-                            type="time"
-                            value={configLlamadas.horarios_por_dia[d.key]?.hora_fin || '18:00'}
-                            onChange={e => {
-                              setConfigLlamadas(prev => ({
-                                ...prev,
-                                horarios_por_dia: {
-                                  ...prev.horarios_por_dia,
-                                  [d.key]: { ...prev.horarios_por_dia[d.key], hora_fin: e.target.value }
-                                }
-                              }));
-                            }}
-                            disabled={!configLlamadas.horarios_por_dia[d.key]?.activo}
-                            className="h-9 w-28 px-3 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="h-9 w-32 px-3 rounded-lg bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-background transition-colors"
                           />
                         </TableCell>
                       </TableRow>
@@ -599,7 +625,7 @@ export default function CampaniaDetallePage() {
                       onClick={() => setConfigLlamadas(prev => ({ ...prev, max_intentos: n }))}
                       className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
                         configLlamadas.max_intentos === n
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                          ? 'bg-teal-600 text-white shadow-md shadow-teal-500/25'
                           : 'text-muted-foreground hover:bg-muted/60'
                       }`}
                     >
@@ -612,20 +638,22 @@ export default function CampaniaDetallePage() {
             </div>
 
             {/* Resumen */}
-            <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
-              <p className="text-xs font-medium text-blue-800 mb-1">Resumen de configuración</p>
-              <div className="text-xs text-blue-600 space-y-0.5">
-                {Object.entries(configLlamadas.horarios_por_dia)
-                  .filter(([, config]) => config.activo)
-                  .map(([dia, config]) => (
-                    <p key={dia}>
-                      <span className="font-medium capitalize">{dia}</span>: {config.hora_inicio} - {config.hora_fin}
-                    </p>
-                  ))}
-                {Object.values(configLlamadas.horarios_por_dia).every(c => !c.activo) && (
-                  <p className="text-amber-600">Sin días seleccionados</p>
+            <div className="p-4 rounded-xl bg-teal-50/50 border border-teal-100">
+              <p className="text-xs font-medium text-teal-800 mb-1">Resumen de configuración</p>
+              <div className="text-xs text-teal-600 space-y-0.5">
+                {configLlamadas.lunes_horario && <p><span className="font-medium">Lunes</span>: {configLlamadas.lunes_horario}</p>}
+                {configLlamadas.martes_horario && <p><span className="font-medium">Martes</span>: {configLlamadas.martes_horario}</p>}
+                {configLlamadas.miercoles_horario && <p><span className="font-medium">Miércoles</span>: {configLlamadas.miercoles_horario}</p>}
+                {configLlamadas.jueves_horario && <p><span className="font-medium">Jueves</span>: {configLlamadas.jueves_horario}</p>}
+                {configLlamadas.viernes_horario && <p><span className="font-medium">Viernes</span>: {configLlamadas.viernes_horario}</p>}
+                {configLlamadas.sabado_horario && <p><span className="font-medium">Sábado</span>: {configLlamadas.sabado_horario}</p>}
+                {configLlamadas.domingo_horario && <p><span className="font-medium">Domingo</span>: {configLlamadas.domingo_horario}</p>}
+                {!configLlamadas.lunes_horario && !configLlamadas.martes_horario && !configLlamadas.miercoles_horario &&
+                 !configLlamadas.jueves_horario && !configLlamadas.viernes_horario && !configLlamadas.sabado_horario &&
+                 !configLlamadas.domingo_horario && (
+                  <p className="text-amber-600">Sin días configurados</p>
                 )}
-                <p className="mt-2 pt-2 border-t border-blue-200">
+                <p className="mt-2 pt-2 border-t border-teal-200">
                   {configLlamadas.max_intentos} intento{configLlamadas.max_intentos !== 1 ? 's' : ''} máximo{configLlamadas.max_intentos !== 1 ? 's' : ''} por contacto
                 </p>
               </div>
@@ -707,6 +735,20 @@ export default function CampaniaDetallePage() {
             )}
           </div>
 
+          {/* Buscador de bases asignadas */}
+          {basesAsignadas.length > 5 && (
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar base asignada..."
+                value={searchBaseAsignada}
+                onChange={(e) => setSearchBaseAsignada(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+          )}
+
           <div className="rounded-xl border overflow-hidden">
             <Table>
               <TableHeader>
@@ -715,11 +757,14 @@ export default function CampaniaDetallePage() {
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Base</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Formato</TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Números</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Ejecuciones</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center w-20">Activo</TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center w-24">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {basesAsignadas
+                  .filter(base => base.base_nombre.toLowerCase().includes(searchBaseAsignada.toLowerCase()))
                   .slice((basesPage - 1) * ITEMS_PER_PAGE, basesPage * ITEMS_PER_PAGE)
                   .map((base, index) => (
                   <TableRow key={base.id}>
@@ -731,15 +776,37 @@ export default function CampaniaDetallePage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center text-muted-foreground">{base.total_numeros || 0}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="text-xs">
+                        {base.total_ejecuciones || 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={base.activo === 1 || base.activo === true}
+                        onCheckedChange={() => handleToggleActivo(base.id)}
+                        className="data-[state=checked]:bg-cyan-500"
+                      />
+                    </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleRemoveBase(base.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-cyan-500 hover:text-cyan-700 hover:bg-cyan-50"
+                          onClick={() => handleVerDetalleBase(base)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleRemoveBase(base.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -922,6 +989,106 @@ export default function CampaniaDetallePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Detalle de Base */}
+      <Dialog open={showDetalleBase} onOpenChange={setShowDetalleBase}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                <Database className="h-4 w-4 text-white" />
+              </div>
+              {selectedBase?.base_nombre}
+            </DialogTitle>
+            <DialogDescription>
+              {detalleBasePagination.total} números en esta base · Formato: {selectedBase?.formato_nombre || 'Sin formato'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Buscador */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar por teléfono o nombre..."
+                value={searchDetalleBase}
+                onChange={(e) => setSearchDetalleBase(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+
+            {/* Tabla de números */}
+            {loadingDetalleBase ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+              </div>
+            ) : (
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 w-12">#</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Teléfono</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Nombre</TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Documento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detalleBaseNumeros
+                      .filter(n =>
+                        n.telefono?.toLowerCase().includes(searchDetalleBase.toLowerCase()) ||
+                        n.nombre?.toLowerCase().includes(searchDetalleBase.toLowerCase())
+                      )
+                      .map((numero, index) => (
+                      <TableRow key={numero.id}>
+                        <TableCell className="text-muted-foreground font-mono text-xs">{(detalleBasePage - 1) * 20 + index + 1}</TableCell>
+                        <TableCell className="font-mono text-sm">{numero.telefono}</TableCell>
+                        <TableCell className="text-sm">{numero.nombre || <span className="text-muted-foreground">—</span>}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{numero.numero_documento || '—'}</TableCell>
+                      </TableRow>
+                    ))}
+                    {detalleBaseNumeros.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                          No hay números en esta base
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Paginación */}
+            {detalleBasePagination.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-muted-foreground">
+                  Página {detalleBasePage} de {detalleBasePagination.totalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVerDetalleBase(selectedBase, detalleBasePage - 1)}
+                    disabled={detalleBasePage <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVerDetalleBase(selectedBase, detalleBasePage + 1)}
+                    disabled={detalleBasePage >= detalleBasePagination.totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Personas - Solo búsqueda con paginación */}
       <Dialog open={showPersonasModal} onOpenChange={setShowPersonasModal}>

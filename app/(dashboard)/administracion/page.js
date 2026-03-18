@@ -1,8 +1,48 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { apiClient } from '@/lib/api';
 import Link from 'next/link';
 
 export default function AdministracionPage() {
+  const { data: session } = useSession();
+  const [stats, setStats] = useState({
+    totalEmpresas: 0,
+    totalUsuarios: 0,
+    empresasActivas: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (session?.accessToken) {
+      fetchStats();
+    }
+  }, [session?.accessToken]);
+
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const [empresasRes, usuariosRes] = await Promise.all([
+        apiClient.get('/crm/admin/empresas'),
+        apiClient.get('/crm/admin/usuarios'),
+      ]);
+
+      const empresas = empresasRes?.data || [];
+      const usuarios = usuariosRes?.data || [];
+
+      setStats({
+        totalEmpresas: empresas.length,
+        totalUsuarios: usuarios.length,
+        empresasActivas: empresas.filter(e => e.estado_registro == 1).length,
+      });
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   const adminOptions = [
     {
       title: 'Empresas',
@@ -13,7 +53,7 @@ export default function AdministracionPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       ),
-      color: 'bg-gradient-to-r from-indigo-500 to-purple-600',
+      color: 'bg-gradient-to-r from-teal-500 to-purple-600',
       stats: 'Gestionar empresas',
     },
     {
@@ -71,7 +111,7 @@ export default function AdministracionPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-2">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #06b6d4 100%)' }}>
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
@@ -83,17 +123,78 @@ export default function AdministracionPage() {
         </div>
       </div>
 
+      {/* Quick Stats - Moved to top */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Empresas</p>
+              <p className="text-xl font-bold text-gray-900">
+                {loadingStats ? (
+                  <span className="inline-block w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  stats.totalEmpresas
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Usuarios</p>
+              <p className="text-xl font-bold text-gray-900">
+                {loadingStats ? (
+                  <span className="inline-block w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  stats.totalUsuarios
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Empresas Activas</p>
+              <p className="text-xl font-bold text-gray-900">
+                {loadingStats ? (
+                  <span className="inline-block w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  stats.empresasActivas
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Super Admin Badge */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
+      <div className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-purple-50 border border-teal-200 rounded-xl">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+            <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
           <div>
-            <p className="font-semibold text-indigo-900">Super Administrador</p>
-            <p className="text-sm text-indigo-700">Tienes acceso completo para gestionar todas las empresas y usuarios</p>
+            <p className="font-semibold text-teal-900">Super Administrador</p>
+            <p className="text-sm text-teal-700">Tienes acceso completo para gestionar todas las empresas y usuarios</p>
           </div>
         </div>
       </div>
@@ -123,49 +224,6 @@ export default function AdministracionPage() {
             </div>
           </Link>
         ))}
-      </div>
-
-      {/* Quick Stats */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Empresas</p>
-              <p className="text-xl font-bold text-gray-900">-</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Usuarios</p>
-              <p className="text-xl font-bold text-gray-900">-</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Empresas Activas</p>
-              <p className="text-xl font-bold text-gray-900">-</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

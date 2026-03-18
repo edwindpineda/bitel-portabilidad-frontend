@@ -27,7 +27,25 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Search,
+  FileDown,
+  FileText,
+  FileSpreadsheet,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Helper para obtener URL de audio
 const getAudioUrl = (archivoLlamada) => {
@@ -93,9 +111,19 @@ export default function LlamadasEjecucionPage() {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
 
+  // Filtro de busqueda
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterGrabacion, setFilterGrabacion] = useState('todos');
+
   // Modal de audio
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [selectedAudioLlamada, setSelectedAudioLlamada] = useState(null);
+
+  // Modal de transcripcion
+  const [showTranscripcionModal, setShowTranscripcionModal] = useState(false);
+  const [selectedTranscripcionLlamada, setSelectedTranscripcionLlamada] = useState(null);
+  const [transcripciones, setTranscripciones] = useState([]);
+  const [loadingTranscripcion, setLoadingTranscripcion] = useState(false);
 
   useEffect(() => {
     if (ejecucionId) {
@@ -127,6 +155,22 @@ export default function LlamadasEjecucionPage() {
     setShowAudioModal(true);
   };
 
+  const handleShowTranscripcion = async (llamada) => {
+    setSelectedTranscripcionLlamada(llamada);
+    setShowTranscripcionModal(true);
+    setLoadingTranscripcion(true);
+    setTranscripciones([]);
+    try {
+      const response = await apiClient.get(`/crm/transcripciones/llamada/${llamada.id}`);
+      setTranscripciones(response?.data || []);
+    } catch (error) {
+      console.error('Error al cargar transcripciones:', error);
+      setTranscripciones([]);
+    } finally {
+      setLoadingTranscripcion(false);
+    }
+  };
+
   const handleDownloadAudio = () => {
     if (!selectedAudioLlamada?.archivo_llamada) return;
     const url = getAudioUrl(selectedAudioLlamada.archivo_llamada);
@@ -136,6 +180,139 @@ export default function LlamadasEjecucionPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Exportar a CSV
+  const exportToCSV = () => {
+    const headers = ['Codigo', 'Contacto', 'Telefono', 'Tipificacion', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Duracion', 'Grabacion'];
+    const data = filteredLlamadas.map((llamada) => [
+      llamada.codigo_llamada || llamada.id || '',
+      llamada.contacto_nombre || '',
+      llamada.telefono || '',
+      llamada.tipificacion_llamada_nombre || '',
+      llamada.estado_llamada_nombre || '',
+      formatearFechaHora(llamada.fecha_inicio),
+      formatearFechaHora(llamada.fecha_fin),
+      formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin)),
+      llamada.archivo_llamada ? 'Si' : 'No',
+    ]);
+
+    const csvContent = [headers, ...data]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `llamadas_ejecucion_${ejecucionId}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Exportar a Excel (formato XLSX simple usando CSV con extension xlsx)
+  const exportToExcel = () => {
+    const headers = ['Codigo', 'Contacto', 'Telefono', 'Tipificacion', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Duracion', 'Grabacion'];
+    const data = filteredLlamadas.map((llamada) => [
+      llamada.codigo_llamada || llamada.id || '',
+      llamada.contacto_nombre || '',
+      llamada.telefono || '',
+      llamada.tipificacion_llamada_nombre || '',
+      llamada.estado_llamada_nombre || '',
+      formatearFechaHora(llamada.fecha_inicio),
+      formatearFechaHora(llamada.fecha_fin),
+      formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin)),
+      llamada.archivo_llamada ? 'Si' : 'No',
+    ]);
+
+    // Crear contenido en formato tab-separated (compatible con Excel)
+    const xlsContent = [headers, ...data]
+      .map((row) => row.join('\t'))
+      .join('\n');
+
+    const blob = new Blob(['\ufeff' + xlsContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `llamadas_ejecucion_${ejecucionId}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Exportar a PDF
+  const exportToPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const tableRows = filteredLlamadas
+      .map(
+        (llamada) => `
+        <tr>
+          <td>${llamada.codigo_llamada || llamada.id || ''}</td>
+          <td>${llamada.contacto_nombre || ''}</td>
+          <td>${llamada.telefono || ''}</td>
+          <td>${llamada.tipificacion_llamada_nombre || ''}</td>
+          <td>${llamada.estado_llamada_nombre || ''}</td>
+          <td>${formatearFechaHora(llamada.fecha_inicio)}</td>
+          <td>${formatearFechaHora(llamada.fecha_fin)}</td>
+          <td>${formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin))}</td>
+          <td>${llamada.archivo_llamada ? 'Si' : 'No'}</td>
+        </tr>
+      `
+      )
+      .join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Llamadas - Ejecucion #${ejecucionId}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+          h1 { color: #14B8A6; font-size: 18px; margin-bottom: 5px; }
+          .subtitle { color: #666; font-size: 12px; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th { background: #14B8A6; color: white; padding: 8px; text-align: left; font-size: 10px; }
+          td { padding: 6px 8px; border-bottom: 1px solid #ddd; font-size: 10px; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          .footer { margin-top: 20px; font-size: 10px; color: #999; }
+        </style>
+      </head>
+      <body>
+        <h1>Llamadas de Ejecucion #${ejecucionId}</h1>
+        <p class="subtitle">${ejecucion?.base_nombre || ''} - Total: ${filteredLlamadas.length} llamadas</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Contacto</th>
+              <th>Telefono</th>
+              <th>Tipificacion</th>
+              <th>Estado</th>
+              <th>Fecha Inicio</th>
+              <th>Fecha Fin</th>
+              <th>Duracion</th>
+              <th>Grabacion</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+        <p class="footer">Generado el ${new Date().toLocaleString('es-PE')}</p>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   // Ordenamiento
@@ -158,8 +335,35 @@ export default function LlamadasEjecucionPage() {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
+  // Filtrar llamadas
+  const filteredLlamadas = llamadas.filter((llamada) => {
+    // Filtro por grabacion
+    if (filterGrabacion === 'con' && !llamada.archivo_llamada) return false;
+    if (filterGrabacion === 'sin' && llamada.archivo_llamada) return false;
+
+    // Filtro por busqueda
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const codigo = String(llamada.codigo_llamada || llamada.id || '').toLowerCase();
+    const contacto = (llamada.contacto_nombre || '').toLowerCase();
+    const telefono = (llamada.telefono || '').toLowerCase();
+    const tipificacion = (llamada.tipificacion_llamada_nombre || '').toLowerCase();
+    const estadoLlamada = (llamada.estado_llamada_nombre || '').toLowerCase();
+    const fechaInicio = formatearFechaHora(llamada.fecha_inicio).toLowerCase();
+    const fechaFin = formatearFechaHora(llamada.fecha_fin).toLowerCase();
+    return (
+      codigo.includes(term) ||
+      contacto.includes(term) ||
+      telefono.includes(term) ||
+      tipificacion.includes(term) ||
+      estadoLlamada.includes(term) ||
+      fechaInicio.includes(term) ||
+      fechaFin.includes(term)
+    );
+  });
+
   // Ordenar llamadas
-  const sortedLlamadas = [...llamadas].sort((a, b) => {
+  const sortedLlamadas = [...filteredLlamadas].sort((a, b) => {
     if (!sortColumn) return 0;
 
     let aVal, bVal;
@@ -197,6 +401,10 @@ export default function LlamadasEjecucionPage() {
         aVal = a.fecha_fin ? new Date(a.fecha_fin).getTime() : 0;
         bVal = b.fecha_fin ? new Date(b.fecha_fin).getTime() : 0;
         break;
+      case 'estadoLlamada':
+        aVal = (a.estado_llamada_nombre || '').toLowerCase();
+        bVal = (b.estado_llamada_nombre || '').toLowerCase();
+        break;
       default:
         return 0;
     }
@@ -215,7 +423,7 @@ export default function LlamadasEjecucionPage() {
       <div className="flex items-center justify-center h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg animate-pulse">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-teal-500 flex items-center justify-center shadow-lg animate-pulse">
               <Phone className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -242,7 +450,7 @@ export default function LlamadasEjecucionPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-teal-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
               <Phone className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -290,14 +498,14 @@ export default function LlamadasEjecucionPage() {
           </CardContent>
         </Card>
         <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-teal-600" />
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tipificadas</p>
                 <p className="text-3xl font-bold tracking-tight">{llamadas.filter(l => l.tipificacion_llamada_nombre).length}</p>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg">
                 <Megaphone className="h-6 w-6 text-white" />
               </div>
             </div>
@@ -308,6 +516,70 @@ export default function LlamadasEjecucionPage() {
       {/* Tabla de Llamadas */}
       <Card>
         <CardContent className="p-6">
+          {/* Filtro de busqueda y Exportar */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por codigo, contacto, telefono, tipificacion, fecha..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
+                  className="pl-9 h-10 w-full sm:w-80"
+                />
+              </div>
+              <Select
+                value={filterGrabacion}
+                onValueChange={(value) => {
+                  setFilterGrabacion(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-44">
+                  <Volume2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Grabacion" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las llamadas</SelectItem>
+                  <SelectItem value="con">Con grabacion</SelectItem>
+                  <SelectItem value="sin">Sin grabacion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              {(searchTerm || filterGrabacion !== 'todos') && (
+                <p className="text-xs text-muted-foreground">
+                  {filteredLlamadas.length} resultado{filteredLlamadas.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <FileDown className="h-4 w-4" />
+                    Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={exportToPDF} className="gap-2 cursor-pointer">
+                    <FileText className="h-4 w-4 text-red-500" />
+                    Exportar a PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToExcel} className="gap-2 cursor-pointer">
+                    <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                    Exportar a Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToCSV} className="gap-2 cursor-pointer">
+                    <FileDown className="h-4 w-4 text-blue-500" />
+                    Exportar a CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           <div className="rounded-xl border overflow-hidden">
             <Table>
               <TableHeader>
@@ -346,6 +618,15 @@ export default function LlamadasEjecucionPage() {
                     <div className="flex items-center">
                       Tipificacion
                       {getSortIcon('tipificacion')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleSort('estadoLlamada')}
+                  >
+                    <div className="flex items-center">
+                      Estado
+                      {getSortIcon('estadoLlamada')}
                     </div>
                   </TableHead>
                   <TableHead
@@ -415,6 +696,23 @@ export default function LlamadasEjecucionPage() {
                         <span className="text-xs text-muted-foreground">Sin tipificar</span>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {llamada.estado_llamada_nombre ? (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px]"
+                          style={{
+                            backgroundColor: llamada.estado_llamada_color ? `${llamada.estado_llamada_color}20` : undefined,
+                            color: llamada.estado_llamada_color || undefined,
+                            borderColor: llamada.estado_llamada_color ? `${llamada.estado_llamada_color}40` : undefined,
+                          }}
+                        >
+                          {llamada.estado_llamada_nombre}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-center">
                       <span className="text-[10px] font-mono text-gray-700">
                         {formatearFechaHora(llamada.fecha_inicio)}
@@ -452,6 +750,16 @@ export default function LlamadasEjecucionPage() {
                           title={llamada.archivo_llamada ? "Escuchar audio" : "Sin audio"}
                         >
                           <Volume2 className={`h-3.5 w-3.5 ${llamada.archivo_llamada ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-7 w-7 ${!llamada.tiene_transcripcion ? 'opacity-40 cursor-not-allowed' : 'text-teal-500 hover:text-teal-700 hover:bg-teal-50'}`}
+                          onClick={() => handleShowTranscripcion(llamada)}
+                          disabled={!llamada.tiene_transcripcion}
+                          title={llamada.tiene_transcripcion ? "Ver transcripcion" : "Sin transcripcion"}
+                        >
+                          <FileText className={`h-3.5 w-3.5 ${llamada.tiene_transcripcion ? 'text-teal-500' : 'text-muted-foreground'}`} />
                         </Button>
                         <Button
                           variant="ghost"
@@ -601,6 +909,107 @@ export default function LlamadasEjecucionPage() {
                     <Download className="h-4 w-4" />
                     Descargar audio
                   </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Transcripcion */}
+      {showTranscripcionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/80"
+            onClick={() => { setShowTranscripcionModal(false); setSelectedTranscripcionLlamada(null); }}
+          />
+          {/* Modal */}
+          <div
+            className="relative z-[101] bg-background border rounded-xl shadow-lg p-6 pointer-events-auto"
+            style={{ width: '90%', maxWidth: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => { setShowTranscripcionModal(false); setSelectedTranscripcionLlamada(null); }}
+              className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-teal-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Transcripcion de Llamada #{selectedTranscripcionLlamada?.codigo_llamada || selectedTranscripcionLlamada?.id}</h2>
+                <p className="text-xs text-muted-foreground">Texto transcrito de la llamada</p>
+              </div>
+            </div>
+
+            {selectedTranscripcionLlamada && (
+              <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                {/* Info de la llamada */}
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contacto</p>
+                    <p className="font-medium">{selectedTranscripcionLlamada.contacto_nombre || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Telefono</p>
+                    <p className="font-medium">{selectedTranscripcionLlamada.telefono || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Duracion</p>
+                    <p className="font-medium">{formatearDuracion(calcularDuracionSegundos(selectedTranscripcionLlamada.fecha_inicio, selectedTranscripcionLlamada.fecha_fin))}</p>
+                  </div>
+                </div>
+
+                {/* Transcripcion */}
+                <div className="flex-1 overflow-auto bg-gradient-to-br from-teal-50 to-white rounded-xl p-4 border">
+                  {loadingTranscripcion ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-teal-500" />
+                      <span className="ml-2 text-sm text-muted-foreground">Cargando transcripcion...</span>
+                    </div>
+                  ) : transcripciones.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <FileText className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                      <p className="text-sm text-muted-foreground">Sin transcripcion disponible</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {transcripciones.map((t, index) => {
+                        const isAI = t.speaker === 'ai';
+                        const isSistema = t.speaker === 'sistema';
+                        const speakerLabel = isAI ? 'Agente IA' : isSistema ? 'Sistema' : 'Usuario';
+                        return (
+                          <div
+                            key={t.id || index}
+                            className={`flex ${isAI || isSistema ? 'justify-start' : 'justify-end'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-xl px-4 py-2 ${
+                                isSistema
+                                  ? 'bg-gray-100 border border-gray-200 text-gray-600'
+                                  : isAI
+                                    ? 'bg-white border border-teal-200 text-gray-800'
+                                    : 'bg-teal-500 text-white'
+                              }`}
+                            >
+                              <p className={`text-[10px] font-semibold mb-1 ${
+                                isSistema ? 'text-gray-500' : isAI ? 'text-teal-600' : 'text-teal-100'
+                              }`}>
+                                {speakerLabel}
+                              </p>
+                              <p className="text-sm leading-relaxed">{t.texto}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

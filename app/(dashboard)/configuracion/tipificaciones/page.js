@@ -25,7 +25,7 @@ const COLORES_PREDEFINIDOS = [
   { nombre: 'Amarillo', valor: '#EAB308' },
   { nombre: 'Verde', valor: '#22C55E' },
   { nombre: 'Azul', valor: '#3B82F6' },
-  { nombre: 'Indigo', valor: '#6366F1' },
+  { nombre: 'Indigo', valor: '#14B8A6' },
   { nombre: 'Purpura', valor: '#A855F7' },
   { nombre: 'Rosa', valor: '#EC4899' },
   { nombre: 'Gris', valor: '#6B7280' },

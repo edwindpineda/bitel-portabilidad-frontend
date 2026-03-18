@@ -245,7 +245,7 @@ export default function CatalogoPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-40 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-full h-40 bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center">
                     <Package className="h-16 w-16 text-white/50" />
                   </div>
                 )}

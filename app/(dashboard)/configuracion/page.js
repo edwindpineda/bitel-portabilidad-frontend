@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 const gestionUsuario = [
-  { title: 'Usuarios', description: 'Gestionar usuarios del sistema', href: '/configuracion/usuarios', icon: Users, gradient: 'from-blue-500 to-indigo-500', glow: 'rgba(59,130,246,0.15)' },
+  { title: 'Usuarios', description: 'Gestionar usuarios del sistema', href: '/configuracion/usuarios', icon: Users, gradient: 'from-blue-500 to-teal-500', glow: 'rgba(59,130,246,0.15)' },
   { title: 'Equipos', description: 'Ver coordinadores y sus asesores', href: '/configuracion/equipos', icon: UsersRound, gradient: 'from-amber-500 to-orange-500', glow: 'rgba(245,158,11,0.15)' },
   { title: 'Sucursales', description: 'Gestionar sucursales', href: '/configuracion/sucursales', icon: Building2, gradient: 'from-orange-500 to-red-500', glow: 'rgba(249,115,22,0.15)' },
 ];
@@ -40,7 +40,7 @@ const gestionWhatsApp = [
 ];
 
 const baseConocimiento = [
-  { title: 'Catálogo', description: 'Gestionar catálogo de planes y precios', href: '/configuracion/catalogo', icon: Package, gradient: 'from-indigo-500 to-purple-500', glow: 'rgba(99,102,241,0.15)' },
+  { title: 'Catálogo', description: 'Gestionar catálogo de planes y precios', href: '/configuracion/catalogo', icon: Package, gradient: 'from-teal-500 to-purple-500', glow: 'rgba(99,102,241,0.15)' },
   { title: 'Preguntas Frecuentes', description: 'Gestionar FAQs del sistema', href: '/configuracion/faqs', icon: HelpCircle, gradient: 'from-pink-500 to-rose-500', glow: 'rgba(236,72,153,0.15)' },
   { title: 'Preguntas Perfilamiento', description: 'Gestionar preguntas de perfilamiento', href: '/configuracion/preguntas-perfilamiento', icon: ClipboardList, gradient: 'from-violet-500 to-purple-500', glow: 'rgba(139,92,246,0.15)' },
   { title: 'Argumentos de Venta', description: 'Gestionar argumentos de venta', href: '/configuracion/argumentos-venta', icon: FileText, gradient: 'from-emerald-500 to-green-500', glow: 'rgba(16,185,129,0.15)' },
@@ -59,7 +59,7 @@ const sections = [
     title: 'Gestión de Usuario',
     description: 'Usuarios, equipos, roles, módulos y sucursales',
     icon: Shield,
-    gradient: 'from-blue-500 to-indigo-500',
+    gradient: 'from-blue-500 to-teal-500',
     items: gestionUsuario,
   },
   {
@@ -93,7 +93,7 @@ export default function ConfiguracionPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3 animate-fade-in">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-lg">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center text-white shadow-lg">
           <Settings className="w-5 h-5" />
         </div>
         <div>
@@ -142,7 +142,7 @@ export default function ConfiguracionPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="text-sm font-semibold text-foreground truncate">{config.title}</h3>
-                          <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-teal-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{config.description}</p>
                       </div>

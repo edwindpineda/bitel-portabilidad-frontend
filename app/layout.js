@@ -7,6 +7,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
   title: 'AI-YOU - CRM Inteligente',
   description: 'Sistema inteligente de gestión de prospectos y ventas con IA',
+  icons: {
+    icon: '/aiyou_isotipo.png',
+    shortcut: '/aiyou_isotipo.png',
+    apple: '/aiyou_isotipo.png',
+  },
 };
 
 export default function RootLayout({ children }) {

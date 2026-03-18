@@ -35,7 +35,7 @@ const PROCESO_COLORS = {
   'Oferta': 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
   'Cierre de ventas': 'bg-green-100 text-green-700 hover:bg-green-100',
   'Cierre de ventas (Contrato)': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
-  'Aceptación': 'bg-indigo-100 text-indigo-700 hover:bg-indigo-100'
+  'Aceptación': 'bg-teal-100 text-teal-700 hover:bg-teal-100'
 };
 
 export default function FaqsPage() {

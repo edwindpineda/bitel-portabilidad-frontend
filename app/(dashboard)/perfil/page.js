@@ -52,8 +52,8 @@ const GRADIENT_CONFIG = {
     purple: {
       name: 'Púrpura',
       header: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B8DD6 100%)',
-      avatar: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
-      badge: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+      avatar: 'linear-gradient(135deg, #14B8A6 0%, #8b5cf6 50%, #a855f7 100%)',
+      badge: 'linear-gradient(135deg, #14B8A6 0%, #8b5cf6 100%)',
     },
     blue: {
       name: 'Azul',
@@ -247,13 +247,13 @@ export default function PerfilPage() {
   ];
 
   const quickActions = [
-    { label: 'Ver Conversaciones', href: '/conversaciones', icon: MessageSquare, gradient: 'from-blue-500 to-indigo-500' },
+    { label: 'Ver Conversaciones', href: '/conversaciones', icon: MessageSquare, gradient: 'from-blue-500 to-teal-500' },
     { label: 'Gestionar Prospectos', href: '/leads', icon: Users, gradient: 'from-emerald-500 to-green-500' },
     { label: 'Configuración', href: '/configuracion', icon: Settings, gradient: 'from-purple-500 to-violet-500' },
   ];
 
   const statCards = [
-    { label: 'Conversaciones', value: stats.conversaciones, icon: MessageSquare, gradient: 'from-blue-500 to-indigo-500', glow: 'rgba(59,130,246,0.2)' },
+    { label: 'Conversaciones', value: stats.conversaciones, icon: MessageSquare, gradient: 'from-blue-500 to-teal-500', glow: 'rgba(59,130,246,0.2)' },
     { label: 'Prospectos', value: stats.leads, icon: TrendingUp, gradient: 'from-emerald-500 to-green-500', glow: 'rgba(16,185,129,0.2)' },
   ];
 
@@ -371,10 +371,10 @@ export default function PerfilPage() {
 
           {/* Quick Actions Card */}
           <Card className="border-0 shadow-md overflow-hidden animate-fade-in hover:shadow-lg transition-shadow" style={{ animationDelay: '100ms' }}>
-            <div className="h-1 bg-gradient-to-r from-indigo-500 to-cyan-500" />
+            <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-500" />
             <CardContent className="p-5">
               <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                   <Zap className="w-3.5 h-3.5 text-white" />
                 </div>
                 Acciones rápidas
@@ -387,7 +387,7 @@ export default function PerfilPage() {
                         <action.icon className="w-4.5 h-4.5" />
                       </div>
                       <span className="font-semibold text-sm text-foreground">{action.label}</span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground/40 ml-auto group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/40 ml-auto group-hover:text-teal-500 group-hover:translate-x-1 transition-all" />
                     </div>
                   </Link>
                 ))}
@@ -496,14 +496,14 @@ export default function PerfilPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-4.5 text-sm font-semibold transition-all relative ${
                       activeTab === tab.id
-                        ? 'text-indigo-600'
+                        ? 'text-teal-600'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                     }`}
                   >
                     <tab.icon className="w-4 h-4" />
                     <span>{tab.label}</span>
                     {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-4 right-4 h-[3px] bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-t-full" />
+                      <div className="absolute bottom-0 left-4 right-4 h-[3px] bg-gradient-to-r from-teal-500 to-cyan-500 rounded-t-full" />
                     )}
                   </button>
                 ))}
@@ -516,14 +516,14 @@ export default function PerfilPage() {
                 <div className="space-y-7 animate-fade-in">
                   <div>
                     <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-violet-500 flex items-center justify-center">
                         <User className="w-3.5 h-3.5 text-white" />
                       </div>
                       Datos de la cuenta
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
-                        { label: 'Usuario', value: `@${userData.username}`, icon: User, color: 'from-indigo-500 to-violet-500', glow: 'rgba(99,102,241,0.1)' },
+                        { label: 'Usuario', value: `@${userData.username}`, icon: User, color: 'from-teal-500 to-violet-500', glow: 'rgba(99,102,241,0.1)' },
                         { label: 'Correo', value: userData.email || 'No registrado', icon: Mail, color: 'from-purple-500 to-pink-500', glow: 'rgba(168,85,247,0.1)' },
                         { label: 'ID Empresa', value: userData.id_empresa || 'No asignado', icon: Building2, color: 'from-blue-500 to-cyan-500', glow: 'rgba(59,130,246,0.1)' },
                         { label: 'Rol', value: userData.rol_nombre || 'Sin rol', icon: ShieldCheck, color: 'from-emerald-500 to-green-500', glow: 'rgba(16,185,129,0.1)' },
@@ -574,17 +574,17 @@ export default function PerfilPage() {
                 <div className="space-y-7 animate-fade-in">
                   <div>
                     <h3 className="text-sm font-bold text-foreground mb-5 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-purple-500 flex items-center justify-center">
                         <Lock className="w-3.5 h-3.5 text-white" />
                       </div>
                       Seguridad de la cuenta
                     </h3>
 
-                    <Card className="border-0 shadow-md overflow-hidden bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5">
-                      <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+                    <Card className="border-0 shadow-md overflow-hidden bg-gradient-to-br from-teal-500/5 via-purple-500/5 to-pink-500/5">
+                      <div className="h-1 bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500" />
                       <CardContent className="p-6">
                         <div className="flex items-start gap-5">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-purple-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
                             <KeyRound className="w-7 h-7" />
                           </div>
                           <div className="flex-1">
@@ -594,7 +594,7 @@ export default function PerfilPage() {
                             </p>
                             <Button
                               onClick={openPasswordModal}
-                              className="mt-5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
+                              className="mt-5 bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
                               size="lg"
                             >
                               <Pencil className="w-4 h-4 mr-2" />
@@ -683,8 +683,8 @@ export default function PerfilPage() {
                       </div>
                     ) : (
                       <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed border-border">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center shadow-sm">
-                          <LayoutGrid className="w-8 h-8 text-indigo-400" />
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center shadow-sm">
+                          <LayoutGrid className="w-8 h-8 text-teal-400" />
                         </div>
                         <p className="text-foreground font-semibold text-base">No hay módulos asignados</p>
                         <p className="text-sm text-muted-foreground mt-2">Contacta al administrador para obtener accesos</p>
@@ -696,15 +696,15 @@ export default function PerfilPage() {
 
                   <div>
                     <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
                         <KeyRound className="w-3.5 h-3.5 text-white" />
                       </div>
                       Tu rol: {userData.rol_nombre || 'Sin rol'}
                     </h4>
-                    <Card className="border-indigo-200/50 bg-gradient-to-r from-indigo-500/5 to-cyan-500/5 shadow-sm overflow-hidden">
-                      <div className="h-0.5 bg-gradient-to-r from-indigo-500 to-cyan-500" />
+                    <Card className="border-teal-200/50 bg-gradient-to-r from-teal-500/5 to-cyan-500/5 shadow-sm overflow-hidden">
+                      <div className="h-0.5 bg-gradient-to-r from-teal-500 to-cyan-500" />
                       <CardContent className="p-5">
-                        <p className="text-sm text-indigo-700 leading-relaxed">
+                        <p className="text-sm text-teal-700 leading-relaxed">
                           Los permisos y accesos están determinados por tu rol asignado. Si necesitas permisos adicionales, contacta al administrador del sistema.
                         </p>
                       </CardContent>
@@ -748,14 +748,14 @@ export default function PerfilPage() {
                   onClick={() => handleThemeChange(key)}
                   className={`relative p-3 rounded-xl border-2 transition-all hover:shadow-md ${
                     selectedTheme === key
-                      ? 'border-indigo-500 ring-2 ring-indigo-200 shadow-md'
+                      ? 'border-teal-500 ring-2 ring-teal-200 shadow-md'
                       : 'border-border hover:border-muted-foreground/30'
                   }`}
                 >
                   <div className="w-full h-16 rounded-lg mb-2 shadow-sm" style={{ background: preset.header }} />
                   <p className="text-xs font-semibold text-foreground">{preset.name}</p>
                   {selectedTheme === key && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-md">
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-br from-teal-500 to-purple-500 rounded-full flex items-center justify-center shadow-md">
                       <Check className="w-3.5 h-3.5 text-white" />
                     </div>
                   )}
@@ -765,7 +765,7 @@ export default function PerfilPage() {
 
             <DialogFooter className="mt-6 pt-4 border-t border-border">
               <Button
-                className="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all"
+                className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all"
                 size="lg"
                 onClick={() => setShowThemeModal(false)}
               >
@@ -819,7 +819,7 @@ export default function PerfilPage() {
               <div>
                 <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 block">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
                     Contraseña Actual
                   </span>
                 </label>
@@ -828,7 +828,7 @@ export default function PerfilPage() {
                     type={showCurrentPassword ? 'text' : 'password'}
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    className="w-full px-4 py-3 pr-12 bg-muted/40 rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white border border-transparent focus:border-indigo-200 transition-all"
+                    className="w-full px-4 py-3 pr-12 bg-muted/40 rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-white border border-transparent focus:border-teal-200 transition-all"
                     placeholder="Ingresa tu contraseña actual"
                   />
                   <Button
@@ -856,7 +856,7 @@ export default function PerfilPage() {
                     type={showNewPassword ? 'text' : 'password'}
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    className="w-full px-4 py-3 pr-12 bg-muted/40 rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white border border-transparent focus:border-indigo-200 transition-all"
+                    className="w-full px-4 py-3 pr-12 bg-muted/40 rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-white border border-transparent focus:border-teal-200 transition-all"
                     placeholder="Mínimo 6 caracteres"
                   />
                   <Button
@@ -900,7 +900,7 @@ export default function PerfilPage() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    className="w-full px-4 py-3 pr-12 bg-muted/40 rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white border border-transparent focus:border-indigo-200 transition-all"
+                    className="w-full px-4 py-3 pr-12 bg-muted/40 rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-white border border-transparent focus:border-teal-200 transition-all"
                     placeholder="Repite la nueva contraseña"
                   />
                   <Button
@@ -936,7 +936,7 @@ export default function PerfilPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all"
+                  className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-md hover:shadow-lg transition-all"
                 >
                   Guardar cambios
                 </Button>

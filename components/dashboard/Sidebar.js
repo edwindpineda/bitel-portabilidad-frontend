@@ -32,7 +32,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Mic,
   LayoutGrid,
 } from 'lucide-react';
 
@@ -75,17 +74,17 @@ function NavItem({ item, pathname, isCollapsed, isExpanded, onToggleSubmenu }) {
         'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200 relative',
         isActive
           ? 'bg-white/[0.12] text-white font-medium'
-          : 'text-indigo-200/70 hover:bg-white/[0.06] hover:text-white',
+          : 'text-slate-300/70 hover:bg-white/[0.06] hover:text-white',
         isCollapsed && 'justify-center px-0 py-2.5 mx-1'
       )}
     >
       {isActive && (
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-          style={{ background: 'linear-gradient(180deg, #06b6d4, #6366f1)' }}
+          style={{ background: 'linear-gradient(180deg, #2DD4BF, #14B8A6)' }}
         />
       )}
-      <span className={cn('transition-colors', isActive ? 'text-cyan-400' : 'text-indigo-400/50')}>
+      <span className={cn('transition-colors', isActive ? 'text-cyan-400' : 'text-teal-400/50')}>
         <Icon className="h-[18px] w-[18px] shrink-0" />
       </span>
       {!isCollapsed && (
@@ -136,18 +135,18 @@ function NavItem({ item, pathname, isCollapsed, isExpanded, onToggleSubmenu }) {
             {isActive && (
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                style={{ background: 'linear-gradient(180deg, #06b6d4, #6366f1)' }}
+                style={{ background: 'linear-gradient(180deg, #2DD4BF, #14B8A6)' }}
               />
             )}
-            <span className={cn('transition-colors', isActive ? 'text-cyan-400' : 'text-indigo-400/50')}>
+            <span className={cn('transition-colors', isActive ? 'text-cyan-400' : 'text-teal-400/50')}>
               <Icon className="h-[18px] w-[18px] shrink-0" />
             </span>
             <span className="flex-1 text-left">{item.name}</span>
-            <ChevronDown className={cn('h-3.5 w-3.5 text-indigo-400/40 transition-transform duration-200', isExpanded && 'rotate-180')} />
+            <ChevronDown className={cn('h-3.5 w-3.5 text-teal-400/40 transition-transform duration-200', isExpanded && 'rotate-180')} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="mt-1 ml-[22px] pl-4 space-y-0.5" style={{ borderLeft: '1px solid rgba(99, 102, 241, 0.15)' }}>
+          <div className="mt-1 ml-[22px] pl-4 space-y-0.5" style={{ borderLeft: '1px solid rgba(20, 184, 166, 0.2)' }}>
             {item.submenu.map((subItem) => {
               const isSubActive = pathname === subItem.path;
               return (
@@ -158,7 +157,7 @@ function NavItem({ item, pathname, isCollapsed, isExpanded, onToggleSubmenu }) {
                     'block px-3 py-2 rounded-lg text-[13px] transition-all duration-200',
                     isSubActive
                       ? 'bg-white/[0.1] text-white font-medium'
-                      : 'text-indigo-300/50 hover:bg-white/[0.06] hover:text-indigo-100'
+                      : 'text-slate-400/60 hover:bg-white/[0.06] hover:text-slate-200'
                   )}
                 >
                   {subItem.name}
@@ -272,14 +271,14 @@ export default function Sidebar() {
           isCollapsed ? 'w-[68px]' : 'w-64'
         )}
         style={{
-          background: 'linear-gradient(180deg, #13112b 0%, #1e1b4b 40%, #252266 100%)',
+          background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)',
         }}
       >
         {/* Subtle glow overlay */}
         <div
           className="absolute inset-0 pointer-events-none opacity-30"
           style={{
-            background: 'radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.15), transparent 60%)',
+            background: 'radial-gradient(ellipse at top left, rgba(20, 184, 166, 0.12), transparent 60%)',
           }}
         />
 
@@ -287,31 +286,21 @@ export default function Sidebar() {
         <div
           className="h-16 flex items-center justify-between px-4 relative z-10"
           style={{
-            background: 'linear-gradient(135deg, #0f0e1a 0%, #1a1830 50%, #1e1b3a 100%)',
-            boxShadow: '0 1px 0 0 rgba(255, 255, 255, 0.04)',
+            background: '#0F172A',
+            boxShadow: '0 1px 0 0 rgba(255, 255, 255, 0.06)',
           }}
         >
           {!isCollapsed ? (
             <>
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg"
-                  style={{
-                    background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
-                    boxShadow: '0 4px 12px -2px rgba(99, 102, 241, 0.4)',
-                  }}
-                >
-                  <Mic className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <span className="text-[15px] font-bold text-white tracking-wide">AI-YOU</span>
-                  <p className="text-[10px] text-indigo-400/40 leading-none -mt-0.5">CRM Platform</p>
-                </div>
-              </div>
+              <img
+                src="/aiyou_logo.png"
+                alt="AI-YOU"
+                className="h-8 w-auto"
+              />
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-lg text-indigo-400/40 hover:text-white hover:bg-white/[0.08]"
+                className="h-7 w-7 rounded-lg text-teal-400/50 hover:text-white hover:bg-white/[0.08]"
                 onClick={() => setIsCollapsed(true)}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -319,15 +308,11 @@ export default function Sidebar() {
             </>
           ) : (
             <div className="flex flex-col items-center gap-1 w-full">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
-                  boxShadow: '0 4px 12px -2px rgba(99, 102, 241, 0.4)',
-                }}
-              >
-                <Mic className="w-4 h-4 text-white" />
-              </div>
+              <img
+                src="/aiyou_isotipo.png"
+                alt="AI-YOU"
+                className="h-8 w-auto"
+              />
             </div>
           )}
         </div>
@@ -338,7 +323,7 @@ export default function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 rounded-lg text-indigo-400/40 hover:text-white hover:bg-white/[0.08]"
+              className="h-7 w-7 rounded-lg text-teal-400/50 hover:text-white hover:bg-white/[0.08]"
               onClick={() => setIsCollapsed(false)}
             >
               <ChevronRight className="h-4 w-4" />
@@ -349,7 +334,7 @@ export default function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2.5 py-4 space-y-0.5 relative z-10" style={{ maxHeight: 'calc(100vh - 80px)' }}>
           {!isCollapsed && (
-            <p className="text-[10px] font-semibold text-indigo-400/30 uppercase tracking-widest px-3 mb-3">Menu</p>
+            <p className="text-[10px] font-semibold text-teal-400/40 uppercase tracking-widest px-3 mb-3">Menu</p>
           )}
           {filteredMenuItems.map((item) => (
             <NavItem
