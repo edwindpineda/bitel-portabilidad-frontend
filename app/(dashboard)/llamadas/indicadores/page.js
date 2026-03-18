@@ -579,7 +579,10 @@ if (fechaFin) params.fecha_fin = fechaFin;
 
   // ─── Stats from data ───
   const stats = data;
-
+  const totalDuracionCampanias = (stats?.campanias || []).reduce(
+  (acc, camp) => acc + (Number(camp?.duracion) || 0),
+  0
+);
   const formatDuration = (seconds) => {
     if (!seconds) return '0s';
     const m = Math.floor(seconds / 60);
