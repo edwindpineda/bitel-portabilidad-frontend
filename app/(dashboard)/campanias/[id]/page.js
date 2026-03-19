@@ -174,6 +174,13 @@ export default function CampaniaDetallePage() {
   // Modal de confirmación de ejecución
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // Modal de confirmación de reprocesar
+  const [showConfirmReprocesarModal, setShowConfirmReprocesarModal] = useState(false);
+
+  // Números pendientes para el modal de confirmación
+  const [numerosPendientes, setNumerosPendientes] = useState(null);
+  const [loadingPendientes, setLoadingPendientes] = useState(false);
+
   // Modal de resultado
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModal, setResultModal] = useState({ type: 'success', title: '', message: '' });
@@ -424,8 +431,18 @@ export default function CampaniaDetallePage() {
     }
   };
 
-  const handleEjecutar = () => {
+  const handleEjecutar = async () => {
+    setLoadingPendientes(true);
     setShowConfirmModal(true);
+    try {
+      const response = await apiClient.get(`/crm/campanias/${campaniaId}/numeros-pendientes`);
+      setNumerosPendientes(response.data?.total_pendientes ?? null);
+    } catch (error) {
+      console.error('Error al cargar números pendientes:', error);
+      setNumerosPendientes(null);
+    } finally {
+      setLoadingPendientes(false);
+    }
   };
 
   const confirmarEjecucion = async () => {
@@ -1636,15 +1653,23 @@ export default function CampaniaDetallePage() {
               <span>Confirmar Ejecución</span>
             </DialogTitle>
             <DialogDescription className="pt-2">
-              ¿Está seguro de ejecutar la campaña <strong>"{campania?.nombre}"</strong>?
-              {basesSeleccionadasIds.length > 0 ? (
-                <span className="block mt-2 text-sm">
-                  Se ejecutarán <strong>{basesSeleccionadasIds.length}</strong> base(s) seleccionada(s).
+              {loadingPendientes ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Calculando números pendientes...
                 </span>
               ) : (
-                <span className="block mt-2 text-sm">
-                  Se ejecutarán todas las <strong>{basesAsignadas.length}</strong> base(s) asignadas.
-                </span>
+                <>
+                  ¿Está seguro de ejecutar la campaña <strong>"{campania?.nombre}"</strong>?
+                  <span className="block mt-2 text-sm">
+                    Se llamarán <strong>{numerosPendientes ?? 0}</strong> número(s) pendiente(s) de <strong>{basesSeleccionadasIds.length > 0 ? basesSeleccionadasIds.length : basesAsignadas.length}</strong> base(s).
+                  </span>
+                  {numerosPendientes === 0 && (
+                    <span className="block mt-2 text-sm text-red-500">
+                      No hay números pendientes para llamar.
+                    </span>
+                  )}
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -1657,9 +1682,78 @@ export default function CampaniaDetallePage() {
             </Button>
             <Button
               onClick={confirmarEjecucion}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={loadingPendientes || numerosPendientes === 0}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Ejecutar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmación de Reprocesar */}
+      <Dialog open={showConfirmReprocesarModal} onOpenChange={setShowConfirmReprocesarModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <RotateCcw className="h-5 w-5 text-amber-600" />
+              </div>
+              <span>Confirmar Rellamada</span>
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {(() => {
+                const totalNumeros = basesAsignadas.reduce((sum, b) => sum + (b.total_numeros || 0), 0);
+                const esTipificacion = reprocesarConfig.tipo === 'tipificacion';
+                return (
+                  <>
+                    ¿Está seguro de volver a llamar a la campaña <strong>"{campania?.nombre}"</strong>?
+                    <span className="block mt-2 text-sm">
+                      {esTipificacion ? (
+                        <>Se llamarán los números con <strong>{reprocesarConfig.tipificaciones_seleccionadas.length}</strong> tipificación(es) seleccionada(s).</>
+                      ) : (
+                        <>Se llamarán <strong>{totalNumeros}</strong> número(s) de <strong>{basesAsignadas.length}</strong> base(s).</>
+                      )}
+                    </span>
+                    {!esTipificacion && totalNumeros === 0 && (
+                      <span className="block mt-2 text-sm text-red-500">
+                        No hay números para llamar en las bases asignadas.
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmReprocesarModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowConfirmReprocesarModal(false);
+                handleReprocesar();
+              }}
+              disabled={
+                reprocesando ||
+                (reprocesarConfig.tipo === 'todos' && basesAsignadas.reduce((sum, b) => sum + (b.total_numeros || 0), 0) === 0)
+              }
+              className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 disabled:cursor-not-allowed gap-2"
+            >
+              {reprocesando ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Iniciando...
+                </>
+              ) : (
+                <>
+                  <Phone className="h-4 w-4" />
+                  Confirmar
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -1732,7 +1826,7 @@ export default function CampaniaDetallePage() {
                   )}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">Todos los números</p>
+                  <p className="font-semibold text-sm">Todos los números ({basesAsignadas.reduce((sum, b) => sum + (b.total_numeros || 0), 0)})</p>
                   <p className="text-xs text-muted-foreground">Llama a todos los números de la campaña</p>
                 </div>
               </div>
@@ -1834,21 +1928,12 @@ export default function CampaniaDetallePage() {
               Cancelar
             </Button>
             <Button
-              onClick={handleReprocesar}
-              disabled={reprocesando || (reprocesarConfig.tipo === 'tipificacion' && reprocesarConfig.tipificaciones_seleccionadas.length === 0)}
+              onClick={() => setShowConfirmReprocesarModal(true)}
+              disabled={reprocesarConfig.tipo === 'tipificacion' && reprocesarConfig.tipificaciones_seleccionadas.length === 0}
               className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
             >
-              {reprocesando ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Iniciando...
-                </>
-              ) : (
-                <>
-                  <Phone className="h-4 w-4" />
-                  Volver a Llamar
-                </>
-              )}
+              <Phone className="h-4 w-4" />
+              Volver a Llamar
             </Button>
           </div>
         </DialogContent>
