@@ -1177,10 +1177,22 @@ export default function CampaniaDetallePage() {
       {/* Ejecuciones */}
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <Zap className="h-5 w-5 text-amber-500" />
-            Historial de Ejecuciones
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500" />
+              Historial de Ejecuciones
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="gap-1.5 h-8"
+            >
+              <RefreshCcw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
+          </div>
 
           <div className="rounded-xl border overflow-hidden">
             <Table>
@@ -1212,7 +1224,28 @@ export default function CampaniaDetallePage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {ejecucion.resultado ? formatResultado(ejecucion.resultado) : '-'}
+                      {ejecucion.total_llamadas > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium">
+                            Total: {ejecucion.total_llamadas}
+                          </span>
+                          {ejecucion.llamadas_exitosas > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 text-[11px] font-medium">
+                              Completadas: {ejecucion.llamadas_exitosas}
+                            </span>
+                          )}
+                          {ejecucion.llamadas_fallidas > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-medium">
+                              Fallidas: {ejecucion.llamadas_fallidas}
+                            </span>
+                          )}
+                          {ejecucion.llamadas_pendientes > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-700 text-[11px] font-medium">
+                              En proceso: {ejecucion.llamadas_pendientes}
+                            </span>
+                          )}
+                        </div>
+                      ) : '-'}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {ejecucion.fecha_registro ? new Date(ejecucion.fecha_registro).toLocaleString() : '-'}
