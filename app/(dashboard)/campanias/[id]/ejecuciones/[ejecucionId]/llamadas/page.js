@@ -31,6 +31,7 @@ import {
   FileDown,
   FileText,
   FileSpreadsheet,
+  RefreshCcw,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -104,6 +105,7 @@ export default function LlamadasEjecucionPage() {
   const [ejecucion, setEjecucion] = useState(null);
   const [llamadas, setLlamadas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -147,6 +149,23 @@ export default function LlamadasEjecucionPage() {
       console.error('Error al cargar datos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      const [ejecucionesRes, llamadasRes] = await Promise.all([
+        apiClient.get(`/crm/campanias/${campaniaId}/ejecuciones`),
+        apiClient.get(`/crm/llamadas/ejecucion/${ejecucionId}`),
+      ]);
+      const ejecucionActual = (ejecucionesRes?.data || []).find(e => e.id === parseInt(ejecucionId));
+      setEjecucion(ejecucionActual);
+      setLlamadas(llamadasRes?.data || []);
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -460,6 +479,16 @@ export default function LlamadasEjecucionPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCcw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
           <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border border-purple-200/50 gap-1">
             <Phone className="h-3 w-3" />
             {llamadas.length} llamada{llamadas.length !== 1 ? 's' : ''}
@@ -984,6 +1013,22 @@ export default function LlamadasEjecucionPage() {
                         const isAI = t.speaker === 'ai';
                         const isSistema = t.speaker === 'sistema';
                         const speakerLabel = isAI ? 'Agente IA' : isSistema ? 'Sistema' : 'Usuario';
+
+                        // Intentar parsear JSON si el texto parece ser JSON
+                        let contenido = t.texto;
+                        let esResumen = false;
+                        try {
+                          if (t.texto && (t.texto.trim().startsWith('{') || t.texto.trim().startsWith('['))) {
+                            const parsed = JSON.parse(t.texto);
+                            if (parsed.reason) {
+                              contenido = parsed.reason;
+                              esResumen = true;
+                            }
+                          }
+                        } catch (e) {
+                          // No es JSON válido, usar el texto original
+                        }
+
                         return (
                           <div
                             key={t.id || index}
@@ -991,19 +1036,21 @@ export default function LlamadasEjecucionPage() {
                           >
                             <div
                               className={`max-w-[80%] rounded-xl px-4 py-2 ${
-                                isSistema
-                                  ? 'bg-gray-100 border border-gray-200 text-gray-600'
-                                  : isAI
-                                    ? 'bg-white border border-teal-200 text-gray-800'
-                                    : 'bg-teal-500 text-white'
+                                esResumen
+                                  ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-800'
+                                  : isSistema
+                                    ? 'bg-gray-100 border border-gray-200 text-gray-600'
+                                    : isAI
+                                      ? 'bg-white border border-teal-200 text-gray-800'
+                                      : 'bg-teal-500 text-white'
                               }`}
                             >
                               <p className={`text-[10px] font-semibold mb-1 ${
-                                isSistema ? 'text-gray-500' : isAI ? 'text-teal-600' : 'text-teal-100'
+                                esResumen ? 'text-emerald-600' : isSistema ? 'text-gray-500' : isAI ? 'text-teal-600' : 'text-teal-100'
                               }`}>
-                                {speakerLabel}
+                                {esResumen ? 'Resumen de la llamada' : speakerLabel}
                               </p>
-                              <p className="text-sm leading-relaxed">{t.texto}</p>
+                              <p className="text-sm leading-relaxed">{contenido}</p>
                             </div>
                           </div>
                         );

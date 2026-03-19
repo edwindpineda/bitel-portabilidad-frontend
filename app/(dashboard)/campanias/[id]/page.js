@@ -25,6 +25,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Megaphone,
   ArrowLeft,
   Play,
@@ -45,7 +51,11 @@ import {
   Save,
   Eye,
   CheckCircle,
+  CheckCircle2,
   XCircle,
+  AlertCircle,
+  RefreshCcw,
+  RotateCcw,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -114,6 +124,7 @@ export default function CampaniaDetallePage() {
   const [ejecuciones, setEjecuciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ejecutando, setEjecutando] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [basesSeleccionadasIds, setBasesSeleccionadasIds] = useState([]);
 
   // Modal de personas
@@ -149,6 +160,16 @@ export default function CampaniaDetallePage() {
   // Configuracion de llamadas
   const [showConfigLlamadas, setShowConfigLlamadas] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [tieneConfigLlamadas, setTieneConfigLlamadas] = useState(false);
+
+  // Modal de reprocesar
+  const [showReprocesarModal, setShowReprocesarModal] = useState(false);
+  const [tipificaciones, setTipificaciones] = useState([]);
+  const [reprocesarConfig, setReprocesarConfig] = useState({
+    tipo: 'todos', // 'todos' | 'tipificacion'
+    tipificaciones_seleccionadas: [],
+  });
+  const [reprocesando, setReprocesando] = useState(false);
 
   // Modal de confirmación de ejecución
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -158,13 +179,13 @@ export default function CampaniaDetallePage() {
   const [resultModal, setResultModal] = useState({ type: 'success', title: '', message: '' });
 
   const [configLlamadas, setConfigLlamadas] = useState({
-    lunes_horario: null,
-    martes_horario: null,
-    miercoles_horario: null,
-    jueves_horario: null,
-    viernes_horario: null,
-    sabado_horario: null,
-    domingo_horario: null,
+    lunes_horario: '09:00-18:00',
+    martes_horario: '09:00-18:00',
+    miercoles_horario: '09:00-18:00',
+    jueves_horario: '09:00-18:00',
+    viernes_horario: '09:00-18:00',
+    sabado_horario: '09:00-18:00',
+    domingo_horario: '09:00-18:00',
     max_intentos: 3,
   });
 
@@ -201,24 +222,55 @@ export default function CampaniaDetallePage() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      const [campaniaRes, basesRes, basesDispRes, formatosRes, ejecucionesRes] = await Promise.all([
+        apiClient.get(`/crm/campanias/${campaniaId}`),
+        apiClient.get(`/crm/campanias/${campaniaId}/bases`),
+        apiClient.get('/crm/bases-numeros'),
+        apiClient.get('/crm/formatos'),
+        apiClient.get(`/crm/campanias/${campaniaId}/ejecuciones`),
+      ]);
+      setCampania(campaniaRes?.data);
+      setBasesAsignadas(basesRes?.data || []);
+      setBasesDisponibles(basesDispRes?.data || []);
+      setFormatos(formatosRes?.data || []);
+      setEjecuciones(ejecucionesRes?.data || []);
+      if (campaniaRes?.data?.tipo_campania_nombre?.toLowerCase() === 'llamadas') {
+        loadConfigLlamadas();
+      }
+    } catch (error) {
+      console.error('Error al actualizar campaña:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const loadConfigLlamadas = async () => {
     try {
       const res = await apiClient.get(`/crm/campanias/${campaniaId}/config-llamadas`);
       const config = res?.data;
-      if (config) {
-        setConfigLlamadas({
-          lunes_horario: config.lunes_horario || null,
-          martes_horario: config.martes_horario || null,
-          miercoles_horario: config.miercoles_horario || null,
-          jueves_horario: config.jueves_horario || null,
-          viernes_horario: config.viernes_horario || null,
-          sabado_horario: config.sabado_horario || null,
-          domingo_horario: config.domingo_horario || null,
-          max_intentos: config.max_intentos || 3,
-        });
-      }
+      // Valores por defecto: Lunes a Domingo de 9am a 6pm
+      const defaultHorario = '09:00-18:00';
+
+      // Verificar si existe configuración guardada en BD
+      const existeConfig = config && config.id;
+      setTieneConfigLlamadas(existeConfig);
+
+      setConfigLlamadas({
+        lunes_horario: config?.lunes_horario || defaultHorario,
+        martes_horario: config?.martes_horario || defaultHorario,
+        miercoles_horario: config?.miercoles_horario || defaultHorario,
+        jueves_horario: config?.jueves_horario || defaultHorario,
+        viernes_horario: config?.viernes_horario || defaultHorario,
+        sabado_horario: config?.sabado_horario || defaultHorario,
+        domingo_horario: config?.domingo_horario || defaultHorario,
+        max_intentos: existeConfig ? (config?.max_intentos || 3) : 1,
+      });
     } catch (error) {
       console.error('Error al cargar config llamadas:', error);
+      setTieneConfigLlamadas(false);
     }
   };
 
@@ -249,12 +301,66 @@ export default function CampaniaDetallePage() {
         domingo_horario: configLlamadas.domingo_horario,
       });
       setShowConfigLlamadas(false);
+      setTieneConfigLlamadas(true);
       alert('Configuración guardada exitosamente');
     } catch (error) {
       console.error('Error al guardar config:', error);
       alert(error.msg || 'Error al guardar configuración');
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  // Cargar tipificaciones para reprocesar
+  const loadTipificaciones = async () => {
+    try {
+      const res = await apiClient.get('/crm/tipificaciones');
+      setTipificaciones(res?.data || []);
+    } catch (error) {
+      console.error('Error al cargar tipificaciones:', error);
+    }
+  };
+
+  // Abrir modal de reprocesar
+  const handleOpenReprocesar = () => {
+    loadTipificaciones();
+    setReprocesarConfig({
+      tipo: 'todos',
+      tipificaciones_seleccionadas: [],
+    });
+    setShowReprocesarModal(true);
+  };
+
+  // Ejecutar reprocesamiento
+  const handleReprocesar = async () => {
+    try {
+      setReprocesando(true);
+
+      const payload = {
+        id_campania: parseInt(campaniaId),
+        tipo: reprocesarConfig.tipo,
+        tipificaciones: reprocesarConfig.tipo === 'tipificacion'
+          ? reprocesarConfig.tipificaciones_seleccionadas
+          : [],
+      };
+
+      await apiClient.post('/crm/campanias/reprocesar', payload);
+
+      setShowReprocesarModal(false);
+      setResultModal({
+        type: 'success',
+        title: 'Reprocesamiento iniciado',
+        message: reprocesarConfig.tipo === 'todos'
+          ? 'Se han marcado todos los números para volver a llamar.'
+          : `Se han marcado los números con las tipificaciones seleccionadas para volver a llamar.`
+      });
+      setShowResultModal(true);
+      loadCampania();
+    } catch (error) {
+      console.error('Error al reprocesar:', error);
+      alert(error.msg || 'Error al reprocesar campaña');
+    } finally {
+      setReprocesando(false);
     }
   };
 
@@ -452,73 +558,131 @@ export default function CampaniaDetallePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push('/campanias')}
-              className="h-10 w-10 rounded-xl"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
-              <Megaphone className="h-5 w-5 text-white" />
-            </div>
-            <div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/campanias')}
+            className="h-10 w-10 rounded-xl"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
+            <Megaphone className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">{campania.nombre}</h1>
-              <p className="text-sm text-muted-foreground">{campania.descripcion || 'Sin descripción'}</p>
+              {campania.tipo_campania_nombre && (
+                <Badge variant="secondary" className="text-xs bg-violet-50 text-violet-700 border border-violet-200/50 gap-1">
+                  <Tag className="h-3 w-3" />
+                  {campania.tipo_campania_nombre}
+                </Badge>
+              )}
             </div>
+            <p className="text-sm text-muted-foreground">{campania.descripcion || 'Sin descripción'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {campania.tipo_campania_nombre && (
-            <Badge variant="secondary" className="text-xs bg-violet-50 text-violet-700 border border-violet-200/50 gap-1">
-              <Tag className="h-3 w-3" />
-              {campania.tipo_campania_nombre}
-            </Badge>
-          )}
-          {campania.tipo_campania_nombre?.toLowerCase() === 'llamadas' && (
-            <Button
-              variant={showConfigLlamadas ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowConfigLlamadas(!showConfigLlamadas)}
-              className={showConfigLlamadas ? 'bg-blue-600 hover:bg-blue-700 text-white gap-2' : 'gap-2'}
-            >
-              <Settings className="h-4 w-4" />
-              Config. Llamadas
-            </Button>
-          )}
-          <Button
-            onClick={handleEjecutar}
-            disabled={ejecutando || basesAsignadas.length === 0 || ejecuciones.some(e => e.estado_ejecucion === 'en_proceso')}
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white gap-2"
-          >
-            {ejecutando ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Ejecutando...
-              </>
-            ) : ejecuciones.some(e => e.estado_ejecucion === 'en_proceso') ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                En Ejecución
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4" />
-                Ejecutar Campaña
-              </>
-            )}
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="gap-2"
+        >
+          <RefreshCcw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Actualizando...' : 'Actualizar'}
+        </Button>
       </div>
+
+      {/* Barra de Acciones */}
+      <TooltipProvider delayDuration={200}>
+        <Card className="border-dashed">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Zap className="h-4 w-4" />
+                <span>Acciones de campaña</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {campania.tipo_campania_nombre?.toLowerCase() === 'llamadas' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={showConfigLlamadas ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowConfigLlamadas(!showConfigLlamadas)}
+                        className={showConfigLlamadas ? 'bg-blue-600 hover:bg-blue-700 text-white gap-2' : 'gap-2'}
+                      >
+                        <Settings className="h-4 w-4" />
+                        Configuración
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Configura horarios de llamada e intentos por contacto</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {ejecuciones.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleOpenReprocesar}
+                        disabled={reprocesando || ejecuciones.some(e => e.estado_ejecucion === 'en_proceso')}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                        Volver a llamar
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Crea una nueva ejecución para llamar todos los números o por tipificación</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleEjecutar}
+                      disabled={ejecutando || basesAsignadas.length === 0 || ejecuciones.some(e => e.estado_ejecucion === 'en_proceso')}
+                      size="sm"
+                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white gap-2"
+                    >
+                      {ejecutando ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Ejecutando...
+                        </>
+                      ) : ejecuciones.some(e => e.estado_ejecucion === 'en_proceso') ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          En Ejecución
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4" />
+                          Ejecutar
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Inicia las llamadas a los números pendientes de las bases activas</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TooltipProvider>
 
       {/* Detalle de la Campaña */}
       <Card>
         <CardContent className="p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
             <div className="space-y-1">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tipo de Campaña</p>
               <p className="text-sm font-medium">
@@ -563,6 +727,27 @@ export default function CampaniaDetallePage() {
                 }
               </p>
             </div>
+            {campania.tipo_campania_nombre?.toLowerCase() === 'llamadas' && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Config. Llamadas</p>
+                {tieneConfigLlamadas ? (
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Configurado ({configLlamadas.max_intentos} intentos)
+                  </Badge>
+                ) : (
+                  <button
+                    onClick={() => setShowConfigLlamadas(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 gap-1 cursor-pointer">
+                      <AlertCircle className="h-3 w-3" />
+                      Sin configurar
+                    </Badge>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -637,7 +822,15 @@ export default function CampaniaDetallePage() {
                       const handleHorarioChange = (tipo, valor) => {
                         const inicio = tipo === 'inicio' ? valor : horaInicio;
                         const fin = tipo === 'fin' ? valor : horaFin;
-                        const nuevoHorario = inicio && fin ? `${inicio}-${fin}` : null;
+                        // Guardar horario parcial o completo
+                        let nuevoHorario = null;
+                        if (inicio && fin) {
+                          nuevoHorario = `${inicio}-${fin}`;
+                        } else if (inicio) {
+                          nuevoHorario = `${inicio}-`;
+                        } else if (fin) {
+                          nuevoHorario = `-${fin}`;
+                        }
                         setConfigLlamadas(prev => ({
                           ...prev,
                           [d.key]: nuevoHorario
@@ -893,14 +1086,28 @@ export default function CampaniaDetallePage() {
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleRemoveBase(base.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={`h-7 w-7 ${ejecuciones.length > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:text-red-700 hover:bg-red-50'}`}
+                                  onClick={() => handleRemoveBase(base.id)}
+                                  disabled={ejecuciones.length > 0}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {ejecuciones.length > 0 && (
+                              <TooltipContent side="top">
+                                <p>No se puede eliminar porque ya existen ejecuciones</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1453,6 +1660,162 @@ export default function CampaniaDetallePage() {
                 : 'bg-red-600 hover:bg-red-700 text-white'}
             >
               Aceptar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Volver a Llamar */}
+      <Dialog open={showReprocesarModal} onOpenChange={setShowReprocesarModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <Phone className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <span>Volver a Llamar</span>
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">Crear nueva ejecución para rellamar números</p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Opción: Todos */}
+            <div
+              onClick={() => setReprocesarConfig({ ...reprocesarConfig, tipo: 'todos', tipificaciones_seleccionadas: [] })}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                reprocesarConfig.tipo === 'todos'
+                  ? 'border-amber-500 bg-amber-50'
+                  : 'border-border hover:border-amber-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                  reprocesarConfig.tipo === 'todos' ? 'border-amber-500' : 'border-muted-foreground'
+                }`}>
+                  {reprocesarConfig.tipo === 'todos' && (
+                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Todos los números</p>
+                  <p className="text-xs text-muted-foreground">Llama a todos los números de la campaña</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Opción: Por tipificación */}
+            <div
+              onClick={() => setReprocesarConfig({ ...reprocesarConfig, tipo: 'tipificacion' })}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                reprocesarConfig.tipo === 'tipificacion'
+                  ? 'border-amber-500 bg-amber-50'
+                  : 'border-border hover:border-amber-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                  reprocesarConfig.tipo === 'tipificacion' ? 'border-amber-500' : 'border-muted-foreground'
+                }`}>
+                  {reprocesarConfig.tipo === 'tipificacion' && (
+                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Por tipificación</p>
+                  <p className="text-xs text-muted-foreground">Solo los números con tipificaciones específicas</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Selector de tipificaciones */}
+            {reprocesarConfig.tipo === 'tipificacion' && (
+              <div className="pl-8 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Seleccione las tipificaciones a reprocesar:
+                </p>
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
+                  {tipificaciones.filter(t => !t.id_padre).map(tipPadre => (
+                    <div key={tipPadre.id} className="space-y-1">
+                      <label className="flex items-center gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer">
+                        <Checkbox
+                          checked={reprocesarConfig.tipificaciones_seleccionadas.includes(tipPadre.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setReprocesarConfig(prev => ({
+                                ...prev,
+                                tipificaciones_seleccionadas: [...prev.tipificaciones_seleccionadas, tipPadre.id]
+                              }));
+                            } else {
+                              setReprocesarConfig(prev => ({
+                                ...prev,
+                                tipificaciones_seleccionadas: prev.tipificaciones_seleccionadas.filter(id => id !== tipPadre.id)
+                              }));
+                            }
+                          }}
+                        />
+                        <span className="text-sm font-medium">{tipPadre.nombre}</span>
+                      </label>
+                      {/* Tipificaciones hijas */}
+                      {tipificaciones.filter(t => t.id_padre === tipPadre.id).map(tipHija => (
+                        <label key={tipHija.id} className="flex items-center gap-2 p-2 pl-8 rounded hover:bg-muted/50 cursor-pointer">
+                          <Checkbox
+                            checked={reprocesarConfig.tipificaciones_seleccionadas.includes(tipHija.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setReprocesarConfig(prev => ({
+                                  ...prev,
+                                  tipificaciones_seleccionadas: [...prev.tipificaciones_seleccionadas, tipHija.id]
+                                }));
+                              } else {
+                                setReprocesarConfig(prev => ({
+                                  ...prev,
+                                  tipificaciones_seleccionadas: prev.tipificaciones_seleccionadas.filter(id => id !== tipHija.id)
+                                }));
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-muted-foreground">{tipHija.nombre}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ))}
+                  {tipificaciones.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay tipificaciones disponibles
+                    </p>
+                  )}
+                </div>
+                {reprocesarConfig.tipificaciones_seleccionadas.length > 0 && (
+                  <p className="text-xs text-amber-600">
+                    {reprocesarConfig.tipificaciones_seleccionadas.length} tipificación(es) seleccionada(s)
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowReprocesarModal(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleReprocesar}
+              disabled={reprocesando || (reprocesarConfig.tipo === 'tipificacion' && reprocesarConfig.tipificaciones_seleccionadas.length === 0)}
+              className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
+            >
+              {reprocesando ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Iniciando...
+                </>
+              ) : (
+                <>
+                  <Phone className="h-4 w-4" />
+                  Volver a Llamar
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
