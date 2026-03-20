@@ -164,6 +164,18 @@ export default function EnviosMasivosPage() {
         }
 
         toast.success('Envio masivo creado exitosamente');
+
+        // Si es envío instantáneo, ejecutar el envío inmediatamente
+        if (datosEnvio.envioInstantaneo && envioId) {
+          try {
+            const envioRes2 = await apiClient.post(`/crm/envio-masivo-whatsapp/${envioId}/enviar`);
+            const { cantidadExitosos, cantidadFallidos } = envioRes2?.data || {};
+            toast.success(`Envio completado: ${cantidadExitosos || 0} exitosos, ${cantidadFallidos || 0} fallidos`);
+          } catch (envioError) {
+            console.error('Error al ejecutar envio instantaneo:', envioError);
+            toast.error(envioError?.msg || 'Error al ejecutar el envio instantaneo');
+          }
+        }
       }
       setShowModal(false);
       loadData();
