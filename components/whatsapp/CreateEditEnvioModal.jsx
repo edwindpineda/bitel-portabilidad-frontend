@@ -84,7 +84,9 @@ export default function CreateEditEnvioModal({
   const handleSave = () => {
     const datosEnvio = {
       envioInstantaneo,
-      fechaEnvio: envioInstantaneo ? new Date().toISOString().split('T')[0] : fechaEnvio,
+      fechaEnvio: envioInstantaneo
+        ? new Date().toISOString().slice(0, 19).replace('T', ' ')
+        : fechaEnvio ? fechaEnvio.replace('T', ' ') + ':00' : null,
     };
     onSave(datosEnvio);
   };
@@ -257,14 +259,14 @@ export default function CreateEditEnvioModal({
           <div className="p-4 bg-muted/30 rounded-xl">
             <label className="flex items-center gap-2 mb-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Fecha de envio programado</span>
+              <span className="text-sm font-medium">Fecha y hora de envio programado</span>
             </label>
             <Input
-              type="date"
+              type="datetime-local"
               value={fechaEnvio}
               onChange={(e) => setFechaEnvio(e.target.value)}
               className="max-w-xs"
-              min={new Date().toISOString().split('T')[0]}
+              min={new Date().toISOString().slice(0, 16)}
             />
           </div>
         )}
@@ -297,12 +299,23 @@ export default function CreateEditEnvioModal({
                   {isEditing ? (editingEnvio?.cantidad || 0) : selectedPersonas.length} personas
                 </Badge>
               </div>
-              <div className="flex justify-between items-center py-2">
+              <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Tipo de envio:</span>
                 <span className={`text-sm font-medium ${envioInstantaneo ? 'text-[#25D366]' : 'text-muted-foreground'}`}>
                   {envioInstantaneo ? 'Instantaneo' : 'Programado'}
                 </span>
               </div>
+              {!envioInstantaneo && fechaEnvio && (
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground">Fecha y hora:</span>
+                  <span className="text-sm font-medium">
+                    {new Date(fechaEnvio).toLocaleString('es-PE', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

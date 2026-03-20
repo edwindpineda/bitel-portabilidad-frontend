@@ -31,6 +31,9 @@ import {
   FileDown,
   FileText,
   FileSpreadsheet,
+  RefreshCcw,
+  CircleDot,
+  Tag,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -117,6 +120,7 @@ export default function LlamadasEjecucionPage() {
   const [ejecucion, setEjecucion] = useState(null);
   const [llamadas, setLlamadas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -127,6 +131,8 @@ export default function LlamadasEjecucionPage() {
   // Filtro de busqueda
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrabacion, setFilterGrabacion] = useState('todos');
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [filterTipificacion, setFilterTipificacion] = useState('todos');
 
   // Modal de audio
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -168,6 +174,23 @@ export default function LlamadasEjecucionPage() {
     setLoading(false);
   }
 };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      const [ejecucionesRes, llamadasRes] = await Promise.all([
+        apiClient.get(`/crm/campanias/${campaniaId}/ejecuciones`),
+        apiClient.get(`/crm/llamadas/ejecucion/${ejecucionId}`),
+      ]);
+      const ejecucionActual = (ejecucionesRes?.data || []).find(e => e.id === parseInt(ejecucionId));
+      setEjecucion(ejecucionActual);
+      setLlamadas(llamadasRes?.data || []);
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handlePlayAudio = (llamada) => {
     setSelectedAudioLlamada(llamada);
@@ -354,11 +377,27 @@ export default function LlamadasEjecucionPage() {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
+  // Obtener valores unicos de estados y tipificaciones
+  const estadosUnicos = [...new Set(llamadas.map(l => l.estado_llamada_nombre).filter(Boolean))].sort();
+  const tipificacionesUnicas = [...new Set(llamadas.map(l => l.tipificacion_llamada_nombre).filter(Boolean))].sort();
+
   // Filtrar llamadas
   const filteredLlamadas = llamadas.filter((llamada) => {
     // Filtro por grabacion
     if (filterGrabacion === 'con' && !llamada.archivo_llamada) return false;
     if (filterGrabacion === 'sin' && llamada.archivo_llamada) return false;
+
+    // Filtro por estado
+    if (filterEstado !== 'todos' && llamada.estado_llamada_nombre !== filterEstado) return false;
+
+    // Filtro por tipificacion
+    if (filterTipificacion !== 'todos') {
+      if (filterTipificacion === 'sin_tipificar') {
+        if (llamada.tipificacion_llamada_nombre) return false;
+      } else if (llamada.tipificacion_llamada_nombre !== filterTipificacion) {
+        return false;
+      }
+    }
 
     // Filtro por busqueda
     if (!searchTerm.trim()) return true;
@@ -481,6 +520,16 @@ export default function LlamadasEjecucionPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCcw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
           <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border border-purple-200/50 gap-1">
             <Phone className="h-3 w-3" />
             {llamadas.length} llamada{llamadas.length !== 1 ? 's' : ''}
@@ -545,8 +594,8 @@ export default function LlamadasEjecucionPage() {
       <Card>
         <CardContent className="p-6">
           {/* Filtro de busqueda y Exportar */}
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="flex flex-wrap gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -577,9 +626,46 @@ export default function LlamadasEjecucionPage() {
                   <SelectItem value="sin">Sin grabacion</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={filterEstado}
+                onValueChange={(value) => {
+                  setFilterEstado(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-44">
+                  <CircleDot className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  {estadosUnicos.map((estado) => (
+                    <SelectItem key={estado} value={estado}>{estado}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={filterTipificacion}
+                onValueChange={(value) => {
+                  setFilterTipificacion(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-48">
+                  <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Tipificacion" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las tipificaciones</SelectItem>
+                  <SelectItem value="sin_tipificar">Sin tipificar</SelectItem>
+                  {tipificacionesUnicas.map((tip) => (
+                    <SelectItem key={tip} value={tip}>{tip}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
-              {(searchTerm || filterGrabacion !== 'todos') && (
+              {(searchTerm || filterGrabacion !== 'todos' || filterEstado !== 'todos' || filterTipificacion !== 'todos') && (
                 <p className="text-xs text-muted-foreground">
                   {filteredLlamadas.length} resultado{filteredLlamadas.length !== 1 ? 's' : ''}
                 </p>
@@ -1020,6 +1106,22 @@ export default function LlamadasEjecucionPage() {
                         const isAI = t.speaker === 'ai';
                         const isSistema = t.speaker === 'sistema';
                         const speakerLabel = isAI ? 'Agente IA' : isSistema ? 'Sistema' : 'Usuario';
+
+                        // Intentar parsear JSON si el texto parece ser JSON
+                        let contenido = t.texto;
+                        let esResumen = false;
+                        try {
+                          if (t.texto && (t.texto.trim().startsWith('{') || t.texto.trim().startsWith('['))) {
+                            const parsed = JSON.parse(t.texto);
+                            if (parsed.reason) {
+                              contenido = parsed.reason;
+                              esResumen = true;
+                            }
+                          }
+                        } catch (e) {
+                          // No es JSON válido, usar el texto original
+                        }
+
                         return (
                           <div
                             key={t.id || index}
@@ -1027,19 +1129,21 @@ export default function LlamadasEjecucionPage() {
                           >
                             <div
                               className={`max-w-[80%] rounded-xl px-4 py-2 ${
-                                isSistema
-                                  ? 'bg-gray-100 border border-gray-200 text-gray-600'
-                                  : isAI
-                                    ? 'bg-white border border-teal-200 text-gray-800'
-                                    : 'bg-teal-500 text-white'
+                                esResumen
+                                  ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-800'
+                                  : isSistema
+                                    ? 'bg-gray-100 border border-gray-200 text-gray-600'
+                                    : isAI
+                                      ? 'bg-white border border-teal-200 text-gray-800'
+                                      : 'bg-teal-500 text-white'
                               }`}
                             >
                               <p className={`text-[10px] font-semibold mb-1 ${
-                                isSistema ? 'text-gray-500' : isAI ? 'text-teal-600' : 'text-teal-100'
+                                esResumen ? 'text-emerald-600' : isSistema ? 'text-gray-500' : isAI ? 'text-teal-600' : 'text-teal-100'
                               }`}>
-                                {speakerLabel}
+                                {esResumen ? 'Resumen de la llamada' : speakerLabel}
                               </p>
-                              <p className="text-sm leading-relaxed">{t.texto}</p>
+                              <p className="text-sm leading-relaxed">{contenido}</p>
                             </div>
                           </div>
                         );

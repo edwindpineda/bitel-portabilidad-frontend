@@ -63,6 +63,12 @@ const ESTADOS_EJECUCION = {
   cancelado: { label: 'Cancelado', color: 'bg-gray-100 text-gray-800' },
 };
 
+const ESTADOS_CAMPANIA = {
+  ejecutando: { label: 'Ejecutando', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  sin_ejecuciones: { label: 'Sin ejecutar', color: 'bg-gray-100 text-gray-600 border-gray-200' },
+  finalizado: { label: 'Finalizado', color: 'bg-green-100 text-green-700 border-green-200' },
+};
+
 // Funcion para formatear el resultado JSON de ejecucion
 const formatResultado = (resultado) => {
   if (!resultado) return null;
@@ -107,6 +113,7 @@ export default function CampaniasPage() {
   const [personasResultados, setPersonasResultados] = useState([]);
   const [loadingBusqueda, setLoadingBusqueda] = useState(false);
   const [filtroTipoPersona, setFiltroTipoPersona] = useState('todos'); // 'todos' | 'prospecto' | 'cliente'
+  const [filtroEstadoCampania, setFiltroEstadoCampania] = useState('todos'); // 'todos' | 'ejecutando' | 'sin_ejecuciones' | 'finalizado'
   const [personasSeleccionadas, setPersonasSeleccionadas] = useState([]); // ids seleccionados para agregar en lote
   const [agregandoLote, setAgregandoLote] = useState(false);
 
@@ -503,10 +510,12 @@ export default function CampaniasPage() {
     base => !basesAsignadas.some(ba => ba.id_base_numero === base.id)
   );
 
-  // Filtrar campanias por busqueda
+  // Filtrar campanias por busqueda y estado
   const filteredCampanias = campanias.filter(c => {
-    return c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchSearch = c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchEstado = filtroEstadoCampania === 'todos' || c.estado_campania === filtroEstadoCampania;
+    return matchSearch && matchEstado;
   });
 
   const totalCampanias = campanias.length;
@@ -650,7 +659,7 @@ export default function CampaniasPage() {
                 placeholder="Buscar campaña..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-background placeholder:text-muted-foreground/40 transition-all duration-300"
+                className="w-full h-10 pl-11 pr-9 text-sm bg-muted/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-background focus:border-teal-400 placeholder:text-muted-foreground/40 transition-all duration-300"
               />
               {searchTerm && (
                 <button
@@ -661,6 +670,18 @@ export default function CampaniasPage() {
                 </button>
               )}
             </div>
+
+            {/* Filtro por estado */}
+            <select
+              value={filtroEstadoCampania}
+              onChange={(e) => setFiltroEstadoCampania(e.target.value)}
+              className="h-10 px-3 text-sm bg-muted/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:bg-background focus:border-teal-400 transition-all duration-300"
+            >
+              <option value="todos">Todos los estados</option>
+              <option value="ejecutando">Ejecutando</option>
+              <option value="sin_ejecuciones">Sin ejecutar</option>
+              <option value="finalizado">Finalizado</option>
+            </select>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
               <Badge variant="outline" className="gap-1 font-normal">
@@ -681,6 +702,7 @@ export default function CampaniasPage() {
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Tipo</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Formato</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Plantilla</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Estado</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Bases</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Ejecuciones</TableHead>
               <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Acciones</TableHead>
@@ -723,6 +745,14 @@ export default function CampaniasPage() {
                   ) : <span className="text-muted-foreground/30 text-xs">--</span>}
                 </TableCell>
                 <TableCell className="text-center">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] font-semibold ${ESTADOS_CAMPANIA[campania.estado_campania]?.color || 'bg-gray-100 text-gray-600'}`}
+                  >
+                    {ESTADOS_CAMPANIA[campania.estado_campania]?.label || campania.estado_campania || 'Sin estado'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -759,10 +789,10 @@ export default function CampaniasPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600"
+                      className={`h-8 w-8 ${campania.estado_campania === 'ejecutando' ? 'text-gray-300 cursor-not-allowed' : 'text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600'}`}
                       onClick={() => handleEjecutar(campania)}
-                      disabled={ejecutando || campania.total_bases === 0}
-                      title="Ejecutar"
+                      disabled={ejecutando || campania.total_bases === 0 || campania.estado_campania === 'ejecutando'}
+                      title={campania.estado_campania === 'ejecutando' ? 'Campaña en ejecución' : 'Ejecutar'}
                     >
                       <Play className="h-4 w-4" />
                     </Button>
