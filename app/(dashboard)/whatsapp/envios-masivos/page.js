@@ -100,11 +100,19 @@ export default function EnviosMasivosPage() {
 
   const openEditModal = async (envio) => {
     setEditingEnvio(envio);
+    // Convert timestamp to datetime-local format (YYYY-MM-DDTHH:mm)
+    let fechaFormateada = '';
+    if (envio.fecha_envio) {
+      const d = new Date(envio.fecha_envio);
+      if (!isNaN(d.getTime())) {
+        fechaFormateada = d.toISOString().slice(0, 16);
+      }
+    }
     setFormData({
       titulo: envio.titulo || '',
       descripcion: envio.descripcion || '',
       id_plantilla: envio.id_plantilla || '',
-      fecha_envio: envio.fecha_envio || '',
+      fecha_envio: fechaFormateada,
     });
 
     // Cargar envio_persona del envio para edicion
@@ -154,6 +162,8 @@ export default function EnviosMasivosPage() {
         });
 
         const envioId = envioRes?.data?.id;
+        console.log('envioRes completo:', JSON.stringify(envioRes));
+        console.log('envioId extraido:', envioId);
 
         // Paso 2: Crear los envio_persona en bulk
         if (envioId && selectedPersonas.length > 0) {
@@ -437,7 +447,12 @@ export default function EnviosMasivosPage() {
                   </TableCell>
                   <TableCell>
                     <span className="text-xs text-muted-foreground">
-                      {envio.fecha_envio ? new Date(envio.fecha_envio + 'T00:00:00').toLocaleDateString() : '-'}
+                      {envio.fecha_envio
+                        ? new Date(envio.fecha_envio).toLocaleString('es-PE', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit',
+                          })
+                        : '-'}
                     </span>
                   </TableCell>
                   <TableCell>
