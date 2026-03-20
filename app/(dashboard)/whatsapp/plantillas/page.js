@@ -74,7 +74,7 @@ const toUIFormat = (p) => {
   }
 
   return {
-    id: p.id_local || p.id,
+    id: p.id_local || null,
     meta_id: p.id,
     name: p.name,
     status: p.status,
@@ -158,6 +158,7 @@ export default function WhatsAppPlantillasPage() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.body) { toast.error('Completa los campos obligatorios: Nombre y Contenido'); return; }
+    if (editingPlantilla && !editingPlantilla.id) { toast.error('Esta plantilla no tiene registro local. Eliminala y creala de nuevo.'); return; }
 
     const mediaTypes = ['IMAGE', 'VIDEO', 'DOCUMENT'];
     if (mediaTypes.includes(formData.header_type) && !mediaFile && !mediaPreview) {
@@ -220,6 +221,7 @@ export default function WhatsAppPlantillasPage() {
   };
 
   const handleDelete = async (plantilla) => {
+    if (!plantilla.id) { toast.error('Esta plantilla no tiene registro local'); return; }
     if (!confirm(`¿Estas seguro de eliminar la plantilla "${plantilla.name}"? Esta accion eliminara la plantilla tanto en Meta como en el sistema.`)) return;
     try {
       await apiClient.delete(`/crm/plantillas-whatsapp/${plantilla.id}`);
