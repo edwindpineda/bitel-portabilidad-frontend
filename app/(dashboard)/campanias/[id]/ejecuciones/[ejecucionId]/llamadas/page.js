@@ -32,6 +32,8 @@ import {
   FileText,
   FileSpreadsheet,
   RefreshCcw,
+  CircleDot,
+  Tag,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -116,6 +118,8 @@ export default function LlamadasEjecucionPage() {
   // Filtro de busqueda
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrabacion, setFilterGrabacion] = useState('todos');
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [filterTipificacion, setFilterTipificacion] = useState('todos');
 
   // Modal de audio
   const [showAudioModal, setShowAudioModal] = useState(false);
@@ -354,11 +358,27 @@ export default function LlamadasEjecucionPage() {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
+  // Obtener valores unicos de estados y tipificaciones
+  const estadosUnicos = [...new Set(llamadas.map(l => l.estado_llamada_nombre).filter(Boolean))].sort();
+  const tipificacionesUnicas = [...new Set(llamadas.map(l => l.tipificacion_llamada_nombre).filter(Boolean))].sort();
+
   // Filtrar llamadas
   const filteredLlamadas = llamadas.filter((llamada) => {
     // Filtro por grabacion
     if (filterGrabacion === 'con' && !llamada.archivo_llamada) return false;
     if (filterGrabacion === 'sin' && llamada.archivo_llamada) return false;
+
+    // Filtro por estado
+    if (filterEstado !== 'todos' && llamada.estado_llamada_nombre !== filterEstado) return false;
+
+    // Filtro por tipificacion
+    if (filterTipificacion !== 'todos') {
+      if (filterTipificacion === 'sin_tipificar') {
+        if (llamada.tipificacion_llamada_nombre) return false;
+      } else if (llamada.tipificacion_llamada_nombre !== filterTipificacion) {
+        return false;
+      }
+    }
 
     // Filtro por busqueda
     if (!searchTerm.trim()) return true;
@@ -546,8 +566,8 @@ export default function LlamadasEjecucionPage() {
       <Card>
         <CardContent className="p-6">
           {/* Filtro de busqueda y Exportar */}
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="flex flex-wrap gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -578,9 +598,46 @@ export default function LlamadasEjecucionPage() {
                   <SelectItem value="sin">Sin grabacion</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={filterEstado}
+                onValueChange={(value) => {
+                  setFilterEstado(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-44">
+                  <CircleDot className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  {estadosUnicos.map((estado) => (
+                    <SelectItem key={estado} value={estado}>{estado}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={filterTipificacion}
+                onValueChange={(value) => {
+                  setFilterTipificacion(value);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 w-full sm:w-48">
+                  <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Tipificacion" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las tipificaciones</SelectItem>
+                  <SelectItem value="sin_tipificar">Sin tipificar</SelectItem>
+                  {tipificacionesUnicas.map((tip) => (
+                    <SelectItem key={tip} value={tip}>{tip}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
-              {(searchTerm || filterGrabacion !== 'todos') && (
+              {(searchTerm || filterGrabacion !== 'todos' || filterEstado !== 'todos' || filterTipificacion !== 'todos') && (
                 <p className="text-xs text-muted-foreground">
                   {filteredLlamadas.length} resultado{filteredLlamadas.length !== 1 ? 's' : ''}
                 </p>
