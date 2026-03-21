@@ -69,21 +69,20 @@ const formatDateTime = (dateStr) => {
   });
 };
 
+// Formatear fecha con zona horaria Lima/Perú
 const formatFechaAmPm = (fecha) => {
   if (!fecha) return '-';
   const d = new Date(fecha);
   if (isNaN(d.getTime())) return '-';
-  const dia = String(d.getDate()).padStart(2, '0');
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const anio = d.getFullYear();
-  let horas = d.getHours();
-  const minutos = String(d.getMinutes()).padStart(2, '0');
-  const segundos = String(d.getSeconds()).padStart(2, '0');
-  const ampm = horas >= 12 ? 'PM' : 'AM';
-  horas = horas % 12;
-  horas = horas ? horas : 12;
-  const horasStr = String(horas).padStart(2, '0');
-  return `${dia}/${mes}/${anio} ${horasStr}:${minutos}:${segundos} ${ampm}`;
+  return d.toLocaleString('es-PE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  }).replace(',', '');
 };
 
 export default function LlamadaDetailPage() {
