@@ -86,6 +86,7 @@ const formatearFechaHora = (fecha) => {
   const d = new Date(fecha);
   if (isNaN(d.getTime())) return '-';
   return d.toLocaleString('es-PE', {
+    timeZone: 'America/Lima',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
