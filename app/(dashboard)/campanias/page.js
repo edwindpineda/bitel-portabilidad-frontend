@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { apiClient } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,9 @@ import {
   ChevronLeft,
   UserCheck2,
   Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -116,6 +119,8 @@ export default function CampaniasPage() {
   const [filtroEstadoCampania, setFiltroEstadoCampania] = useState('todos'); // 'todos' | 'ejecutando' | 'sin_ejecuciones' | 'finalizado'
   const [personasSeleccionadas, setPersonasSeleccionadas] = useState([]); // ids seleccionados para agregar en lote
   const [agregandoLote, setAgregandoLote] = useState(false);
+  const [sortField, setSortField] = useState('nombre');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   // Estados para el modal de crear/editar
   const [formData, setFormData] = useState({
@@ -510,13 +515,66 @@ export default function CampaniasPage() {
     base => !basesAsignadas.some(ba => ba.id_base_numero === base.id)
   );
 
-  // Filtrar campanias por busqueda y estado
-  const filteredCampanias = campanias.filter(c => {
-    const matchSearch = c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchEstado = filtroEstadoCampania === 'todos' || c.estado_campania === filtroEstadoCampania;
-    return matchSearch && matchEstado;
-  });
+  // Ordenamiento
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 text-teal-500" />
+      : <ArrowDown className="h-3 w-3 text-teal-500" />;
+  };
+
+  // Filtrar y ordenar campanias
+  const filteredCampanias = useMemo(() => {
+    let list = campanias.filter(c => {
+      const matchSearch = c.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchEstado = filtroEstadoCampania === 'todos' || c.estado_campania === filtroEstadoCampania;
+      return matchSearch && matchEstado;
+    });
+
+    // Ordenamiento
+    if (sortField) {
+      list = [...list].sort((a, b) => {
+        let aVal = a[sortField];
+        let bVal = b[sortField];
+
+        // Manejar valores nulos
+        if (aVal == null) aVal = '';
+        if (bVal == null) bVal = '';
+
+        // Comparar números
+        if (sortField === 'total_bases' || sortField === 'total_ejecuciones') {
+          aVal = Number(aVal) || 0;
+          bVal = Number(bVal) || 0;
+        }
+        // Comparar fechas
+        else if (sortField === 'fecha_registro') {
+          aVal = new Date(aVal || 0).getTime();
+          bVal = new Date(bVal || 0).getTime();
+        }
+        // Comparar strings
+        else if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = String(bVal).toLowerCase();
+        }
+
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [campanias, searchTerm, filtroEstadoCampania, sortField, sortDirection]);
 
   const totalCampanias = campanias.length;
   const totalBases = basesDisponibles.length;
@@ -698,14 +756,47 @@ export default function CampaniasPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Nombre</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Tipo</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Formato</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Plantilla</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Estado</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Bases</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70 text-center">Ejecuciones</TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-teal-500/70">Acciones</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('nombre')} className="flex items-center gap-1 hover:opacity-80">
+                  NOMBRE <SortIcon field="nombre" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('tipo_campania_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                  TIPO <SortIcon field="tipo_campania_nombre" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('formato_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                  FORMATO <SortIcon field="formato_nombre" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('plantilla_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                  PLANTILLA <SortIcon field="plantilla_nombre" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('estado_campania')} className="flex items-center gap-1 hover:opacity-80 mx-auto">
+                  ESTADO <SortIcon field="estado_campania" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('total_bases')} className="flex items-center gap-1 hover:opacity-80 mx-auto">
+                  BASES <SortIcon field="total_bases" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('total_ejecuciones')} className="flex items-center gap-1 hover:opacity-80 mx-auto">
+                  EJECUCIONES <SortIcon field="total_ejecuciones" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                <button onClick={() => handleSort('fecha_registro')} className="flex items-center gap-1 hover:opacity-80">
+                  FECHA REGISTRO <SortIcon field="fecha_registro" />
+                </button>
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgb(20 184 166 / 0.7)' }}>ACCIONES</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -774,6 +865,19 @@ export default function CampaniasPage() {
                     {campania.total_ejecuciones || 0}
                   </Button>
                 </TableCell>
+                <TableCell className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                  {campania.fecha_registro
+                    ? new Date(campania.fecha_registro).toLocaleString('es-PE', {
+                        timeZone: 'America/Lima',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      }).replace(',', '')
+                    : '-'}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Link href={`/campanias/${campania.id}`}>
@@ -809,9 +913,10 @@ export default function CampaniasPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                      className={`h-8 w-8 ${campania.total_ejecuciones > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:bg-red-50 hover:text-red-600'}`}
                       onClick={() => handleDelete(campania.id)}
-                      title="Eliminar"
+                      disabled={campania.total_ejecuciones > 0}
+                      title={campania.total_ejecuciones > 0 ? 'No se puede eliminar una campaña con ejecuciones' : 'Eliminar'}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

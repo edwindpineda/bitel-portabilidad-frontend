@@ -352,10 +352,6 @@ export default function LlamadaDetailPage() {
             <CardContent>
               {llamada.archivo_llamada ? (
                 <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-                    <p className="text-xs font-mono truncate">{llamada.archivo_llamada}</p>
-                  </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => setShowAudioModal(true)}
@@ -490,12 +486,6 @@ export default function LlamadaDetailPage() {
                   <p className="text-xs text-muted-foreground">Telefono</p>
                   <p className="font-medium">{llamada.telefono || '-'}</p>
                 </div>
-              </div>
-
-              {/* Archivo info */}
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-                <p className="text-xs font-mono truncate">{llamada.archivo_llamada}</p>
               </div>
 
               {/* Reproductor de audio */}

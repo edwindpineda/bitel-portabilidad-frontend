@@ -34,6 +34,11 @@ import {
   RefreshCcw,
   CircleDot,
   Tag,
+  Eraser,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  PlayCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -515,46 +520,64 @@ export default function LlamadasEjecucionPage() {
         </div>
       </div>
 
-      {/* Stats Card */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600" />
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Llamadas</p>
-                <p className="text-3xl font-bold tracking-tight">{llamadas.length}</p>
-              </div>
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Phone className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats Card - Estados de llamadas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Completadas - Estado 4 */}
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-600" />
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Con Audio</p>
-                <p className="text-3xl font-bold tracking-tight">{llamadas.filter(l => l.archivo_llamada).length}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Completadas</p>
+                <p className="text-3xl font-bold tracking-tight text-green-600">{llamadas.filter(l => l.id_estado_llamada === 4).length.toLocaleString('es-PE')}</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
-                <Volume2 className="h-6 w-6 text-white" />
+                <CheckCircle2 className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
+        {/* No Contestadas - Estado 3 */}
         <Card className="relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-teal-600" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-red-600" />
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tipificadas</p>
-                <p className="text-3xl font-bold tracking-tight">{llamadas.filter(l => l.tipificacion_llamada_nombre).length}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">No Contestadas</p>
+                <p className="text-3xl font-bold tracking-tight text-red-600">{llamadas.filter(l => l.id_estado_llamada === 3).length.toLocaleString('es-PE')}</p>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg">
-                <Megaphone className="h-6 w-6 text-white" />
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
+                <XCircle className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Pendientes - Estado 1 */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-400 to-gray-500" />
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pendientes</p>
+                <p className="text-3xl font-bold tracking-tight text-gray-600">{llamadas.filter(l => l.id_estado_llamada === 1).length.toLocaleString('es-PE')}</p>
+              </div>
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center shadow-lg">
+                <Clock className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* En Proceso - Estado 2 */}
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">En Proceso</p>
+                <p className="text-3xl font-bold tracking-tight text-blue-600">{llamadas.filter(l => l.id_estado_llamada === 2).length.toLocaleString('es-PE')}</p>
+              </div>
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <PlayCircle className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
@@ -637,9 +660,26 @@ export default function LlamadasEjecucionPage() {
             </div>
             <div className="flex items-center gap-2">
               {(searchTerm || filterGrabacion !== 'todos' || filterEstado !== 'todos' || filterTipificacion !== 'todos') && (
-                <p className="text-xs text-muted-foreground">
-                  {filteredLlamadas.length} resultado{filteredLlamadas.length !== 1 ? 's' : ''}
-                </p>
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    {filteredLlamadas.length} resultado{filteredLlamadas.length !== 1 ? 's' : ''}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFilterGrabacion('todos');
+                      setFilterEstado('todos');
+                      setFilterTipificacion('todos');
+                      setPage(1);
+                    }}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    <Eraser className="h-3.5 w-3.5" />
+                    Limpiar
+                  </Button>
+                </>
               )}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -964,12 +1004,6 @@ export default function LlamadasEjecucionPage() {
                     <p className="text-xs text-muted-foreground">Telefono</p>
                     <p className="font-medium">{selectedAudioLlamada.telefono || '-'}</p>
                   </div>
-                </div>
-
-                {/* Archivo info */}
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-                  <p className="text-xs font-mono truncate">{selectedAudioLlamada.archivo_llamada}</p>
                 </div>
 
                 {/* Reproductor de audio */}

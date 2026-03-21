@@ -48,6 +48,11 @@ import {
   Download,
   Play,
   X,
+  Eraser,
+  CircleDot,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -113,9 +118,13 @@ export default function LlamadasPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterTipificacion, setFilterTipificacion] = useState('todos');
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [filterGrabacion, setFilterGrabacion] = useState('todos');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState(null);
+  const [sortField, setSortField] = useState('fecha_inicio');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const loadData = async () => {
     try {
@@ -140,11 +149,26 @@ export default function LlamadasPage() {
     loadData();
   }, [idCampaniaEjecucion]);
 
+  // Obtener estados unicos
+  const estadosUnicos = useMemo(() => {
+    return [...new Set(llamadas.map(l => l.estado_llamada_nombre).filter(Boolean))].sort();
+  }, [llamadas]);
+
   const filtered = useMemo(() => {
     let list = llamadas;
 
     if (filterTipificacion !== 'todos') {
       list = list.filter(l => String(l.id_tipificacion_llamada) === filterTipificacion);
+    }
+
+    if (filterEstado !== 'todos') {
+      list = list.filter(l => l.estado_llamada_nombre === filterEstado);
+    }
+
+    if (filterGrabacion === 'con') {
+      list = list.filter(l => l.archivo_llamada);
+    } else if (filterGrabacion === 'sin') {
+      list = list.filter(l => !l.archivo_llamada);
     }
 
     if (search.trim()) {
@@ -159,19 +183,70 @@ export default function LlamadasPage() {
       );
     }
 
+    // Ordenamiento
+    if (sortField) {
+      list = [...list].sort((a, b) => {
+        let aVal = a[sortField];
+        let bVal = b[sortField];
+
+        // Manejar valores nulos
+        if (aVal == null) aVal = '';
+        if (bVal == null) bVal = '';
+
+        // Comparar fechas
+        if (sortField.includes('fecha')) {
+          aVal = aVal ? new Date(aVal).getTime() : 0;
+          bVal = bVal ? new Date(bVal).getTime() : 0;
+        }
+        // Comparar números
+        else if (sortField === 'duracion_seg' || sortField === 'codigo_llamada') {
+          aVal = Number(aVal) || 0;
+          bVal = Number(bVal) || 0;
+        }
+        // Comparar strings
+        else if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = String(bVal).toLowerCase();
+        }
+
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
     return list;
-  }, [llamadas, search, filterTipificacion]);
+  }, [llamadas, search, filterTipificacion, filterEstado, filterGrabacion, sortField, sortDirection]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />;
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 text-blue-500" />
+      : <ArrowDown className="h-3 w-3 text-blue-500" />;
+  };
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [search, filterTipificacion]);
+  useEffect(() => { setCurrentPage(1); }, [search, filterTipificacion, filterEstado, filterGrabacion]);
 
   const stats = useMemo(() => {
     const total = llamadas.length;
     const conTipificacion = llamadas.filter(l => l.id_tipificacion_llamada).length;
     const sinTipificacion = total - conTipificacion;
-    return { total, conTipificacion, sinTipificacion };
+    const completadas = llamadas.filter(l => l.id_estado_llamada === 4).length;
+    const conGrabacion = llamadas.filter(l => l.archivo_llamada).length;
+    return { total, conTipificacion, sinTipificacion, completadas, conGrabacion };
   }, [llamadas]);
 
   const handleExport = () => {
@@ -270,14 +345,14 @@ export default function LlamadasPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-white">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
               <Phone className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-700">{stats.total}</p>
+              <p className="text-2xl font-bold text-blue-700">{stats.total.toLocaleString('es-PE')}</p>
               <p className="text-xs text-muted-foreground">Total llamadas</p>
             </div>
           </CardContent>
@@ -289,7 +364,7 @@ export default function LlamadasPage() {
               <PhoneCall className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-emerald-700">{stats.conTipificacion}</p>
+              <p className="text-2xl font-bold text-emerald-700">{stats.conTipificacion.toLocaleString('es-PE')}</p>
               <p className="text-xs text-muted-foreground">Con tipificacion</p>
             </div>
           </CardContent>
@@ -301,8 +376,32 @@ export default function LlamadasPage() {
               <PhoneMissed className="h-5 w-5 text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-orange-700">{stats.sinTipificacion}</p>
+              <p className="text-2xl font-bold text-orange-700">{stats.sinTipificacion.toLocaleString('es-PE')}</p>
               <p className="text-xs text-muted-foreground">Sin tipificacion</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-white">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
+              <CircleDot className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-700">{stats.completadas.toLocaleString('es-PE')}</p>
+              <p className="text-xs text-muted-foreground">Completadas</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-white">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Volume2 className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-purple-700">{stats.conGrabacion.toLocaleString('es-PE')}</p>
+              <p className="text-xs text-muted-foreground">Con grabacion</p>
             </div>
           </CardContent>
         </Card>
@@ -322,6 +421,29 @@ export default function LlamadasPage() {
               />
             </div>
 
+            {/* Filtro por estado */}
+            <select
+              value={filterEstado}
+              onChange={e => setFilterEstado(e.target.value)}
+              className="h-9 px-3 rounded-lg border text-xs bg-background"
+            >
+              <option value="todos">Todos los estados</option>
+              {estadosUnicos.map(estado => (
+                <option key={estado} value={estado}>{estado}</option>
+              ))}
+            </select>
+
+            {/* Filtro por grabacion */}
+            <select
+              value={filterGrabacion}
+              onChange={e => setFilterGrabacion(e.target.value)}
+              className="h-9 px-3 rounded-lg border text-xs bg-background"
+            >
+              <option value="todos">Todas las llamadas</option>
+              <option value="con">Con grabacion</option>
+              <option value="sin">Sin grabacion</option>
+            </select>
+
             {/* Filtro por tipificacion */}
             <select
               value={filterTipificacion}
@@ -334,9 +456,27 @@ export default function LlamadasPage() {
               ))}
             </select>
 
-            <span className="text-xs text-muted-foreground ml-auto">
-              {filtered.length} llamada{filtered.length !== 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-muted-foreground">
+                {filtered.length} llamada{filtered.length !== 1 ? 's' : ''}
+              </span>
+              {(search || filterTipificacion !== 'todos' || filterEstado !== 'todos' || filterGrabacion !== 'todos') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearch('');
+                    setFilterTipificacion('todos');
+                    setFilterEstado('todos');
+                    setFilterGrabacion('todos');
+                  }}
+                  className="gap-1.5 h-8 text-xs"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                  Limpiar
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Tabla */}
@@ -355,16 +495,52 @@ export default function LlamadasPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
-                    <TableHead className="text-xs w-16">Codigo</TableHead>
-                    <TableHead className="text-xs">Contacto</TableHead>
-                    <TableHead className="text-xs">Telefono</TableHead>
-                    <TableHead className="text-xs">Campaña</TableHead>
-                    <TableHead className="text-xs">Estado</TableHead>
-                    <TableHead className="text-xs">Tipificacion</TableHead>
-                    <TableHead className="text-xs">Duracion</TableHead>
-                    <TableHead className="text-xs">Fecha Inicio</TableHead>
-                    <TableHead className="text-xs">Registro</TableHead>
-                    <TableHead className="text-xs w-12">Acciones</TableHead>
+                    <TableHead className="text-xs w-16 uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('codigo_llamada')} className="flex items-center gap-1 hover:opacity-80">
+                        CODIGO <SortIcon field="codigo_llamada" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('contacto_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                        CONTACTO <SortIcon field="contacto_nombre" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('telefono')} className="flex items-center gap-1 hover:opacity-80">
+                        TELEFONO <SortIcon field="telefono" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('campania_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                        CAMPAÑA <SortIcon field="campania_nombre" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('estado_llamada_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                        ESTADO <SortIcon field="estado_llamada_nombre" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('tipificacion_llamada_nombre')} className="flex items-center gap-1 hover:opacity-80">
+                        TIPIFICACION <SortIcon field="tipificacion_llamada_nombre" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('duracion_seg')} className="flex items-center gap-1 hover:opacity-80">
+                        DURACION <SortIcon field="duracion_seg" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('fecha_inicio')} className="flex items-center gap-1 hover:opacity-80">
+                        FECHA INICIO <SortIcon field="fecha_inicio" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>
+                      <button onClick={() => handleSort('fecha_registro')} className="flex items-center gap-1 hover:opacity-80">
+                        REGISTRO <SortIcon field="fecha_registro" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-xs w-12 uppercase font-semibold" style={{ color: 'rgb(20 184 166 / 0.7)' }}>ACCIONES</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -559,12 +735,6 @@ export default function LlamadasPage() {
                     <p className="text-xs text-muted-foreground">Telefono</p>
                     <p className="font-medium">{selectedAudio.telefono || '-'}</p>
                   </div>
-                </div>
-
-                {/* Archivo info */}
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Archivo</p>
-                  <p className="text-xs font-mono truncate">{selectedAudio.archivo_llamada}</p>
                 </div>
 
                 {/* Reproductor de audio */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,6 +56,9 @@ import {
   AlertCircle,
   RefreshCcw,
   RotateCcw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 const ESTADOS_EJECUCION = {
@@ -119,7 +122,7 @@ const formatResultado = (resultado) => {
         )}
         {data.fallidas !== undefined && data.fallidas > 0 && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-medium">
-            Fallidas: {data.fallidas}
+            No contestadas: {data.fallidas}
           </span>
         )}
       </div>
@@ -172,6 +175,14 @@ export default function CampaniaDetallePage() {
   const [basesPage, setBasesPage] = useState(1);
   const [ejecucionesPage, setEjecucionesPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
+
+  // Ordenamiento de bases
+  const [basesSortField, setBasesSortField] = useState('base_nombre');
+  const [basesSortDirection, setBasesSortDirection] = useState('asc');
+
+  // Ordenamiento de ejecuciones
+  const [ejecSortField, setEjecSortField] = useState('fecha_registro');
+  const [ejecSortDirection, setEjecSortDirection] = useState('desc');
 
 
   // Configuracion de llamadas
@@ -535,6 +546,77 @@ export default function CampaniaDetallePage() {
     base => !basesAsignadas.some(ba => ba.id_base_numero === base.id)
   );
 
+  // Ordenar bases asignadas (useMemo ANTES de los returns condicionales)
+  const sortedBasesAsignadas = useMemo(() => {
+    const filtered = basesAsignadas.filter(base =>
+      base.base_nombre.toLowerCase().includes(searchBaseAsignada.toLowerCase())
+    );
+    return [...filtered].sort((a, b) => {
+      let aVal, bVal;
+      switch (basesSortField) {
+        case 'base_nombre':
+          aVal = (a.base_nombre || '').toLowerCase();
+          bVal = (b.base_nombre || '').toLowerCase();
+          break;
+        case 'formato_nombre':
+          aVal = (a.formato_nombre || '').toLowerCase();
+          bVal = (b.formato_nombre || '').toLowerCase();
+          break;
+        case 'total_numeros':
+          aVal = a.total_numeros || 0;
+          bVal = b.total_numeros || 0;
+          break;
+        case 'total_ejecuciones':
+          aVal = a.total_ejecuciones || 0;
+          bVal = b.total_ejecuciones || 0;
+          break;
+        case 'activo':
+          aVal = a.activo ? 1 : 0;
+          bVal = b.activo ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+      if (aVal < bVal) return basesSortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return basesSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [basesAsignadas, searchBaseAsignada, basesSortField, basesSortDirection]);
+
+  // Ordenar ejecuciones (useMemo ANTES de los returns condicionales)
+  const sortedEjecuciones = useMemo(() => {
+    return [...ejecuciones].sort((a, b) => {
+      let aVal, bVal;
+      switch (ejecSortField) {
+        case 'id':
+          aVal = a.id || 0;
+          bVal = b.id || 0;
+          break;
+        case 'base_nombre':
+          aVal = (a.base_nombre || '').toLowerCase();
+          bVal = (b.base_nombre || '').toLowerCase();
+          break;
+        case 'estado_ejecucion':
+          aVal = (a.estado_ejecucion || '').toLowerCase();
+          bVal = (b.estado_ejecucion || '').toLowerCase();
+          break;
+        case 'total_llamadas':
+          aVal = a.total_llamadas || 0;
+          bVal = b.total_llamadas || 0;
+          break;
+        case 'fecha_registro':
+          aVal = new Date(a.fecha_registro || 0).getTime();
+          bVal = new Date(b.fecha_registro || 0).getTime();
+          break;
+        default:
+          return 0;
+      }
+      if (aVal < bVal) return ejecSortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return ejecSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [ejecuciones, ejecSortField, ejecSortDirection]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -564,6 +646,46 @@ export default function CampaniaDetallePage() {
       </div>
     );
   }
+
+  // Funciones de ordenamiento para Bases
+  const handleBasesSort = (field) => {
+    if (basesSortField === field) {
+      setBasesSortDirection(basesSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setBasesSortField(field);
+      setBasesSortDirection('asc');
+    }
+    setBasesPage(1);
+  };
+
+  const getBasesSortIcon = (field) => {
+    if (basesSortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    }
+    return basesSortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  // Funciones de ordenamiento para Ejecuciones
+  const handleEjecSort = (field) => {
+    if (ejecSortField === field) {
+      setEjecSortDirection(ejecSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setEjecSortField(field);
+      setEjecSortDirection('asc');
+    }
+    setEjecucionesPage(1);
+  };
+
+  const getEjecSortIcon = (field) => {
+    if (ejecSortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    }
+    return ejecSortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
 
   const STATS = [
     {
@@ -1076,17 +1198,56 @@ export default function CampaniaDetallePage() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 w-12">#</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Base</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Formato</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Números</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center">Ejecuciones</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center w-20">Activo</TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleBasesSort('base_nombre')}
+                  >
+                    <div className="flex items-center">
+                      Base
+                      {getBasesSortIcon('base_nombre')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleBasesSort('formato_nombre')}
+                  >
+                    <div className="flex items-center">
+                      Formato
+                      {getBasesSortIcon('formato_nombre')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleBasesSort('total_numeros')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Números
+                      {getBasesSortIcon('total_numeros')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleBasesSort('total_ejecuciones')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Ejecuciones
+                      {getBasesSortIcon('total_ejecuciones')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center w-20 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleBasesSort('activo')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Activo
+                      {getBasesSortIcon('activo')}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 text-center w-24">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {basesAsignadas
-                  .filter(base => base.base_nombre.toLowerCase().includes(searchBaseAsignada.toLowerCase()))
+                {sortedBasesAsignadas
                   .slice((basesPage - 1) * ITEMS_PER_PAGE, basesPage * ITEMS_PER_PAGE)
                   .map((base, index) => (
                   <TableRow key={base.id}>
@@ -1233,16 +1394,56 @@ export default function CampaniaDetallePage() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 w-16">#</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">ID Ejecución</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Base</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Estado</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Resultado</TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Fecha</TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleEjecSort('id')}
+                  >
+                    <div className="flex items-center">
+                      ID Ejecución
+                      {getEjecSortIcon('id')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleEjecSort('base_nombre')}
+                  >
+                    <div className="flex items-center">
+                      Base
+                      {getEjecSortIcon('base_nombre')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleEjecSort('estado_ejecucion')}
+                  >
+                    <div className="flex items-center">
+                      Estado
+                      {getEjecSortIcon('estado_ejecucion')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleEjecSort('total_llamadas')}
+                  >
+                    <div className="flex items-center">
+                      Resultado
+                      {getEjecSortIcon('total_llamadas')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleEjecSort('fecha_registro')}
+                  >
+                    <div className="flex items-center">
+                      Fecha
+                      {getEjecSortIcon('fecha_registro')}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-[10px] font-bold uppercase tracking-widest text-amber-500/70">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ejecuciones
+                {sortedEjecuciones
                   .slice((ejecucionesPage - 1) * ITEMS_PER_PAGE, ejecucionesPage * ITEMS_PER_PAGE)
                   .map((ejecucion, index) => (
                   <TableRow key={ejecucion.id} className="group">
@@ -1270,7 +1471,7 @@ export default function CampaniaDetallePage() {
                           )}
                           {ejecucion.llamadas_fallidas > 0 && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-medium">
-                              Fallidas: {ejecucion.llamadas_fallidas}
+                              No contestadas: {ejecucion.llamadas_fallidas}
                             </span>
                           )}
                           {ejecucion.llamadas_pendientes > 0 && (
