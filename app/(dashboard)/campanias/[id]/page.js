@@ -83,6 +83,24 @@ const formatHorarioAMPM = (horario) => {
   return `${formatHora24ToAMPM(inicio)} - ${formatHora24ToAMPM(fin)}`;
 };
 
+// Helper para formatear fecha y hora con AM/PM
+const formatFechaAmPm = (fecha) => {
+  if (!fecha) return '-';
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '-';
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const anio = d.getFullYear();
+  let horas = d.getHours();
+  const minutos = String(d.getMinutes()).padStart(2, '0');
+  const segundos = String(d.getSeconds()).padStart(2, '0');
+  const ampm = horas >= 12 ? 'PM' : 'AM';
+  horas = horas % 12;
+  horas = horas ? horas : 12;
+  const horasStr = String(horas).padStart(2, '0');
+  return `${dia}/${mes}/${anio} ${horasStr}:${minutos}:${segundos} ${ampm}`;
+};
+
 // Funcion para formatear el resultado JSON de ejecucion
 const formatResultado = (resultado) => {
   if (!resultado) return null;
@@ -1264,8 +1282,8 @@ export default function CampaniaDetallePage() {
                         </div>
                       ) : '-'}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {ejecucion.fecha_registro ? new Date(ejecucion.fecha_registro).toLocaleString() : '-'}
+                    <TableCell className="text-xs text-muted-foreground font-mono">
+                      {formatFechaAmPm(ejecucion.fecha_registro)}
                     </TableCell>
                     <TableCell>
                       <Button

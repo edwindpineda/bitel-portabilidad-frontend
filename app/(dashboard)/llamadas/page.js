@@ -85,6 +85,23 @@ const formatDuration = (seconds) => {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
+const formatFechaAmPm = (fecha) => {
+  if (!fecha) return '-';
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '-';
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const anio = d.getFullYear();
+  let horas = d.getHours();
+  const minutos = String(d.getMinutes()).padStart(2, '0');
+  const segundos = String(d.getSeconds()).padStart(2, '0');
+  const ampm = horas >= 12 ? 'PM' : 'AM';
+  horas = horas % 12;
+  horas = horas ? horas : 12;
+  const horasStr = String(horas).padStart(2, '0');
+  return `${dia}/${mes}/${anio} ${horasStr}:${minutos}:${segundos} ${ampm}`;
+};
+
 export default function LlamadasPage() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -428,12 +445,12 @@ export default function LlamadasPage() {
                       <TableCell>
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
-                          {formatDuration(llamada.duracion_seg)}
+                          {llamada.duracion_seg ?? '-'} seg
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDateTime(llamada.fecha_inicio)}
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {formatFechaAmPm(llamada.fecha_inicio)}
                         </div>
                       </TableCell>
                       <TableCell>

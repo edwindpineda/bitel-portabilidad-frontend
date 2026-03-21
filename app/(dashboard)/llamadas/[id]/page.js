@@ -69,6 +69,23 @@ const formatDateTime = (dateStr) => {
   });
 };
 
+const formatFechaAmPm = (fecha) => {
+  if (!fecha) return '-';
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '-';
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const anio = d.getFullYear();
+  let horas = d.getHours();
+  const minutos = String(d.getMinutes()).padStart(2, '0');
+  const segundos = String(d.getSeconds()).padStart(2, '0');
+  const ampm = horas >= 12 ? 'PM' : 'AM';
+  horas = horas % 12;
+  horas = horas ? horas : 12;
+  const horasStr = String(horas).padStart(2, '0');
+  return `${dia}/${mes}/${anio} ${horasStr}:${minutos}:${segundos} ${ampm}`;
+};
+
 export default function LlamadaDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -274,16 +291,16 @@ export default function LlamadaDetailPage() {
                 <p className="text-xs text-muted-foreground mb-1">Duracion</p>
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-sm font-medium">{formatDuration(llamada.duracion_seg)}</p>
+                  <p className="text-sm font-medium">{llamada.duracion_seg ?? '-'} seg</p>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Fecha Inicio</p>
-                <p className="text-sm font-medium">{formatDateTime(llamada.fecha_inicio)}</p>
+                <p className="text-sm font-medium font-mono">{formatFechaAmPm(llamada.fecha_inicio)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Fecha Fin</p>
-                <p className="text-sm font-medium">{formatDateTime(llamada.fecha_fin)}</p>
+                <p className="text-sm font-medium font-mono">{formatFechaAmPm(llamada.fecha_fin)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Fecha Registro</p>
@@ -539,7 +556,7 @@ export default function LlamadaDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Duracion</p>
-                <p className="font-medium">{formatDuration(llamada.duracion_seg)}</p>
+                <p className="font-medium">{llamada.duracion_seg ?? '-'} seg</p>
               </div>
             </div>
 

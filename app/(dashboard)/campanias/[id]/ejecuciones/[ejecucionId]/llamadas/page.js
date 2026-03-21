@@ -93,7 +93,7 @@ const formatearFechaHora = (fecha) => {
   const segundos = String(d.getSeconds()).padStart(2, '0');
   const ampm = horas >= 12 ? 'PM' : 'AM';
   horas = horas % 12;
-  horas = horas ? horas : 12; // 0 debe ser 12
+  horas = horas ? horas : 12;
   const horasStr = String(horas).padStart(2, '0');
   return `${dia}/${mes}/${anio} ${horasStr}:${minutos}:${segundos} ${ampm}`;
 };
@@ -207,7 +207,7 @@ export default function LlamadasEjecucionPage() {
 
   // Exportar a CSV
   const exportToCSV = () => {
-    const headers = ['Codigo', 'Contacto', 'Telefono', 'Tipificacion', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Duracion', 'Grabacion'];
+    const headers = ['Codigo', 'Contacto', 'Telefono', 'Tipificacion', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Duracion (seg)', 'Grabacion'];
     const data = filteredLlamadas.map((llamada) => [
       llamada.codigo_llamada || llamada.id || '',
       llamada.contacto_nombre || '',
@@ -216,7 +216,7 @@ export default function LlamadasEjecucionPage() {
       llamada.estado_llamada_nombre || '',
       formatearFechaHora(llamada.fecha_inicio),
       formatearFechaHora(llamada.fecha_fin),
-      formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin)),
+      llamada.duracion_seg ?? '-',
       llamada.archivo_llamada ? 'Si' : 'No',
     ]);
 
@@ -237,7 +237,7 @@ export default function LlamadasEjecucionPage() {
 
   // Exportar a Excel (formato XLSX simple usando CSV con extension xlsx)
   const exportToExcel = () => {
-    const headers = ['Codigo', 'Contacto', 'Telefono', 'Tipificacion', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Duracion', 'Grabacion'];
+    const headers = ['Codigo', 'Contacto', 'Telefono', 'Tipificacion', 'Estado', 'Fecha Inicio', 'Fecha Fin', 'Duracion (seg)', 'Grabacion'];
     const data = filteredLlamadas.map((llamada) => [
       llamada.codigo_llamada || llamada.id || '',
       llamada.contacto_nombre || '',
@@ -246,7 +246,7 @@ export default function LlamadasEjecucionPage() {
       llamada.estado_llamada_nombre || '',
       formatearFechaHora(llamada.fecha_inicio),
       formatearFechaHora(llamada.fecha_fin),
-      formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin)),
+      llamada.duracion_seg ?? '-',
       llamada.archivo_llamada ? 'Si' : 'No',
     ]);
 
@@ -282,7 +282,7 @@ export default function LlamadasEjecucionPage() {
           <td>${llamada.estado_llamada_nombre || ''}</td>
           <td>${formatearFechaHora(llamada.fecha_inicio)}</td>
           <td>${formatearFechaHora(llamada.fecha_fin)}</td>
-          <td>${formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin))}</td>
+          <td>${llamada.duracion_seg ?? '-'} seg</td>
           <td>${llamada.archivo_llamada ? 'Si' : 'No'}</td>
         </tr>
       `
@@ -429,8 +429,8 @@ export default function LlamadasEjecucionPage() {
         bVal = b.archivo_llamada ? 1 : 0;
         break;
       case 'duracion':
-        aVal = calcularDuracionSegundos(a.fecha_inicio, a.fecha_fin) ?? -1;
-        bVal = calcularDuracionSegundos(b.fecha_inicio, b.fecha_fin) ?? -1;
+        aVal = a.duracion_seg ?? -1;
+        bVal = b.duracion_seg ?? -1;
         break;
       case 'fecha':
         aVal = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : 0;
@@ -811,7 +811,7 @@ export default function LlamadasEjecucionPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-xs font-mono text-muted-foreground">
-                        {formatearDuracion(calcularDuracionSegundos(llamada.fecha_inicio, llamada.fecha_fin))}
+                        {llamada.duracion_seg ?? '-'} seg
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
@@ -1048,7 +1048,7 @@ export default function LlamadasEjecucionPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Duracion</p>
-                    <p className="font-medium">{formatearDuracion(calcularDuracionSegundos(selectedTranscripcionLlamada.fecha_inicio, selectedTranscripcionLlamada.fecha_fin))}</p>
+                    <p className="font-medium">{selectedTranscripcionLlamada.duracion_seg ?? '-'} seg</p>
                   </div>
                 </div>
 
