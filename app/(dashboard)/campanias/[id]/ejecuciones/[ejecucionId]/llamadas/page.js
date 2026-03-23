@@ -101,13 +101,26 @@ const formatearFechaHora = (fecha) => {
     hour12: true
   }).replace(',', '');
 };
+const obtenerTipificacionJerarquia = (llamada) => {
+  const niveles = [
+    llamada?.nombre_nivel_1,
+    llamada?.nombre_nivel_2,
+    llamada?.nombre_nivel_3,
+  ].filter(Boolean);
 
+  return niveles.length > 0 ? niveles.join(' > ') : '';
+};
+const obtenerTipificacionTexto = (llamada) => {
+  const jerarquia = obtenerTipificacionJerarquia(llamada);
+  if (jerarquia) return jerarquia;
+  return llamada?.tipificacion_llamada_nombre || '';
+};
 export default function LlamadasEjecucionPage() {
   const params = useParams();
   const router = useRouter();
   const campaniaId = params.id;
   const ejecucionId = params.ejecucionId;
-
+  const [errorCarga, setErrorCarga] = useState('');
   const [ejecucion, setEjecucion] = useState(null);
   const [llamadas, setLlamadas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,23 +155,29 @@ export default function LlamadasEjecucionPage() {
   }, [ejecucionId]);
 
   const loadData = async () => {
-    try {
-      setLoading(true);
-      const [ejecucionesRes, llamadasRes] = await Promise.all([
-        apiClient.get(`/crm/campanias/${campaniaId}/ejecuciones`),
-        apiClient.get(`/crm/llamadas/ejecucion/${ejecucionId}`),
-      ]);
+  try {
+    setLoading(true);
+    setErrorCarga('');
 
-      // Buscar la ejecucion actual
-      const ejecucionActual = (ejecucionesRes?.data || []).find(e => e.id === parseInt(ejecucionId));
-      setEjecucion(ejecucionActual);
-      setLlamadas(llamadasRes?.data || []);
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const [ejecucionesRes, llamadasRes] = await Promise.all([
+      apiClient.get(`/crm/campanias/${campaniaId}/ejecuciones`),
+      apiClient.get(`/crm/llamadas/ejecucion/${ejecucionId}`),
+    ]);
+
+    const ejecucionActual = (ejecucionesRes?.data || []).find(
+      (e) => e.id === parseInt(ejecucionId)
+    );
+
+    setEjecucion(ejecucionActual);
+    setLlamadas(llamadasRes?.data || []);
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+    setErrorCarga('No se pudo cargar la lista de llamadas. Intenta nuevamente.');
+    setLlamadas([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleRefresh = async () => {
     try {
@@ -216,7 +235,7 @@ export default function LlamadasEjecucionPage() {
       llamada.codigo_llamada || llamada.id || '',
       llamada.contacto_nombre || '',
       llamada.telefono || '',
-      llamada.tipificacion_llamada_nombre || '',
+      obtenerTipificacionTexto(llamada),
       llamada.estado_llamada_nombre || '',
       formatearFechaHora(llamada.fecha_inicio),
       formatearFechaHora(llamada.fecha_fin),
@@ -246,7 +265,7 @@ export default function LlamadasEjecucionPage() {
       llamada.codigo_llamada || llamada.id || '',
       llamada.contacto_nombre || '',
       llamada.telefono || '',
-      llamada.tipificacion_llamada_nombre || '',
+      obtenerTipificacionTexto(llamada),
       llamada.estado_llamada_nombre || '',
       formatearFechaHora(llamada.fecha_inicio),
       formatearFechaHora(llamada.fecha_fin),
@@ -282,7 +301,7 @@ export default function LlamadasEjecucionPage() {
           <td>${llamada.codigo_llamada || llamada.id || ''}</td>
           <td>${llamada.contacto_nombre || ''}</td>
           <td>${llamada.telefono || ''}</td>
-          <td>${llamada.tipificacion_llamada_nombre || ''}</td>
+          <td>${obtenerTipificacionTexto(llamada)}</td>
           <td>${llamada.estado_llamada_nombre || ''}</td>
           <td>${formatearFechaHora(llamada.fecha_inicio)}</td>
           <td>${formatearFechaHora(llamada.fecha_fin)}</td>
@@ -391,18 +410,20 @@ export default function LlamadasEjecucionPage() {
     const contacto = (llamada.contacto_nombre || '').toLowerCase();
     const telefono = (llamada.telefono || '').toLowerCase();
     const tipificacion = (llamada.tipificacion_llamada_nombre || '').toLowerCase();
-    const estadoLlamada = (llamada.estado_llamada_nombre || '').toLowerCase();
+    const tipificacionJerarquia = obtenerTipificacionJerarquia(llamada).toLowerCase();
+        const estadoLlamada = (llamada.estado_llamada_nombre || '').toLowerCase();
     const fechaInicio = formatearFechaHora(llamada.fecha_inicio).toLowerCase();
     const fechaFin = formatearFechaHora(llamada.fecha_fin).toLowerCase();
     return (
-      codigo.includes(term) ||
-      contacto.includes(term) ||
-      telefono.includes(term) ||
-      tipificacion.includes(term) ||
-      estadoLlamada.includes(term) ||
-      fechaInicio.includes(term) ||
-      fechaFin.includes(term)
-    );
+  codigo.includes(term) ||
+  contacto.includes(term) ||
+  telefono.includes(term) ||
+  tipificacion.includes(term) ||
+  tipificacionJerarquia.includes(term) ||
+  estadoLlamada.includes(term) ||
+  fechaInicio.includes(term) ||
+  fechaFin.includes(term)
+);
   });
 
   // Ordenar llamadas
@@ -425,8 +446,8 @@ export default function LlamadasEjecucionPage() {
         bVal = b.telefono || '';
         break;
       case 'tipificacion':
-        aVal = (a.tipificacion_llamada_nombre || '').toLowerCase();
-        bVal = (b.tipificacion_llamada_nombre || '').toLowerCase();
+        aVal = (obtenerTipificacionJerarquia(a) || a.tipificacion_llamada_nombre || '').toLowerCase();
+        bVal = (obtenerTipificacionJerarquia(b) || b.tipificacion_llamada_nombre || '').toLowerCase();
         break;
       case 'grabacion':
         aVal = a.archivo_llamada ? 1 : 0;
@@ -585,6 +606,13 @@ export default function LlamadasEjecucionPage() {
       </div>
 
       {/* Tabla de Llamadas */}
+      {errorCarga && (
+  <Card className="border-red-200 bg-red-50">
+    <CardContent className="p-4">
+      <p className="text-sm text-red-700 font-medium">{errorCarga}</p>
+    </CardContent>
+  </Card>
+)}
       <Card>
         <CardContent className="p-6">
           {/* Filtro de busqueda y Exportar */}
@@ -812,11 +840,19 @@ export default function LlamadasEjecucionPage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {llamada.telefono || '-'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[260px]">
                       {llamada.tipificacion_llamada_nombre ? (
-                        <Badge variant="secondary" className="text-[10px]">
-                          {llamada.tipificacion_llamada_nombre}
-                        </Badge>
+                        <div className="space-y-1">
+                          <Badge variant="secondary" className="text-[10px] w-fit">
+                            {llamada.tipificacion_llamada_nombre}
+                          </Badge>
+                      
+                          {obtenerTipificacionJerarquia(llamada) && (
+                            <div className="text-[10px] text-muted-foreground leading-relaxed break-words">
+                              {obtenerTipificacionJerarquia(llamada)}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">Sin tipificar</span>
                       )}
