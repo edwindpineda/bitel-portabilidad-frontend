@@ -43,7 +43,7 @@ const WA_WALLPAPER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200
 // Funcion para formatear fecha relativa
 const formatRelativeTime = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  const date = new Date(String(dateString).replace(' ', 'T'));
   if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diffMs = now - date;
@@ -506,8 +506,8 @@ export default function ConversacionesPage() {
         type: (msg.direccion === 'in' || msg.direccion === 'incoming') ? 'client' : 'ai',
         text: msg.contenido || '',
         file: msg.contenido_archivo || null,
-        timestamp: (msg.fecha_hora || msg.fecha_registro)
-          ? new Date((msg.fecha_hora || msg.fecha_registro) + "Z").toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
+        timestamp: (msg.fecha_hora)
+          ? new Date(String(msg.fecha_hora).replace(' ', 'T') + "Z").toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
           : ''
       }));
 
