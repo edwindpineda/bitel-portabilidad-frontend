@@ -15,7 +15,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Plus, Search, Pencil, Trash2, Loader2, Send, Eye, Users,
+  Plus, Search, Pencil, Trash2, Loader2, Send, Eye, Database,
   CheckCircle2, Clock, MessageSquare,
 } from 'lucide-react';
 
@@ -33,7 +33,7 @@ const ESTADO_STYLES = {
 export default function EnviosMasivosPage() {
   const [envios, setEnvios] = useState([]);
   const [plantillas, setPlantillas] = useState([]);
-  const [personas, setPersonas] = useState([]);
+  const [bases, setBases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -48,12 +48,12 @@ export default function EnviosMasivosPage() {
     descripcion: '',
     id_plantilla: '',
   });
-  const [selectedPersonas, setSelectedPersonas] = useState([]);
+  const [selectedBases, setSelectedBases] = useState([]);
 
   // Detail modal
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedEnvio, setSelectedEnvio] = useState(null);
-  const [envioPersonas, setEnvioPersonas] = useState([]);
+  const [envioBases, setEnvioBases] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Confirm envio modal
@@ -69,15 +69,15 @@ export default function EnviosMasivosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [enviosRes, plantillasRes, personasRes] = await Promise.all([
+      const [enviosRes, plantillasRes, basesRes] = await Promise.all([
         apiClient.get('/crm/envio-masivo-whatsapp').catch(() => ({ data: [] })),
         apiClient.get('/crm/plantillas-whatsapp').catch(() => ({ data: { templates: [] } })),
-        apiClient.get('/crm/persona').catch(() => ({ data: [] })),
+        apiClient.get('/crm/bases-numeros').catch(() => ({ data: [] })),
       ]);
       setEnvios(enviosRes?.data || []);
       const allPlantillas = plantillasRes?.data?.templates || plantillasRes?.data || [];
       setPlantillas(allPlantillas.filter(p => p.status === 'APPROVED'));
-      setPersonas(personasRes?.data || []);
+      setBases(basesRes?.data || []);
     } catch (error) {
       console.error('Error al cargar datos:', error);
       toast.error('Error al cargar datos');
@@ -94,7 +94,7 @@ export default function EnviosMasivosPage() {
   const openCreateModal = () => {
     setEditingEnvio(null);
     setFormData({ titulo: '', descripcion: '', id_plantilla: '' });
-    setSelectedPersonas([]);
+    setSelectedBases([]);
     setShowModal(true);
   };
 
@@ -115,14 +115,14 @@ export default function EnviosMasivosPage() {
       fecha_envio: fechaFormateada,
     });
 
-    // Cargar envio_persona del envio para edicion
+    // Cargar envio_base del envio para edicion
     try {
-      const response = await apiClient.get(`/crm/envio-persona/envio-masivo/${envio.id}`);
-      const personasIds = (response?.data || []).map(ep => ep.id_persona);
-      setSelectedPersonas(personasIds);
+      const response = await apiClient.get(`/crm/envio-base/envio-masivo/${envio.id}`);
+      const basesIds = (response?.data || []).map(eb => eb.id_base);
+      setSelectedBases(basesIds);
     } catch (error) {
-      console.error('Error al cargar envio_persona del envio:', error);
-      setSelectedPersonas([]);
+      console.error('Error al cargar envio_base del envio:', error);
+      setSelectedBases([]);
     }
 
     setShowModal(true);
@@ -134,8 +134,8 @@ export default function EnviosMasivosPage() {
       return;
     }
 
-    if (selectedPersonas.length === 0) {
-      toast.error('Debe seleccionar al menos una persona');
+    if (selectedBases.length === 0) {
+      toast.error('Debe seleccionar al menos una base');
       return;
     }
 
@@ -146,7 +146,7 @@ export default function EnviosMasivosPage() {
           id_plantilla: parseInt(formData.id_plantilla),
           titulo: formData.titulo,
           descripcion: formData.descripcion,
-          cantidad: selectedPersonas.length,
+          cantidad: selectedBases.length,
           fecha_envio: datosEnvio.fechaEnvio || null,
         });
         toast.success('Envio masivo actualizado');
@@ -156,7 +156,7 @@ export default function EnviosMasivosPage() {
           id_plantilla: parseInt(formData.id_plantilla),
           titulo: formData.titulo,
           descripcion: formData.descripcion,
-          cantidad: selectedPersonas.length,
+          cantidad: selectedBases.length,
           fecha_envio: datosEnvio.fechaEnvio || null,
           estado_envio: 'pendiente',
         });
@@ -165,11 +165,11 @@ export default function EnviosMasivosPage() {
         console.log('envioRes completo:', JSON.stringify(envioRes));
         console.log('envioId extraido:', envioId);
 
-        // Paso 2: Crear los envio_persona en bulk
-        if (envioId && selectedPersonas.length > 0) {
-          await apiClient.post('/crm/envio-persona/bulk', {
+        // Paso 2: Crear los envio_base en bulk
+        if (envioId && selectedBases.length > 0) {
+          await apiClient.post('/crm/envio-base/bulk', {
             id_envio_masivo: envioId,
-            personas: selectedPersonas.map(id_persona => ({ id_persona })),
+            bases: selectedBases.map(id_base => ({ id_base })),
           });
         }
 
@@ -210,25 +210,25 @@ export default function EnviosMasivosPage() {
     }
   };
 
-  // Usa el endpoint de envio-persona para cargar el detalle
+  // Usa el endpoint de envio-base para cargar el detalle
   const handleViewDetail = async (envio) => {
     setSelectedEnvio(envio);
     setShowDetailModal(true);
     setLoadingDetail(true);
     try {
-      const response = await apiClient.get(`/crm/envio-persona/envio-masivo/${envio.id}`);
-      setEnvioPersonas(response?.data || []);
+      const response = await apiClient.get(`/crm/envio-base/envio-masivo/${envio.id}`);
+      setEnvioBases(response?.data || []);
     } catch (error) {
       console.error('Error al cargar detalle:', error);
-      setEnvioPersonas([]);
+      setEnvioBases([]);
     } finally {
       setLoadingDetail(false);
     }
   };
 
-  const togglePersonaSelection = (id) => {
-    setSelectedPersonas(prev =>
-      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+  const toggleBaseSelection = (id) => {
+    setSelectedBases(prev =>
+      prev.includes(id) ? prev.filter(bid => bid !== id) : [...prev, id]
     );
   };
 
@@ -276,7 +276,7 @@ export default function EnviosMasivosPage() {
   const totalEnvios = envios.length;
   const totalPendientes = envios.filter(e => e.estado_envio === 'pendiente').length;
   const totalEntregados = envios.filter(e => e.estado_envio === 'entregado').length;
-  const totalPersonasCount = envios.reduce((sum, e) => sum + (e.cantidad || 0), 0);
+  const totalBasesCount = envios.reduce((sum, e) => sum + (e.cantidad || 0), 0);
 
   if (loading) {
     return (
@@ -355,12 +355,12 @@ export default function EnviosMasivosPage() {
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                  <p className="text-sm text-muted-foreground">Personas</p>
+                  <p className="text-sm text-muted-foreground">Bases</p>
                 </div>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{totalPersonasCount}</p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">{totalBasesCount}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-xl">
-                <Users className="w-6 h-6 text-blue-500" />
+                <Database className="w-6 h-6 text-blue-500" />
               </div>
             </div>
           </CardContent>
@@ -396,7 +396,7 @@ export default function EnviosMasivosPage() {
               <TableHead className="text-xs font-bold uppercase w-10 text-center">#</TableHead>
               <TableHead className="text-xs font-bold uppercase">Titulo</TableHead>
               <TableHead className="text-xs font-bold uppercase">Plantilla</TableHead>
-              <TableHead className="text-xs font-bold uppercase text-center">Personas</TableHead>
+              <TableHead className="text-xs font-bold uppercase text-center">Bases</TableHead>
               <TableHead className="text-xs font-bold uppercase text-center">Exitosos</TableHead>
               <TableHead className="text-xs font-bold uppercase text-center">Fallidos</TableHead>
               <TableHead className="text-xs font-bold uppercase">Estado</TableHead>
@@ -546,10 +546,10 @@ export default function EnviosMasivosPage() {
         formData={formData}
         setFormData={setFormData}
         plantillas={plantillas}
-        personas={personas}
-        selectedPersonas={selectedPersonas}
-        onTogglePersona={togglePersonaSelection}
-        onSelectAllPersonas={setSelectedPersonas}
+        bases={bases}
+        selectedBases={selectedBases}
+        onToggleBase={toggleBaseSelection}
+        onSelectAllBases={setSelectedBases}
         onSave={handleSave}
         saving={saving}
       />
@@ -558,7 +558,7 @@ export default function EnviosMasivosPage() {
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
         envio={selectedEnvio}
-        personas={envioPersonas}
+        bases={envioBases}
         loading={loadingDetail}
       />
 

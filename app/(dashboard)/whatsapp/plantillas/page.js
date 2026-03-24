@@ -30,6 +30,7 @@ const CATEGORY_LABELS = {
 const EMPTY_FORM = {
   name: '', category: 'MARKETING', language: 'es',
   header_type: 'TEXT', header_text: '', body: '', footer: '', buttons: [],
+  id_formato: '',
 };
 
 const toUIFormat = (p) => {
@@ -86,6 +87,8 @@ const toUIFormat = (p) => {
     createdAt: p.fecha_registro,
     stats: { enviados: p.stats_enviados || 0, entregados: p.stats_entregados || 0, leidos: p.stats_leidos || 0 },
     url_imagen: p.url_imagen,
+    id_formato: p.id_formato || null,
+    formato_nombre: p.formato_nombre || null,
   };
 };
 
@@ -106,8 +109,58 @@ export default function WhatsAppPlantillasPage() {
   const [sending, setSending] = useState(false);
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
+  const [formatos, setFormatos] = useState([]);
+  const [loadingFormatos, setLoadingFormatos] = useState(false);
+  const [campos, setCampos] = useState([]);
+  const [loadingCampos, setLoadingCampos] = useState(false);
+  const [variableCampos, setVariableCampos] = useState({});
+  const [originalFormData, setOriginalFormData] = useState(null);
 
   useEffect(() => { loadPlantillas(); }, []);
+
+  const loadFormatos = async () => {
+    try {
+      setLoadingFormatos(true);
+      const res = await apiClient.get('/crm/formatos');
+      setFormatos(res?.data || []);
+    } catch (error) {
+      console.error('Error al cargar formatos:', error);
+    } finally {
+      setLoadingFormatos(false);
+    }
+  };
+
+  const loadCampos = async (idFormato) => {
+    if (!idFormato) {
+      setCampos([]);
+      return;
+    }
+    try {
+      setLoadingCampos(true);
+      const res = await apiClient.get(`/crm/formatos/${idFormato}/campos`);
+      setCampos(res?.data || []);
+    } catch (error) {
+      console.error('Error al cargar campos:', error);
+      setCampos([]);
+    } finally {
+      setLoadingCampos(false);
+    }
+  };
+
+  const loadCamposPlantilla = async (idPlantilla) => {
+    if (!idPlantilla) return;
+    try {
+      const res = await apiClient.get(`/crm/plantillas-whatsapp/${idPlantilla}/campos`);
+      const camposPlantilla = res?.data || [];
+      const mapping = {};
+      camposPlantilla.forEach((cp, idx) => {
+        mapping[String(idx + 1)] = String(cp.id_formato_campo);
+      });
+      setVariableCampos(mapping);
+    } catch (error) {
+      console.error('Error al cargar campos de plantilla:', error);
+    }
+  };
 
   const loadPlantillas = async () => {
     try {
@@ -133,20 +186,37 @@ export default function WhatsAppPlantillasPage() {
   const openCreateModal = () => {
     setEditingPlantilla(null);
     setFormData(EMPTY_FORM);
+    setOriginalFormData(null);
     setMediaFile(null);
     setMediaPreview(null);
+    setCampos([]);
+    setVariableCampos({});
+    loadFormatos();
     setShowModal(true);
   };
 
   const openEditModal = (plantilla) => {
     setEditingPlantilla(plantilla);
-    setFormData({
+    const editForm = {
       name: plantilla.name, category: plantilla.category, language: plantilla.language,
       header_type: plantilla.components.header?.type || 'TEXT',
       header_text: plantilla.components.header?.text || '',
       body: plantilla.components.body, footer: plantilla.components.footer || '',
       buttons: plantilla.components.buttons || [],
-    });
+      id_formato: plantilla.id_formato || '',
+    };
+    setFormData(editForm);
+    setOriginalFormData(editForm);
+    loadFormatos();
+    if (plantilla.id_formato) {
+      loadCampos(plantilla.id_formato);
+    } else {
+      setCampos([]);
+    }
+    setVariableCampos({});
+    if (plantilla.id_formato && plantilla.id) {
+      loadCamposPlantilla(plantilla.id);
+    }
     setMediaFile(null);
     if (plantilla.url_imagen) {
       setMediaPreview(`${API_BASE_URL}${plantilla.url_imagen}`);
@@ -157,8 +227,8 @@ export default function WhatsAppPlantillasPage() {
   };
 
   const handleSave = async () => {
+    console.log('[handleSave] editingPlantilla:', editingPlantilla);
     if (!formData.name || !formData.body) { toast.error('Completa los campos obligatorios: Nombre y Contenido'); return; }
-    if (editingPlantilla && !editingPlantilla.id) { toast.error('Esta plantilla no tiene registro local. Eliminala y creala de nuevo.'); return; }
 
     const mediaTypes = ['IMAGE', 'VIDEO', 'DOCUMENT'];
     if (mediaTypes.includes(formData.header_type) && !mediaFile && !mediaPreview) {
@@ -168,44 +238,94 @@ export default function WhatsAppPlantillasPage() {
 
     setSaving(true);
     try {
-      if (mediaFile) {
-        const formDataToSend = new FormData();
-        formDataToSend.append('name', formData.name);
-        formDataToSend.append('category', formData.category);
-        formDataToSend.append('language', formData.language);
-        formDataToSend.append('header_type', formData.header_type);
-        formDataToSend.append('header_text', formData.header_text);
-        formDataToSend.append('body', formData.body);
-        formDataToSend.append('footer', formData.footer);
-        formDataToSend.append('buttons', JSON.stringify(formData.buttons));
-        formDataToSend.append('media', mediaFile);
+      let plantillaId = editingPlantilla?.id || null;
 
-        if (editingPlantilla) {
-          formDataToSend.append('meta_template_id', editingPlantilla.meta_id);
-          await apiClient.put(`/crm/plantillas-whatsapp/${editingPlantilla.id}`, formDataToSend, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          toast.success('Plantilla actualizada correctamente');
+      // Detectar si solo cambio el mapeo de campos (no el contenido de la plantilla)
+      const templateChanged = !editingPlantilla || !originalFormData || !!mediaFile ||
+        originalFormData.name !== formData.name ||
+        originalFormData.category !== formData.category ||
+        originalFormData.language !== formData.language ||
+        originalFormData.header_type !== formData.header_type ||
+        originalFormData.header_text !== formData.header_text ||
+        originalFormData.body !== formData.body ||
+        originalFormData.footer !== formData.footer ||
+        JSON.stringify(originalFormData.buttons) !== JSON.stringify(formData.buttons);
+
+      // editingPlantilla con id local = PUT (update), sin id local o nuevo = POST (create)
+      const isUpdate = editingPlantilla && editingPlantilla.id;
+
+      if (templateChanged) {
+        // Contenido de plantilla cambio, guardar en Meta y BD
+        if (mediaFile) {
+          const formDataToSend = new FormData();
+          formDataToSend.append('name', formData.name);
+          formDataToSend.append('category', formData.category);
+          formDataToSend.append('language', formData.language);
+          formDataToSend.append('header_type', formData.header_type);
+          formDataToSend.append('header_text', formData.header_text);
+          formDataToSend.append('body', formData.body);
+          formDataToSend.append('footer', formData.footer);
+          formDataToSend.append('buttons', JSON.stringify(formData.buttons));
+          if (formData.id_formato) formDataToSend.append('id_formato', formData.id_formato);
+          formDataToSend.append('media', mediaFile);
+
+          if (isUpdate) {
+            formDataToSend.append('meta_template_id', editingPlantilla.meta_id);
+            await apiClient.put(`/crm/plantillas-whatsapp/${editingPlantilla.id}`, formDataToSend, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Plantilla actualizada correctamente');
+          } else {
+            if (editingPlantilla?.meta_id) formDataToSend.append('meta_template_id', editingPlantilla.meta_id);
+            const res = await apiClient.post('/crm/plantillas-whatsapp', formDataToSend, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            plantillaId = res?.data?.id || null;
+            toast.success(editingPlantilla ? 'Plantilla actualizada correctamente' : 'Plantilla creada. Pendiente de aprobacion por Meta.');
+          }
         } else {
-          await apiClient.post('/crm/plantillas-whatsapp', formDataToSend, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
-          toast.success('Plantilla creada. Pendiente de aprobacion por Meta.');
+          const payload = {
+            name: formData.name, category: formData.category, language: formData.language,
+            header_type: formData.header_type, header_text: formData.header_text,
+            body: formData.body, footer: formData.footer, buttons: formData.buttons,
+            id_formato: formData.id_formato || null,
+          };
+          if (isUpdate) {
+            payload.meta_template_id = editingPlantilla.meta_id;
+            await apiClient.put(`/crm/plantillas-whatsapp/${editingPlantilla.id}`, payload);
+            toast.success('Plantilla actualizada correctamente');
+          } else {
+            if (editingPlantilla?.meta_id) payload.meta_template_id = editingPlantilla.meta_id;
+            const res = await apiClient.post('/crm/plantillas-whatsapp', payload);
+            plantillaId = res?.data?.id || null;
+            toast.success(editingPlantilla ? 'Plantilla actualizada correctamente' : 'Plantilla creada. Pendiente de aprobacion por Meta.');
+          }
         }
-      } else {
-        const payload = {
-          name: formData.name, category: formData.category, language: formData.language,
-          header_type: formData.header_type, header_text: formData.header_text,
-          body: formData.body, footer: formData.footer, buttons: formData.buttons,
-        };
-        if (editingPlantilla) {
-          payload.meta_template_id = editingPlantilla.meta_id;
-          await apiClient.put(`/crm/plantillas-whatsapp/${editingPlantilla.id}`, payload);
-          toast.success('Plantilla actualizada correctamente');
-        } else {
-          await apiClient.post('/crm/plantillas-whatsapp', payload);
-          toast.success('Plantilla creada. Pendiente de aprobacion por Meta.');
+      }
+
+      // Sincronizar mapeo de variables con campos del formato
+      if (plantillaId && formData.id_formato && Object.keys(variableCampos).length > 0) {
+        try {
+          const variables = extractVariables(formData.body);
+          const campoIds = variables
+            .map((varNum) => variableCampos[varNum])
+            .filter(Boolean)
+            .map(Number);
+
+          if (campoIds.length > 0) {
+            await apiClient.put(`/crm/plantillas-whatsapp/${plantillaId}/campos/sync`, {
+              campo_ids: campoIds,
+            });
+          }
+        } catch (syncError) {
+          console.error('Error al sincronizar campos:', syncError);
+          toast.error('Plantilla guardada, pero hubo un error al guardar el mapeo de campos');
         }
+      }
+
+      // Si solo cambio el mapeo y no el template, mostrar feedback
+      if (!templateChanged && editingPlantilla) {
+        toast.success('Mapeo de campos actualizado');
       }
 
       setShowModal(false);
@@ -214,7 +334,8 @@ export default function WhatsAppPlantillasPage() {
       loadPlantillas();
     } catch (error) {
       console.error('Error al guardar:', error);
-      toast.error(error?.msg || 'Error al guardar la plantilla');
+      const errorMsg = typeof error === 'string' ? error : (error?.msg || error?.message || 'Error al guardar la plantilla');
+      toast.error(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -469,7 +590,10 @@ export default function WhatsAppPlantillasPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-sm font-semibold text-foreground truncate">{plantilla.name}</h3>
-                            <p className="text-xs text-muted-foreground">{CATEGORY_LABELS[plantilla.category]} · {plantilla.language?.toUpperCase()}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {CATEGORY_LABELS[plantilla.category]} · {plantilla.language?.toUpperCase()}
+                              {plantilla.formato_nombre && <> · <span className="text-blue-600">{plantilla.formato_nombre}</span></>}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -601,10 +725,11 @@ export default function WhatsAppPlantillasPage() {
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="bienvenida_lead"
+                        disabled={!!editingPlantilla}
                       />
                       <p className="text-xs text-muted-foreground mt-1.5 flex items-center space-x-1">
                         <Info className="w-3 h-3" />
-                        <span>Solo letras, numeros y guiones bajos</span>
+                        <span>{editingPlantilla ? 'El nombre no se puede modificar' : 'Solo letras, numeros y guiones bajos'}</span>
                       </p>
                     </div>
                     <div>
@@ -619,6 +744,51 @@ export default function WhatsAppPlantillasPage() {
                         <option value="AUTHENTICATION">Autenticacion</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Idioma</label>
+                    <select
+                      value={formData.language}
+                      onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                      className="w-full h-10 px-4 border border-input rounded-md bg-background text-sm focus:ring-2 focus:ring-ring"
+                      disabled={!!editingPlantilla}
+                    >
+                      <option value="es">Español</option>
+                      <option value="en">Ingles</option>
+                      <option value="pt_BR">Portugues</option>
+                    </select>
+                    {editingPlantilla && (
+                      <p className="text-xs text-muted-foreground mt-1.5 flex items-center space-x-1">
+                        <Info className="w-3 h-3" />
+                        <span>El idioma no se puede modificar</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Formato */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Formato</label>
+                    <select
+                      value={formData.id_formato}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setFormData({ ...formData, id_formato: newId });
+                        setVariableCampos({});
+                        loadCampos(newId);
+                      }}
+                      className="w-full h-10 px-4 border border-input rounded-md bg-background text-sm focus:ring-2 focus:ring-ring"
+                      disabled={loadingFormatos}
+                    >
+                      <option value="">Sin formato</option>
+                      {formatos.map((formato) => (
+                        <option key={formato.id} value={formato.id}>{formato.nombre}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1.5 flex items-center space-x-1">
+                      <Info className="w-3 h-3" />
+                      <span>Asocia un formato de datos a esta plantilla</span>
+                    </p>
                   </div>
 
                   {/* Header */}
@@ -638,6 +808,7 @@ export default function WhatsAppPlantillasPage() {
                               }
                             }}
                             className="w-full h-9 px-3 border border-input rounded-md bg-background text-sm focus:ring-2 focus:ring-ring"
+                            disabled={!!editingPlantilla}
                           >
                             <option value="TEXT">Texto</option>
                             <option value="IMAGE">Imagen</option>
@@ -751,6 +922,50 @@ export default function WhatsAppPlantillasPage() {
                       <span className="text-xs text-muted-foreground">{formData.body.length}/1024</span>
                     </div>
                   </div>
+
+                  {/* Variable - Campo mapping */}
+                  {formData.id_formato && extractVariables(formData.body).length > 0 && (
+                    <Card className="bg-blue-50/50 border-blue-200">
+                      <CardContent className="p-4">
+                        <h3 className="text-sm font-semibold text-foreground mb-1">Mapeo de Variables</h3>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Asigna un campo del formato a cada variable detectada en el mensaje
+                        </p>
+                        {loadingCampos ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            <span className="text-sm text-muted-foreground">Cargando campos...</span>
+                          </div>
+                        ) : campos.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-3">
+                            El formato seleccionado no tiene campos configurados
+                          </p>
+                        ) : (
+                          <div className="grid gap-3">
+                            {extractVariables(formData.body).map((varNum) => (
+                              <div key={varNum} className="flex items-center gap-3">
+                                <span className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-sm font-semibold min-w-[60px]">
+                                  {`{{${varNum}}}`}
+                                </span>
+                                <select
+                                  value={variableCampos[varNum] || ''}
+                                  onChange={(e) => setVariableCampos({ ...variableCampos, [varNum]: e.target.value })}
+                                  className="flex-1 h-9 px-3 border border-input rounded-md bg-background text-sm focus:ring-2 focus:ring-ring"
+                                >
+                                  <option value="">Seleccionar campo...</option>
+                                  {campos.map((campo) => (
+                                    <option key={campo.id} value={campo.id}>
+                                      {campo.etiqueta || campo.nombre_campo}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Footer */}
                   <div>

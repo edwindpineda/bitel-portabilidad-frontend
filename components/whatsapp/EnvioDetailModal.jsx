@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Eye, Users, Loader2 } from 'lucide-react';
+import { Eye, Database, Loader2 } from 'lucide-react';
 
 const ESTADO_STYLES = {
   pendiente: { className: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500 animate-pulse', label: 'Pendiente' },
@@ -20,7 +20,7 @@ export default function EnvioDetailModal({
   open,
   onOpenChange,
   envio,
-  personas,
+  bases,
   loading,
 }) {
   if (!envio) return null;
@@ -72,7 +72,7 @@ export default function EnvioDetailModal({
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-3">Personas del Envio</h3>
+              <h3 className="text-sm font-semibold mb-3">Bases del Envio</h3>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -82,23 +82,28 @@ export default function EnvioDetailModal({
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30">
-                        <TableHead className="text-xs">Persona</TableHead>
-                        <TableHead className="text-xs">Celular</TableHead>
+                        <TableHead className="text-xs">Base</TableHead>
+                        <TableHead className="text-xs text-center">Registros</TableHead>
                         <TableHead className="text-xs">Estado</TableHead>
                         <TableHead className="text-xs">Fecha Envio</TableHead>
                         <TableHead className="text-xs">Error</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {personas.map((ep) => {
-                        const estadoStyle = ESTADO_STYLES[ep.estado] || ESTADO_STYLES.pendiente;
+                      {bases.map((eb) => {
+                        const estadoStyle = ESTADO_STYLES[eb.estado] || ESTADO_STYLES.pendiente;
                         return (
-                          <TableRow key={ep.id}>
-                            <TableCell className="text-sm font-medium">
-                              {ep.persona_nombre || '-'}
+                          <TableRow key={eb.id}>
+                            <TableCell>
+                              <div>
+                                <span className="text-sm font-medium">{eb.base_nombre || '-'}</span>
+                                {eb.base_descripcion && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">{eb.base_descripcion}</p>
+                                )}
+                              </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {ep.persona_celular || '-'}
+                            <TableCell className="text-center">
+                              <span className="text-sm font-medium">{eb.base_total_registros || 0}</span>
                             </TableCell>
                             <TableCell>
                               <Badge className={estadoStyle.className}>
@@ -107,20 +112,20 @@ export default function EnvioDetailModal({
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                              {ep.fecha_envio ? new Date(ep.fecha_envio).toLocaleString() : '-'}
+                              {eb.fecha_envio ? new Date(eb.fecha_envio).toLocaleString() : '-'}
                             </TableCell>
                             <TableCell className="text-xs text-red-600 max-w-[150px] truncate">
-                              {ep.error_mensaje || '-'}
+                              {eb.error_mensaje || '-'}
                             </TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
-                  {personas.length === 0 && (
+                  {bases.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8">
-                      <Users className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                      <p className="text-sm text-muted-foreground">No hay personas</p>
+                      <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                      <p className="text-sm text-muted-foreground">No hay bases asignadas</p>
                     </div>
                   )}
                 </div>

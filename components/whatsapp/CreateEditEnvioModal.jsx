@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Send, Loader2, FileText, Check, ChevronLeft, ChevronRight, Users, Search, Zap, Calendar } from 'lucide-react';
+import { Send, Loader2, FileText, Check, ChevronLeft, ChevronRight, Database, Search, Zap, Calendar } from 'lucide-react';
 import PlantillaPreview from './PlantillaPreview';
 
 const PASOS = [
   { num: 1, titulo: 'Plantilla', icon: FileText },
-  { num: 2, titulo: 'Destinatarios', icon: Users },
+  { num: 2, titulo: 'Bases', icon: Database },
   { num: 3, titulo: 'Confirmar', icon: Send },
 ];
 
@@ -26,10 +26,10 @@ export default function CreateEditEnvioModal({
   formData,
   setFormData,
   plantillas,
-  personas,
-  selectedPersonas,
-  onTogglePersona,
-  onSelectAllPersonas,
+  bases,
+  selectedBases,
+  onToggleBase,
+  onSelectAllBases,
   onSave,
   saving,
 }) {
@@ -53,16 +53,16 @@ export default function CreateEditEnvioModal({
     }
   }, [open, editingEnvio, formData.fecha_envio]);
 
-  const filteredPersonas = personas.filter(p =>
-    p.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.celular?.includes(searchTerm) ||
-    p.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredBases = bases.filter(b =>
+    b.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    b.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    b.formato_nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const puedeAvanzar = () => {
     switch (pasoActual) {
       case 1: return formData.titulo && formData.id_plantilla;
-      case 2: return isEditing || selectedPersonas.length > 0;
+      case 2: return isEditing || selectedBases.length > 0;
       case 3: return true;
       default: return false;
     }
@@ -74,10 +74,10 @@ export default function CreateEditEnvioModal({
   };
 
   const handleSelectAll = () => {
-    if (selectedPersonas.length === filteredPersonas.length) {
-      onSelectAllPersonas([]);
+    if (selectedBases.length === filteredBases.length) {
+      onSelectAllBases([]);
     } else {
-      onSelectAllPersonas(filteredPersonas.map(p => p.id));
+      onSelectAllBases(filteredBases.map(b => b.id));
     }
   };
 
@@ -172,15 +172,15 @@ export default function CreateEditEnvioModal({
   const renderPaso2 = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">Seleccionar Personas *</label>
+        <label className="text-sm font-medium">Seleccionar Bases de Numeros *</label>
         <Badge variant="secondary" className="bg-[#25D366]/10 text-[#25D366]">
-          {selectedPersonas.length} seleccionado{selectedPersonas.length !== 1 ? 's' : ''}
+          {selectedBases.length} seleccionada{selectedBases.length !== 1 ? 's' : ''}
         </Badge>
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nombre, celular o email..."
+          placeholder="Buscar por nombre, descripcion o formato..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -189,12 +189,12 @@ export default function CreateEditEnvioModal({
       <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg">
         <label className="flex items-center gap-2 cursor-pointer">
           <Checkbox
-            checked={selectedPersonas.length === filteredPersonas.length && filteredPersonas.length > 0}
+            checked={selectedBases.length === filteredBases.length && filteredBases.length > 0}
             onCheckedChange={handleSelectAll}
           />
           <span className="text-sm font-medium">Seleccionar todos</span>
         </label>
-        <span className="text-xs text-muted-foreground">{filteredPersonas.length} personas encontradas</span>
+        <span className="text-xs text-muted-foreground">{filteredBases.length} bases encontradas</span>
       </div>
       <div className="border rounded-lg max-h-[300px] overflow-y-auto">
         <Table>
@@ -202,34 +202,51 @@ export default function CreateEditEnvioModal({
             <TableRow className="bg-muted/30">
               <TableHead className="w-10" />
               <TableHead className="text-xs">Nombre</TableHead>
-              <TableHead className="text-xs">Celular</TableHead>
-              <TableHead className="text-xs">Email</TableHead>
+              <TableHead className="text-xs">Formato</TableHead>
+              <TableHead className="text-xs text-center">Registros</TableHead>
+              <TableHead className="text-xs">Fecha</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPersonas.map((persona) => (
+            {filteredBases.map((base) => (
               <TableRow
-                key={persona.id}
-                className={`cursor-pointer hover:bg-muted/50 ${selectedPersonas.includes(persona.id) ? 'bg-[#25D366]/5' : ''}`}
-                onClick={() => onTogglePersona(persona.id)}
+                key={base.id}
+                className={`cursor-pointer hover:bg-muted/50 ${selectedBases.includes(base.id) ? 'bg-[#25D366]/5' : ''}`}
+                onClick={() => onToggleBase(base.id)}
               >
                 <TableCell>
                   <Checkbox
-                    checked={selectedPersonas.includes(persona.id)}
-                    onCheckedChange={() => onTogglePersona(persona.id)}
+                    checked={selectedBases.includes(base.id)}
+                    onCheckedChange={() => onToggleBase(base.id)}
                   />
                 </TableCell>
-                <TableCell className="text-sm">{persona.nombre_completo}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{persona.celular || '-'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]">{persona.email || '-'}</TableCell>
+                <TableCell>
+                  <div>
+                    <span className="text-sm font-medium">{base.nombre}</span>
+                    {base.descripcion && (
+                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{base.descripcion}</p>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border border-blue-200/50">
+                    {base.formato_nombre || 'Sin formato'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className="text-sm font-medium">{base.total_registros || 0}</span>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {base.fecha_registro ? new Date(base.fecha_registro).toLocaleDateString() : '-'}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        {filteredPersonas.length === 0 && (
+        {filteredBases.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8">
-            <Users className="h-8 w-8 text-muted-foreground/30 mb-2" />
-            <p className="text-sm text-muted-foreground">No hay personas</p>
+            <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
+            <p className="text-sm text-muted-foreground">No hay bases de numeros</p>
           </div>
         )}
       </div>
@@ -294,9 +311,9 @@ export default function CreateEditEnvioModal({
                 </div>
               )}
               <div className="flex justify-between items-center py-2 border-b border-border/50">
-                <span className="text-sm text-muted-foreground">Destinatarios:</span>
+                <span className="text-sm text-muted-foreground">Bases seleccionadas:</span>
                 <Badge className="bg-[#25D366] text-white">
-                  {isEditing ? (editingEnvio?.cantidad || 0) : selectedPersonas.length} personas
+                  {isEditing ? (editingEnvio?.cantidad || 0) : selectedBases.length} base{(isEditing ? (editingEnvio?.cantidad || 0) : selectedBases.length) !== 1 ? 's' : ''}
                 </Badge>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/50">
