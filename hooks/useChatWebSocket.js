@@ -126,10 +126,27 @@ const useChatWebSocket = (contactoId, idEmpresa, onNuevoMensaje, onMensajeEnviad
         }
     }, [lastMessage])
 
+    // Ref para resolver promesas de envío pendientes
+    const pendingEnvioRef = useRef(null)
+
+    // Manejar respuestas de envío del WS
+    useEffect(() => {
+        if (lastMessage) {
+            try {
+                const data = JSON.parse(lastMessage.data)
+                if (data.action === 'enviar_mensaje' || data.type === 'mensaje_enviado' || (data.type === 'error' && data.action === 'enviar_mensaje')) {
+                    if (pendingEnvioRef.current) {
+                        pendingEnvioRef.current(data.type !== 'error')
+                        pendingEnvioRef.current = null
+                    }
+                }
+            } catch {}
+        }
+    }, [lastMessage])
+
     const enviarMensaje = useCallback(async (contenido, telefono) => {
         if (!contenido.trim()) return false
 
-        // Verificar si está conectado antes de intentar enviar
         if (readyState !== ReadyState.OPEN) {
             console.warn('WebSocket no está conectado, no se puede enviar mensaje')
             return false
@@ -137,16 +154,29 @@ const useChatWebSocket = (contactoId, idEmpresa, onNuevoMensaje, onMensajeEnviad
 
         setEnviando(true)
         try {
-            // Formato que espera el servidor: { action, telefono, contenido, id_contacto, id_empresa }
-            sendMessage(JSON.stringify({
-                action: 'enviar_mensaje',
-                telefono: telefono,
-                contenido: contenido,
-                id_contacto: contactoId,
-                id_empresa: idEmpresa
-            }))
-            console.log('WebSocket: enviar_mensaje enviado', { telefono, contenido, id_contacto: contactoId, id_empresa: idEmpresa })
-            return true
+            // Esperar respuesta del WS con timeout de 8s
+            const resultado = await new Promise((resolve) => {
+                const timeout = setTimeout(() => {
+                    pendingEnvioRef.current = null
+                    resolve(false)
+                }, 8000)
+
+                pendingEnvioRef.current = (success) => {
+                    clearTimeout(timeout)
+                    resolve(success)
+                }
+
+                sendMessage(JSON.stringify({
+                    action: 'enviar_mensaje',
+                    telefono: telefono,
+                    contenido: contenido,
+                    id_contacto: contactoId,
+                    id_empresa: idEmpresa
+                }))
+                console.log('WebSocket: enviar_mensaje enviado', { telefono, contenido, id_contacto: contactoId, id_empresa: idEmpresa })
+            })
+
+            return resultado
         } catch (error) {
             console.error('Error al enviar mensaje por WebSocket:', error)
             return false

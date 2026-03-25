@@ -142,7 +142,6 @@ export default function EnviosMasivosPage() {
     setSaving(true);
     try {
       if (editingEnvio) {
-        // Actualizar datos del envío masivo
         await apiClient.put(`/crm/envio-masivo-whatsapp/${editingEnvio.id}`, {
           id_plantilla: parseInt(formData.id_plantilla),
           titulo: formData.titulo,
@@ -150,12 +149,6 @@ export default function EnviosMasivosPage() {
           cantidad: selectedBases.length,
           fecha_envio: datosEnvio.fechaEnvio || null,
         });
-
-        // Sincronizar bases (eliminar antiguas y crear nuevas)
-        await apiClient.put(`/crm/envio-base/sync/${editingEnvio.id}`, {
-          bases: selectedBases.map(id_base => ({ id_base })),
-        });
-
         toast.success('Envio masivo actualizado');
       } else {
         // Paso 1: Crear el envio masivo
