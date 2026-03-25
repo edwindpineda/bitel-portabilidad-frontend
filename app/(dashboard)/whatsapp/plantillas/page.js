@@ -169,10 +169,11 @@ export default function WhatsAppPlantillasPage() {
       const camposPlantilla = res?.data || [];
       const mapping = {};
       camposPlantilla.forEach((cp, idx) => {
+        const varNum = String(cp.orden || (idx + 1));
         if (cp.id_campo_sistema) {
-          mapping[String(idx + 1)] = `sistema_${cp.id_campo_sistema}`;
+          mapping[varNum] = `sistema_${cp.id_campo_sistema}`;
         } else if (cp.id_formato_campo) {
-          mapping[String(idx + 1)] = `formato_${cp.id_formato_campo}`;
+          mapping[varNum] = `formato_${cp.id_formato_campo}`;
         }
       });
       setVariableCampos(mapping);
@@ -334,11 +335,12 @@ export default function WhatsAppPlantillasPage() {
             .map((varNum) => {
               const val = variableCampos[varNum];
               if (!val) return null;
+              const orden = Number(varNum);
               if (String(val).startsWith('sistema_')) {
-                return { id_campo_sistema: Number(String(val).replace('sistema_', '')) };
+                return { id_campo_sistema: Number(String(val).replace('sistema_', '')), orden };
               }
               if (String(val).startsWith('formato_')) {
-                return { id_formato_campo: Number(String(val).replace('formato_', '')) };
+                return { id_formato_campo: Number(String(val).replace('formato_', '')), orden };
               }
               return null;
             })
@@ -595,13 +597,13 @@ export default function WhatsAppPlantillasPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPlantillas.map((plantilla) => {
+            {filteredPlantillas.map((plantilla, index) => {
               const statusStyle = STATUS_STYLES[plantilla.status];
               const deliveryRate = plantilla.stats.enviados > 0 ? Math.round((plantilla.stats.entregados / plantilla.stats.enviados) * 100) : 0;
               const readRate = plantilla.stats.entregados > 0 ? Math.round((plantilla.stats.leidos / plantilla.stats.entregados) * 100) : 0;
 
               return (
-                <Card key={plantilla.id} className="group overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+                <Card key={`plantilla-${index}`} className="group overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all duration-300">
                   {/* Header */}
                   <div className={`px-5 py-4 ${
                     plantilla.status === 'APPROVED' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100' :
