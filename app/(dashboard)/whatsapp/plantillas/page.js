@@ -113,6 +113,8 @@ export default function WhatsAppPlantillasPage() {
   const [loadingFormatos, setLoadingFormatos] = useState(false);
   const [campos, setCampos] = useState([]);
   const [loadingCampos, setLoadingCampos] = useState(false);
+  const [camposSistema, setCamposSistema] = useState([]);
+  const [loadingCamposSistema, setLoadingCamposSistema] = useState(false);
   const [variableCampos, setVariableCampos] = useState({});
   const [originalFormData, setOriginalFormData] = useState(null);
 
@@ -127,6 +129,19 @@ export default function WhatsAppPlantillasPage() {
       console.error('Error al cargar formatos:', error);
     } finally {
       setLoadingFormatos(false);
+    }
+  };
+
+  const loadCamposSistema = async () => {
+    try {
+      setLoadingCamposSistema(true);
+      const res = await apiClient.get('/crm/campos-sistema');
+      setCamposSistema(res?.data || []);
+    } catch (error) {
+      console.error('Error al cargar campos del sistema:', error);
+      setCamposSistema([]);
+    } finally {
+      setLoadingCamposSistema(false);
     }
   };
 
@@ -154,7 +169,11 @@ export default function WhatsAppPlantillasPage() {
       const camposPlantilla = res?.data || [];
       const mapping = {};
       camposPlantilla.forEach((cp, idx) => {
-        mapping[String(idx + 1)] = String(cp.id_formato_campo);
+        if (cp.id_campo_sistema) {
+          mapping[String(idx + 1)] = `sistema_${cp.id_campo_sistema}`;
+        } else if (cp.id_formato_campo) {
+          mapping[String(idx + 1)] = `formato_${cp.id_formato_campo}`;
+        }
       });
       setVariableCampos(mapping);
     } catch (error) {
@@ -190,8 +209,10 @@ export default function WhatsAppPlantillasPage() {
     setMediaFile(null);
     setMediaPreview(null);
     setCampos([]);
+    setCamposSistema([]);
     setVariableCampos({});
     loadFormatos();
+    loadCamposSistema();
     setShowModal(true);
   };
 
@@ -208,13 +229,14 @@ export default function WhatsAppPlantillasPage() {
     setFormData(editForm);
     setOriginalFormData(editForm);
     loadFormatos();
+    loadCamposSistema();
     if (plantilla.id_formato) {
       loadCampos(plantilla.id_formato);
     } else {
       setCampos([]);
     }
     setVariableCampos({});
-    if (plantilla.id_formato && plantilla.id) {
+    if (plantilla.id) {
       loadCamposPlantilla(plantilla.id);
     }
     setMediaFile(null);
@@ -249,7 +271,8 @@ export default function WhatsAppPlantillasPage() {
         originalFormData.header_text !== formData.header_text ||
         originalFormData.body !== formData.body ||
         originalFormData.footer !== formData.footer ||
-        JSON.stringify(originalFormData.buttons) !== JSON.stringify(formData.buttons);
+        JSON.stringify(originalFormData.buttons) !== JSON.stringify(formData.buttons) ||
+        String(originalFormData.id_formato || '') !== String(formData.id_formato || '');
 
       // editingPlantilla con id local = PUT (update), sin id local o nuevo = POST (create)
       const isUpdate = editingPlantilla && editingPlantilla.id;
@@ -303,18 +326,27 @@ export default function WhatsAppPlantillasPage() {
         }
       }
 
-      // Sincronizar mapeo de variables con campos del formato
-      if (plantillaId && formData.id_formato && Object.keys(variableCampos).length > 0) {
+      // Sincronizar mapeo de variables con campos del formato y/o sistema
+      if (plantillaId && Object.keys(variableCampos).length > 0) {
         try {
           const variables = extractVariables(formData.body);
-          const campoIds = variables
-            .map((varNum) => variableCampos[varNum])
-            .filter(Boolean)
-            .map(Number);
+          const campoItems = variables
+            .map((varNum) => {
+              const val = variableCampos[varNum];
+              if (!val) return null;
+              if (String(val).startsWith('sistema_')) {
+                return { id_campo_sistema: Number(String(val).replace('sistema_', '')) };
+              }
+              if (String(val).startsWith('formato_')) {
+                return { id_formato_campo: Number(String(val).replace('formato_', '')) };
+              }
+              return null;
+            })
+            .filter(Boolean);
 
-          if (campoIds.length > 0) {
+          if (campoItems.length > 0) {
             await apiClient.put(`/crm/plantillas-whatsapp/${plantillaId}/campos/sync`, {
-              campo_ids: campoIds,
+              campo_ids: campoItems,
             });
           }
         } catch (syncError) {
@@ -924,21 +956,21 @@ export default function WhatsAppPlantillasPage() {
                   </div>
 
                   {/* Variable - Campo mapping */}
-                  {formData.id_formato && extractVariables(formData.body).length > 0 && (
+                  {extractVariables(formData.body).length > 0 && (
                     <Card className="bg-blue-50/50 border-blue-200">
                       <CardContent className="p-4">
                         <h3 className="text-sm font-semibold text-foreground mb-1">Mapeo de Variables</h3>
                         <p className="text-xs text-muted-foreground mb-3">
-                          Asigna un campo del formato a cada variable detectada en el mensaje
+                          Asigna un campo del formato o del sistema a cada variable detectada en el mensaje
                         </p>
-                        {loadingCampos ? (
+                        {(loadingCampos || loadingCamposSistema) ? (
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                             <span className="text-sm text-muted-foreground">Cargando campos...</span>
                           </div>
-                        ) : campos.length === 0 ? (
+                        ) : (campos.length === 0 && camposSistema.length === 0) ? (
                           <p className="text-xs text-muted-foreground text-center py-3">
-                            El formato seleccionado no tiene campos configurados
+                            No hay campos disponibles para asignar
                           </p>
                         ) : (
                           <div className="grid gap-3">
@@ -953,11 +985,24 @@ export default function WhatsAppPlantillasPage() {
                                   className="flex-1 h-9 px-3 border border-input rounded-md bg-background text-sm focus:ring-2 focus:ring-ring"
                                 >
                                   <option value="">Seleccionar campo...</option>
-                                  {campos.map((campo) => (
-                                    <option key={campo.id} value={campo.id}>
-                                      {campo.etiqueta || campo.nombre_campo}
-                                    </option>
-                                  ))}
+                                  {camposSistema.length > 0 && (
+                                    <optgroup label="Campos del Sistema (fijos)">
+                                      {camposSistema.map((campo) => (
+                                        <option key={`sistema_${campo.id}`} value={`sistema_${campo.id}`}>
+                                          {campo.etiqueta || campo.nombre}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                  {campos.length > 0 && (
+                                    <optgroup label="Campos del Formato">
+                                      {campos.map((campo) => (
+                                        <option key={`formato_${campo.id}`} value={`formato_${campo.id}`}>
+                                          {campo.etiqueta || campo.nombre_campo}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
                                 </select>
                               </div>
                             ))}
