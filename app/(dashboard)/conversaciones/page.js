@@ -34,6 +34,9 @@ import {
   WifiOff,
   Lock,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 const CONTACTS_PER_PAGE = 20;
 const SEARCH_DEBOUNCE_MS = 500;
@@ -77,6 +80,10 @@ export default function ConversacionesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [togglingBot, setTogglingBot] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [sendingFile, setSendingFile] = useState(false);
 
   // Estados y tipificaciones para filtros
   const [estados, setEstados] = useState([]);
@@ -126,6 +133,7 @@ export default function ConversacionesPage() {
         type: (mensaje.direccion === 'in' || mensaje.direccion === 'incoming') ? 'client' : 'ai',
         text: mensaje.contenido || '',
         file: mensaje.contenido_archivo || null,
+        tipoMensaje: mensaje.tipo || mensaje.tipo_mensaje || 'texto',
         timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
       };
       setChatMessages(prev => [...prev, newMsg]);
@@ -501,15 +509,24 @@ export default function ConversacionesPage() {
       const response = await apiClient.get(`/crm/contacto/${contacto.id}/mensajes`);
       const messagesData = response.data || [];
 
-      const messages = messagesData.map(msg => ({
-        id: msg.id,
-        type: (msg.direccion === 'in' || msg.direccion === 'incoming') ? 'client' : 'ai',
-        text: msg.contenido || '',
-        file: msg.contenido_archivo || null,
-        timestamp: (msg.fecha_hora)
-          ? new Date(String(msg.fecha_hora).replace(' ', 'T') + "Z").toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
-          : ''
-      }));
+      const messages = messagesData.map(msg => {
+        let ts = '';
+        if (msg.fecha_hora) {
+          const raw = String(msg.fecha_hora).replace(' ', 'T');
+          const d = new Date(raw.endsWith('Z') || raw.includes('+') ? raw : raw + 'Z');
+          if (!isNaN(d.getTime())) {
+            ts = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' });
+          }
+        }
+        return {
+          id: msg.id,
+          type: (msg.direccion === 'in' || msg.direccion === 'incoming') ? 'client' : 'ai',
+          text: msg.contenido || '',
+          file: msg.contenido_archivo || null,
+          tipoMensaje: msg.tipo_mensaje || 'texto',
+          timestamp: ts
+        };
+      });
 
       setChatMessages(messages);
 
@@ -572,6 +589,70 @@ export default function ConversacionesPage() {
       setSendingMessage(false);
     }
   };
+
+  const handleEmojiClick = (emojiData) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedChat || sendingFile) return;
+
+    // Validar tamaño según tipo
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    const isAudio = file.type.startsWith('audio/');
+    const maxMB = isImage ? 5 : (isVideo || isAudio) ? 16 : 100;
+    const fileMB = file.size / (1024 * 1024);
+
+    if (fileMB > maxMB) {
+      alert(`El archivo excede el limite de WhatsApp (${maxMB} MB para ${isImage ? 'imagenes' : isVideo ? 'videos' : isAudio ? 'audio' : 'documentos'}). Tu archivo: ${fileMB.toFixed(1)} MB`);
+      e.target.value = '';
+      return;
+    }
+
+    setSendingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('archivo', file);
+      formData.append('caption', newMessage.trim());
+
+      const response = await apiClient.upload(`/crm/contacto/${selectedChat.id}/archivo`, formData);
+
+      const data = response.data || response;
+      const tipoMensaje = data.tipo_mensaje || (isImage ? 'image' : isVideo ? 'video' : 'document');
+
+      setChatMessages(prev => [...prev, {
+        id: data.id || Date.now(),
+        type: 'ai',
+        text: data.contenido || newMessage.trim(),
+        file: data.contenido_archivo || null,
+        tipoMensaje,
+        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' })
+      }]);
+      setNewMessage('');
+    } catch (err) {
+      console.error('Error al enviar archivo:', err);
+      alert('Error al enviar el archivo');
+    } finally {
+      setSendingFile(false);
+      e.target.value = '';
+    }
+  };
+
+  // Cerrar emoji picker al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPicker]);
 
   const handleToggleBot = async () => {
     if (!selectedChat || togglingBot) return;
@@ -1155,17 +1236,37 @@ export default function ConversacionesPage() {
                             </div>
                           )}
 
-                          {/* Message text */}
-                          <p className="text-[14.2px] text-[#111b21] leading-[19px] whitespace-pre-wrap break-words">
-                            {message.text}
-                            {/* Invisible spacer for timestamp */}
-                            <span className={`inline-block ${isOutgoing ? 'w-[75px]' : 'w-[52px]'}`} />
-                          </p>
+                          {/* Archivo adjunto (imagen/video/documento) */}
                           {message.file && (
-                            <div className="flex items-center gap-1 mt-1 px-2 py-1 bg-black/5 rounded text-[12px] text-[#667781]">
-                              <Paperclip className="h-3 w-3" />
-                              Archivo adjunto
-                            </div>
+                            <>
+                              {(message.tipoMensaje === 'image' || message.tipoMensaje === 'imagen' || /\.(jpg|jpeg|png|gif|webp)$/i.test(message.file)) ? (
+                                <a href={message.file} target="_blank" rel="noopener noreferrer">
+                                  <img src={message.file} alt="Imagen" className="max-w-full rounded-md mb-1 max-h-[280px] object-cover cursor-pointer" onError={(e) => { e.target.style.display = 'none' }} />
+                                </a>
+                              ) : (message.tipoMensaje === 'video' || /\.(mp4|webm|mov)$/i.test(message.file)) ? (
+                                <video src={message.file} controls className="max-w-full rounded-md mb-1 max-h-[280px]" />
+                              ) : (
+                                <a href={message.file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 mb-1 px-3 py-2 bg-black/5 rounded-lg hover:bg-black/10 transition-colors">
+                                  <Paperclip className="h-4 w-4 text-[#54656f]" />
+                                  <span className="text-[13px] text-[#027eb5] underline truncate max-w-[200px]">
+                                    {message.file.split('/').pop() || 'Archivo adjunto'}
+                                  </span>
+                                </a>
+                              )}
+                            </>
+                          )}
+
+                          {/* Message text */}
+                          {message.text && (
+                            <p className="text-[14.2px] text-[#111b21] leading-[19px] whitespace-pre-wrap break-words">
+                              {message.text}
+                              <span className={`inline-block ${isOutgoing ? 'w-[75px]' : 'w-[52px]'}`} />
+                            </p>
+                          )}
+                          {!message.text && !message.file && (
+                            <p className="text-[14.2px] text-[#111b21] leading-[19px]">
+                              <span className={`inline-block ${isOutgoing ? 'w-[75px]' : 'w-[52px]'}`} />
+                            </p>
                           )}
 
                           {/* Timestamp + checks */}
@@ -1199,15 +1300,36 @@ export default function ConversacionesPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSendMessage} className="flex items-center gap-[6px]">
-                  {/* Plus/attach button */}
-                  <button type="button" className="h-[42px] w-[42px] flex-shrink-0 flex items-center justify-center rounded-full hover:bg-[#e9edef] transition-colors">
-                    <Paperclip className="h-[24px] w-[24px] text-[#54656f] rotate-45" />
+                  {/* Attach file button */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
+                    onChange={handleFileSelect}
+                  />
+                  <button
+                    type="button"
+                    disabled={sendingFile}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-[42px] w-[42px] flex-shrink-0 flex items-center justify-center rounded-full hover:bg-[#e9edef] transition-colors disabled:opacity-50"
+                  >
+                    {sendingFile ? (
+                      <Loader2 className="h-[24px] w-[24px] animate-spin text-[#54656f]" />
+                    ) : (
+                      <Paperclip className="h-[24px] w-[24px] text-[#54656f] rotate-45" />
+                    )}
                   </button>
                   {/* Input container */}
-                  <div className="flex-1 flex items-center bg-white rounded-[8px]">
-                    <button type="button" className="h-[42px] w-[42px] flex items-center justify-center hover:bg-[#f5f6f6] rounded-l-[8px] transition-colors flex-shrink-0">
-                      <Smile className="h-[24px] w-[24px] text-[#54656f]" />
+                  <div className="flex-1 flex items-center bg-white rounded-[8px] relative">
+                    <button type="button" onClick={() => setShowEmojiPicker(prev => !prev)} className="h-[42px] w-[42px] flex items-center justify-center hover:bg-[#f5f6f6] rounded-l-[8px] transition-colors flex-shrink-0">
+                      <Smile className={`h-[24px] w-[24px] ${showEmojiPicker ? 'text-[#008069]' : 'text-[#54656f]'}`} />
                     </button>
+                    {showEmojiPicker && (
+                      <div ref={emojiPickerRef} className="absolute bottom-[50px] left-0 z-50">
+                        <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={400} searchPlaceholder="Buscar emoji..." previewConfig={{ showPreview: false }} />
+                      </div>
+                    )}
                     <input
                       type="text"
                       value={newMessage}
