@@ -50,14 +50,14 @@ const ENCUESTAS_MENU = [
 ];
 
 const BASE_MENU = [
-  { name: 'Dashboard', icon: Home, path: '/dashboard', badge: null },
+  { name: 'Indicadores', icon: Home, path: '/dashboard', badge: null , submenu: [
+    { name: 'General', path: '/dashboard' },
+    { name: 'Llamadas', path: '/dashboard/llamadas' },
+  ]},
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
   { name: 'Prospectos', icon: Users, path: '/leads', badge: null },
   { name: 'Clientes', icon: UserCheck, path: '/clientes', badge: null },
-  { name: 'Llamadas', icon: Phone, path: '/llamadas', badge: null, submenu: [
-    { name: 'Lista', path: '/llamadas' },
-    { name: 'Indicadores', path: '/llamadas/indicadores' },
-  ]},
+  { name: 'Llamadas', icon: Phone, path: '/llamadas', badge: null },
   { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null, submenu: [
     { name: 'Llamadas', path: '/campanias/llamadas' },
     { name: 'WhatsApp', path: '/campanias/whatsapp' },
