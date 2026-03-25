@@ -58,7 +58,6 @@ const BASE_MENU = [
     { name: 'Lista', path: '/llamadas' },
     { name: 'Indicadores', path: '/llamadas/indicadores' },
   ]},
-  { name: 'Reportes', icon: BarChart3, path: '/reportes', badge: null },
   { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null, submenu: [
     { name: 'Llamadas', path: '/campanias/llamadas' },
     { name: 'WhatsApp', path: '/campanias/whatsapp' },
