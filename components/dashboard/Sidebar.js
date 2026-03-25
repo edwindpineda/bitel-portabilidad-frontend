@@ -59,10 +59,9 @@ const BASE_MENU = [
     { name: 'Indicadores', path: '/llamadas/indicadores' },
   ]},
   { name: 'Reportes', icon: BarChart3, path: '/reportes', badge: null },
-  { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null },
-  { name: 'WhatsApp', icon: WhatsAppIcon, path: '/whatsapp', badge: null, submenu: [
-    { name: 'Plantillas', path: '/whatsapp/plantillas' },
-    { name: 'Envios Masivos', path: '/whatsapp/envios-masivos' }
+  { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null, submenu: [
+    { name: 'Llamadas', path: '/campanias/llamadas' },
+    { name: 'WhatsApp', path: '/campanias/whatsapp' },
   ]},
   { name: 'Configuración', icon: Settings, path: '/configuracion', badge: null },
 ];
