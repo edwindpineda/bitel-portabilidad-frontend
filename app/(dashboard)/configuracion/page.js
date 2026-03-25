@@ -37,6 +37,7 @@ const gestionWhatsApp = [
   { title: 'WhatsApp', description: 'Escanear QR y conectar WhatsApp', href: '/configuracion/whatsapp', icon: MessageCircle, gradient: 'from-green-500 to-emerald-500', glow: 'rgba(34,197,94,0.15)' },
   { title: 'Prompt del Bot', description: 'Configurar prompt del asistente', href: '/configuracion/prompt-bot', icon: Monitor, gradient: 'from-teal-500 to-cyan-500', glow: 'rgba(20,184,166,0.15)' },
   { title: 'Periodicidades Recordatorio', description: 'Configurar intervalos de recordatorios', href: '/configuracion/periodicidades-recordatorio', icon: Clock, gradient: 'from-sky-500 to-blue-500', glow: 'rgba(14,165,233,0.15)' },
+  { title: 'Plantillas de Mensajes', description: 'Gestionar plantillas para mensajes', href: '/configuracion/plantillas-whatsapp', icon: MessageSquare, gradient: 'from-green-500 to-emerald-500', glow: 'rgba(236,72,153,0.15)' },
 ];
 
 const baseConocimiento = [
