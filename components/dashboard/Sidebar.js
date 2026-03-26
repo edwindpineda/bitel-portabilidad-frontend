@@ -53,6 +53,7 @@ const BASE_MENU = [
   { name: 'Indicadores', icon: Home, path: '/dashboard', badge: null , submenu: [
     { name: 'General', path: '/dashboard' },
     { name: 'Llamadas', path: '/dashboard/llamadas' },
+    { name: 'Chat', path: '/dashboard/chats' },
   ]},
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
   { name: 'Prospectos', icon: Users, path: '/leads', badge: null },
