@@ -530,24 +530,28 @@ export default function ConversacionesPage() {
 
       setChatMessages(messages);
 
-      if (messages.length > 0) {
-        const lastMessageId = Math.max(...messages.map(m => m.id));
-        try {
-          await apiClient.post(`/crm/contacto/${contacto.id}/mark-read`, {
-            idMensaje: lastMessageId
-          });
-          setContactos(prev => prev.map(c =>
-            c.id === contacto.id ? { ...c, mensajes_no_leidos: 0 } : c
-          ));
-        } catch (markErr) {
-          console.error('Error al marcar mensaje como visto:', markErr);
-        }
+      try {
+        await apiClient.post(`/crm/contacto/${contacto.id}/mark-read`);
+        setContactos(prev => prev.map(c =>
+          c.id === contacto.id ? { ...c, mensajes_no_leidos: 0 } : c
+        ));
+      } catch (markErr) {
+        console.error('Error al marcar mensajes como leídos:', markErr);
       }
     } catch (err) {
       console.error('Error al cargar mensajes:', err);
       setChatMessages([]);
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiClient.post('/crm/contactos/mark-all-read');
+      setContactos(prev => prev.map(c => ({ ...c, mensajes_no_leidos: 0 })));
+    } catch (err) {
+      console.error('Error al marcar todos como leídos:', err);
     }
   };
 
@@ -805,9 +809,19 @@ export default function ConversacionesPage() {
                   </span>
                 )}
               </div>
-              <button className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors">
-                <MoreVertical className="h-5 w-5 text-[#54656f]" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#e9edef] transition-colors">
+                    <MoreVertical className="h-5 w-5 text-[#54656f]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleMarkAllRead}>
+                    <CheckCheck className="h-4 w-4 mr-2" />
+                    Marcar todos como leídos
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
