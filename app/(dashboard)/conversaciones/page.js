@@ -553,37 +553,29 @@ export default function ConversacionesPage() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedChat || sendingMessage || wsEnviando) return;
+    if (!newMessage.trim() || !selectedChat || sendingMessage) return;
 
     setSendingMessage(true);
     const messageContent = newMessage.trim();
+    setNewMessage('');
 
     try {
-      let success = false;
+      // Enviar via API (backend envía por WhatsApp Graph, guarda en BD y notifica al websocket)
+      await apiClient.post(`/crm/contacto/${selectedChat.id}/mensajes`, {
+        contenido: messageContent
+      });
 
-      if (wsConnected) {
-        success = await wsEnviarMensaje(messageContent, selectedChat.celular);
-      }
-
-      if (!success) {
-        await apiClient.post(`/crm/contacto/${selectedChat.id}/mensajes`, {
-          contenido: messageContent
-        });
-        success = true;
-      }
-
-      if (success) {
-        const newMsg = {
-          id: Date.now(),
-          type: 'ai',
-          text: messageContent,
-          timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
-        };
-        setChatMessages(prev => [...prev, newMsg]);
-        setNewMessage('');
-      }
+      // Agregar mensaje localmente para feedback inmediato
+      const newMsg = {
+        id: Date.now(),
+        type: 'ai',
+        text: messageContent,
+        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
+      };
+      setChatMessages(prev => [...prev, newMsg]);
     } catch (err) {
       console.error('Error al enviar mensaje:', err);
+      setNewMessage(messageContent);
       alert('Error al enviar el mensaje');
     } finally {
       setSendingMessage(false);
