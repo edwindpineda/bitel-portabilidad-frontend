@@ -20,7 +20,7 @@ export default function ConfirmEnvioModal({
 
   return (
     <Dialog open={open} onOpenChange={enviando ? undefined : onOpenChange}>
-      <DialogContent className="max-w-md p-0">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col p-0">
         <div className="bg-gradient-to-r from-[#25D366] to-[#128C7E] px-6 py-4 rounded-t-lg">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center space-x-2">
@@ -33,7 +33,7 @@ export default function ConfirmEnvioModal({
           </DialogHeader>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           <Card className="bg-muted/30">
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">

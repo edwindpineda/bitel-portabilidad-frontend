@@ -194,9 +194,11 @@ export default function CreateEditEnvioModal({
             <p className="text-xs text-muted-foreground mt-1">Solo plantillas aprobadas por Meta</p>
           </div>
         </div>
-        <div>
+        <div className="min-h-0 flex flex-col">
           <label className="block text-sm font-medium mb-1.5">Vista previa</label>
-          <PlantillaPreview plantilla={plantillaSeleccionada} />
+          <div className="flex-1 overflow-y-auto max-h-[400px]">
+            <PlantillaPreview plantilla={plantillaSeleccionada} />
+          </div>
         </div>
       </div>
     );
@@ -491,8 +493,8 @@ export default function CreateEditEnvioModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <div className="bg-gradient-to-r from-[#25D366] to-[#128C7E] px-6 py-4">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <div className="flex-shrink-0 bg-gradient-to-r from-[#25D366] to-[#128C7E] px-6 py-4">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center space-x-2">
               <Send className="w-5 h-5" />
@@ -503,11 +505,11 @@ export default function CreateEditEnvioModal({
             </DialogDescription>
           </DialogHeader>
         </div>
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6">
           {renderIndicadorPasos()}
           {renderPasoActual()}
         </div>
-        <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between">
+        <div className="flex-shrink-0 px-6 py-4 border-t bg-muted/30 flex items-center justify-between">
           <div>
             {pasoActual > 1 && (
               <Button variant="ghost" onClick={() => setPasoActual(p => p - 1)} className="gap-2">
