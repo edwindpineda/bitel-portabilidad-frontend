@@ -29,8 +29,8 @@ export default function EnvioDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <div className="flex-shrink-0 bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center space-x-2">
               <Eye className="w-5 h-5" />
@@ -42,7 +42,7 @@ export default function EnvioDetailModal({
           </DialogHeader>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6">
           <div className="space-y-6">
             <div className="grid grid-cols-4 gap-4">
               <Card>
@@ -134,7 +134,7 @@ export default function EnvioDetailModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t bg-muted/30 flex justify-end">
+        <div className="flex-shrink-0 px-6 py-4 border-t bg-muted/30 flex justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cerrar</Button>
         </div>
       </DialogContent>
