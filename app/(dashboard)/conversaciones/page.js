@@ -989,9 +989,23 @@ export default function ConversacionesPage() {
                             {contacto.celular}
                           </p>
                         </div>
-                        {/* Unread Badge */}
+                        {/* Unread Badge - clickable to mark as read */}
                         {contacto.mensajes_no_leidos > 0 && (
-                          <div className="min-w-[20px] h-[20px] bg-[#25d366] rounded-full flex items-center justify-center ml-1.5">
+                          <div
+                            className="min-w-[20px] h-[20px] bg-[#25d366] rounded-full flex items-center justify-center ml-1.5 cursor-pointer hover:bg-[#1da851] transition-colors"
+                            title="Marcar como leído"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await apiClient.post(`/crm/contacto/${contacto.id}/mark-read`);
+                                setContactos(prev => prev.map(c =>
+                                  c.id === contacto.id ? { ...c, mensajes_no_leidos: 0 } : c
+                                ));
+                              } catch (err) {
+                                console.error('Error al marcar como leído:', err);
+                              }
+                            }}
+                          >
                             <span className="text-[11px] font-bold text-white px-1">
                               {contacto.mensajes_no_leidos > 99 ? '99+' : contacto.mensajes_no_leidos}
                             </span>
