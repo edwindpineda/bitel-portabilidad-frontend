@@ -639,7 +639,7 @@ export default function CampaniaDetallePage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
         <p className="text-muted-foreground">Campaña no encontrada</p>
-        <Button variant="outline" onClick={() => router.push('/campanias')}>
+        <Button variant="outline" onClick={() => router.push('/campanias/llamadas')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver
         </Button>
@@ -719,7 +719,7 @@ export default function CampaniaDetallePage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push('/campanias')}
+            onClick={() => router.push('/campanias/llamadas')}
             className="h-10 w-10 rounded-xl"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -1489,7 +1489,7 @@ export default function CampaniaDetallePage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/campanias/${campaniaId}/ejecuciones/${ejecucion.id}/llamadas`)}
+                        onClick={() => router.push(`/campanias/llamadas/${campaniaId}/ejecuciones/${ejecucion.id}/llamadas`)}
                         className="h-8 text-purple-500 hover:text-purple-600 hover:bg-purple-50 gap-1"
                       >
                         <Phone className="h-3.5 w-3.5" />

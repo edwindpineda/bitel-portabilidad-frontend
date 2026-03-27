@@ -509,7 +509,7 @@ export default function LlamadasEjecucionPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push(`/campanias/${campaniaId}`)}
+              onClick={() => router.push(`/campanias/llamadas/${campaniaId}`)}
               className="h-10 w-10 rounded-xl"
             >
               <ArrowLeft className="h-5 w-5" />
