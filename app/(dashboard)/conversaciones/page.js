@@ -35,6 +35,8 @@ import {
   Lock,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { analisisService } from '@/lib/analisisService';
+import { Brain, TrendingUp, TrendingDown } from 'lucide-react';
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
@@ -105,6 +107,10 @@ export default function ConversacionesPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [perfilamientoData, setPerfilamientoData] = useState([]);
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
+
+  // Estado para análisis de sentimiento del chat
+  const [chatAnalisis, setChatAnalisis] = useState(null);
+  const [loadingAnalisis, setLoadingAnalisis] = useState(false);
 
   // Estado para mostrar/ocultar filtros desplegables
   const [showFilters, setShowFilters] = useState(false);
@@ -706,6 +712,8 @@ export default function ConversacionesPage() {
     setShowDetailModal(true);
     setPerfilamientoData([]);
     setLoadingPerfilamiento(true);
+    setChatAnalisis(null);
+    setLoadingAnalisis(true);
     try {
       const personaId = selectedChat.id_persona || selectedChat.id;
       const response = await apiClient.get(`/crm/persona/${personaId}/perfilamiento`);
@@ -714,6 +722,15 @@ export default function ConversacionesPage() {
       console.error('Error al cargar perfilamiento:', error);
     } finally {
       setLoadingPerfilamiento(false);
+    }
+    // Cargar análisis de sentimiento del chat
+    try {
+      const analisisRes = await analisisService.getByChat(selectedChat.id);
+      setChatAnalisis(analisisRes.data || null);
+    } catch (error) {
+      console.error('Error al cargar análisis de chat:', error);
+    } finally {
+      setLoadingAnalisis(false);
     }
   };
 
@@ -1689,6 +1706,64 @@ export default function ConversacionesPage() {
                   </div>
                 ) : (
                   <p className="text-[13px] text-[#8696a0] italic py-3">Sin respuestas de perfilamiento</p>
+                )}
+              </div>
+
+              {/* Analisis de Sentimiento */}
+              <div className="mt-6">
+                <h4 className="text-[14px] font-semibold text-[#111b21] mb-3 flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-violet-500" />
+                  Analisis de Sentimiento
+                </h4>
+                {loadingAnalisis ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+                    <span className="ml-2 text-[13px] text-[#667781]">Cargando analisis...</span>
+                  </div>
+                ) : chatAnalisis?.sentimiento ? (
+                  <div className="space-y-3">
+                    {/* Sentimiento badge */}
+                    <div className="flex items-center justify-between bg-[#f0f2f5] rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        {chatAnalisis.sentimiento.sentimiento === 'positivo' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                        {chatAnalisis.sentimiento.sentimiento === 'negativo' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                        {chatAnalisis.sentimiento.sentimiento === 'neutro' && <Brain className="h-4 w-4 text-gray-500" />}
+                        <span className="text-[14px] font-medium capitalize">{chatAnalisis.sentimiento.sentimiento}</span>
+                      </div>
+                      <span className="text-[12px] text-[#667781]">
+                        Score: {chatAnalisis.sentimiento.score_sentimiento?.toFixed(2)}
+                      </span>
+                    </div>
+                    {/* Emocion */}
+                    {chatAnalisis.sentimiento.emocion_principal && (
+                      <div className="bg-[#f0f2f5] rounded-lg p-3">
+                        <p className="text-[12px] text-[#667781]">Emocion principal</p>
+                        <p className="text-[14px] font-medium capitalize mt-0.5">{chatAnalisis.sentimiento.emocion_principal}</p>
+                      </div>
+                    )}
+                    {/* Resumen */}
+                    {chatAnalisis.analisis?.resumen && (
+                      <div className="bg-[#f0f2f5] rounded-lg p-3">
+                        <p className="text-[12px] text-[#667781]">Resumen</p>
+                        <p className="text-[13px] mt-0.5">{chatAnalisis.analisis.resumen}</p>
+                      </div>
+                    )}
+                    {/* Temas */}
+                    {chatAnalisis.preguntas?.filter(p => p.tipo === 'tema').length > 0 && (
+                      <div>
+                        <p className="text-[12px] text-[#667781] mb-1.5">Temas detectados</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {chatAnalisis.preguntas.filter(p => p.tipo === 'tema').map((t, i) => (
+                            <span key={i} className="text-[11px] bg-[#e7f8f0] text-[#008069] rounded-full px-2.5 py-0.5 font-medium">
+                              {t.contenido}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-[#8696a0] italic py-3">Sin analisis de sentimiento disponible</p>
                 )}
               </div>
             </div>

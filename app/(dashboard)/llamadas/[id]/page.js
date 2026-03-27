@@ -30,6 +30,8 @@ import {
   MessageSquareText,
   X,
 } from 'lucide-react';
+import { analisisService } from '@/lib/analisisService';
+import SentimientoCard from '@/components/analisis/SentimientoCard';
 
 const COLOR_MAP = {
   'rojo': '#EF4444',
@@ -96,6 +98,8 @@ export default function LlamadaDetailPage() {
   const [showTranscripcionModal, setShowTranscripcionModal] = useState(false);
   const [transcripciones, setTranscripciones] = useState([]);
   const [loadingTranscripcion, setLoadingTranscripcion] = useState(false);
+  const [analisisData, setAnalisisData] = useState({ analisis: null, sentimiento: null, preguntas: [] });
+  const [loadingAnalisis, setLoadingAnalisis] = useState(false);
 
   useEffect(() => {
     const loadLlamada = async () => {
@@ -108,6 +112,9 @@ export default function LlamadaDetailPage() {
         if (res.data?.provider_call_id) {
           loadTranscripciones(res.data.provider_call_id);
         }
+
+        // Cargar análisis de sentimiento
+        loadAnalisis(res.data.id);
       } catch (err) {
         console.error('Error al cargar llamada:', err);
         setError('No se pudo cargar la informacion de la llamada');
@@ -130,6 +137,18 @@ export default function LlamadaDetailPage() {
       console.error('Error al cargar transcripciones:', err);
     } finally {
       setLoadingTranscripcion(false);
+    }
+  };
+
+  const loadAnalisis = async (idLlamada) => {
+    try {
+      setLoadingAnalisis(true);
+      const res = await analisisService.getByLlamada(idLlamada);
+      setAnalisisData(res.data || { analisis: null, sentimiento: null, preguntas: [] });
+    } catch (err) {
+      console.error('Error al cargar análisis:', err);
+    } finally {
+      setLoadingAnalisis(false);
     }
   };
 
@@ -440,6 +459,14 @@ export default function LlamadaDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Analisis de Sentimiento */}
+          <SentimientoCard
+            analisis={analisisData.analisis}
+            sentimiento={analisisData.sentimiento}
+            preguntas={analisisData.preguntas}
+            loading={loadingAnalisis}
+          />
         </div>
       </div>
 
