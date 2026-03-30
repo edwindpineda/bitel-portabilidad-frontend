@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 import {
   Plus, Search, Pencil, Trash2, Loader2, Send, Eye, Database,
-  CheckCircle2, Clock, MessageSquare,
+  CheckCircle2, Clock, MessageSquare, Users,
 } from 'lucide-react';
 
 import CreateEditEnvioModal from '@/components/whatsapp/CreateEditEnvioModal';
@@ -116,10 +116,12 @@ export default function EnviosMasivosPage() {
     });
 
     // Cargar envio_base del envio para edicion
+    // id_base ahora apunta a base_numero_detalle, extraer los base_numero IDs unicos
     try {
       const response = await apiClient.get(`/crm/envio-base/envio-masivo/${envio.id}`);
-      const basesIds = (response?.data || []).map(eb => eb.id_base);
-      setSelectedBases(basesIds);
+      const envioBaseRecords = response?.data || [];
+      const baseNumeroIds = [...new Set(envioBaseRecords.map(eb => eb.id_base_numero).filter(Boolean))];
+      setSelectedBases(baseNumeroIds);
     } catch (error) {
       console.error('Error al cargar envio_base del envio:', error);
       setSelectedBases([]);
@@ -141,14 +143,38 @@ export default function EnviosMasivosPage() {
 
     setSaving(true);
     try {
+      // Resolver las bases seleccionadas a detalles individuales (base_numero_detalle)
+      let allDetalleIds = [];
+      for (const baseId of selectedBases) {
+        try {
+          const res = await apiClient.get(`/crm/bases-numeros/${baseId}/detalles?page=1&limit=999999`);
+          const detalles = res.data || [];
+          allDetalleIds = allDetalleIds.concat(detalles.map(d => d.id));
+        } catch (err) {
+          console.error(`Error al obtener detalles de base ${baseId}:`, err);
+        }
+      }
+
+      if (allDetalleIds.length === 0) {
+        toast.error('Las bases seleccionadas no contienen registros');
+        setSaving(false);
+        return;
+      }
+
       if (editingEnvio) {
         await apiClient.put(`/crm/envio-masivo-whatsapp/${editingEnvio.id}`, {
           id_plantilla: parseInt(formData.id_plantilla),
           titulo: formData.titulo,
           descripcion: formData.descripcion,
-          cantidad: selectedBases.length,
+          cantidad: allDetalleIds.length,
           fecha_envio: datosEnvio.fechaEnvio || null,
         });
+
+        // Sincronizar envio_base con los nuevos detalle IDs
+        await apiClient.put(`/crm/envio-base/sync/${editingEnvio.id}`, {
+          bases: allDetalleIds.map(id_base => ({ id_base })),
+        });
+
         toast.success('Envio masivo actualizado');
       } else {
         // Paso 1: Crear el envio masivo
@@ -156,20 +182,18 @@ export default function EnviosMasivosPage() {
           id_plantilla: parseInt(formData.id_plantilla),
           titulo: formData.titulo,
           descripcion: formData.descripcion,
-          cantidad: selectedBases.length,
+          cantidad: allDetalleIds.length,
           fecha_envio: datosEnvio.fechaEnvio || null,
           estado_envio: 'pendiente',
         });
 
         const envioId = envioRes?.data?.id;
-        console.log('envioRes completo:', JSON.stringify(envioRes));
-        console.log('envioId extraido:', envioId);
 
-        // Paso 2: Crear los envio_base en bulk
-        if (envioId && selectedBases.length > 0) {
+        // Paso 2: Crear los envio_base con IDs de base_numero_detalle
+        if (envioId && allDetalleIds.length > 0) {
           await apiClient.post('/crm/envio-base/bulk', {
             id_envio_masivo: envioId,
-            bases: selectedBases.map(id_base => ({ id_base })),
+            bases: allDetalleIds.map(id_base => ({ id_base })),
           });
         }
 

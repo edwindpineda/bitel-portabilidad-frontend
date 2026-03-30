@@ -72,18 +72,19 @@ export default function EnvioDetailModal({
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-3">Bases del Envio</h3>
+              <h3 className="text-sm font-semibold mb-3">Registros del Envio</h3>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-hidden max-h-[350px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30">
+                        <TableHead className="text-xs">Telefono</TableHead>
+                        <TableHead className="text-xs">Nombre</TableHead>
                         <TableHead className="text-xs">Base</TableHead>
-                        <TableHead className="text-xs text-center">Registros</TableHead>
                         <TableHead className="text-xs">Estado</TableHead>
                         <TableHead className="text-xs">Fecha Envio</TableHead>
                         <TableHead className="text-xs">Error</TableHead>
@@ -94,16 +95,14 @@ export default function EnvioDetailModal({
                         const estadoStyle = ESTADO_STYLES[eb.estado] || ESTADO_STYLES.pendiente;
                         return (
                           <TableRow key={eb.id}>
-                            <TableCell>
-                              <div>
-                                <span className="text-sm font-medium">{eb.base_nombre || '-'}</span>
-                                {eb.base_descripcion && (
-                                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">{eb.base_descripcion}</p>
-                                )}
-                              </div>
+                            <TableCell className="text-sm font-mono">
+                              {eb.detalle_telefono || '-'}
                             </TableCell>
-                            <TableCell className="text-center">
-                              <span className="text-sm font-medium">{eb.base_total_registros || 0}</span>
+                            <TableCell className="text-sm">
+                              {eb.detalle_nombre || '-'}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {eb.base_nombre || '-'}
                             </TableCell>
                             <TableCell>
                               <Badge className={estadoStyle.className}>
@@ -125,7 +124,7 @@ export default function EnvioDetailModal({
                   {bases.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8">
                       <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                      <p className="text-sm text-muted-foreground">No hay bases asignadas</p>
+                      <p className="text-sm text-muted-foreground">No hay registros asignados</p>
                     </div>
                   )}
                 </div>
