@@ -33,6 +33,7 @@ import {
   ChevronRight,
   ChevronDown,
   LayoutGrid,
+  Headphones,
 } from 'lucide-react';
 
 const WhatsAppIcon = ({ className }) => (
@@ -75,6 +76,7 @@ const BASE_MENU = [
           { name: 'Indicadores', icon: BarChart3, path: '/mensajes/indicadores' },
         ],
       },
+      { name: 'Análisis de Voz', icon: Headphones, path: '/dashboard/sentimiento' },
     ],
   },
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
