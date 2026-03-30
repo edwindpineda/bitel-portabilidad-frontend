@@ -80,17 +80,11 @@ const BASE_MENU = [
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
   { name: 'Prospectos', icon: Users, path: '/leads', badge: null },
   { name: 'Clientes', icon: UserCheck, path: '/clientes', badge: null },
-  { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null },
-  {
-    name: 'WhatsApp',
-    icon: WhatsAppIcon,
-    path: '/whatsapp',
-    badge: null,
-    submenu: [
-      { name: 'Plantillas', icon: LayoutGrid, path: '/whatsapp/plantillas' },
-      { name: 'Envios Masivos', icon: Package, path: '/whatsapp/envios-masivos' },
-    ],
-  },
+  { name: 'Llamadas', icon: Phone, path: '/llamadas', badge: null },
+  { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null, submenu: [
+    { name: 'Llamadas', path: '/campanias/llamadas' },
+    { name: 'WhatsApp', path: '/campanias/whatsapp' },
+  ]},
   { name: 'Configuración', icon: Settings, path: '/configuracion', badge: null },
 ];
 function NavItem({
