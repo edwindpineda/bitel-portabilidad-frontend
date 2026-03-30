@@ -530,11 +530,12 @@ const renderDonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent 
 // ═══════════════════════════════════════
 export default function IndicadoresLlamadasPage() {
 
+  const today = new Date().toISOString().split('T')[0];
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [idEmpresa, setIdEmpresa] = useState('');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  const [fechaInicio, setFechaInicio] = useState(today);
+  const [fechaFin, setFechaFin] = useState(today);
   const [empresaInicializada, setEmpresaInicializada] = useState(false);
 
   useEffect(() => {
