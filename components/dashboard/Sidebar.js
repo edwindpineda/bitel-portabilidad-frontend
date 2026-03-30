@@ -80,7 +80,6 @@ const BASE_MENU = [
   { name: 'Conversaciones', icon: MessageCircle, path: '/conversaciones', badge: null },
   { name: 'Prospectos', icon: Users, path: '/leads', badge: null },
   { name: 'Clientes', icon: UserCheck, path: '/clientes', badge: null },
-  { name: 'Llamadas', icon: Phone, path: '/llamadas', badge: null },
   { name: 'Campañas', icon: Megaphone, path: '/campanias', badge: null, submenu: [
     { name: 'Llamadas', path: '/campanias/llamadas' },
     { name: 'WhatsApp', path: '/campanias/whatsapp' },
