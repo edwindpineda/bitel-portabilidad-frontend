@@ -78,8 +78,8 @@ export default function EnvioDetailModal({
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden max-h-[350px] overflow-y-auto">
-                  <Table>
+                <div className="border rounded-lg max-h-[350px] overflow-scroll" style={{ scrollbarWidth: 'thin' }}>
+                  <table className="min-w-[800px] w-full caption-bottom text-sm">
                     <TableHeader>
                       <TableRow className="bg-muted/30">
                         <TableHead className="text-xs">Telefono</TableHead>
@@ -113,14 +113,14 @@ export default function EnvioDetailModal({
                             <TableCell className="text-xs text-muted-foreground">
                               {eb.fecha_envio ? new Date(eb.fecha_envio).toLocaleString() : '-'}
                             </TableCell>
-                            <TableCell className="text-xs text-red-600 max-w-[150px] truncate">
+                            <TableCell className="text-xs text-red-600 whitespace-nowrap">
                               {eb.error_mensaje || '-'}
                             </TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
-                  </Table>
+                  </table>
                   {bases.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8">
                       <Database className="h-8 w-8 text-muted-foreground/30 mb-2" />
