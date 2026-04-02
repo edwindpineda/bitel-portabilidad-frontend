@@ -181,6 +181,7 @@ export default function PromptBotPage() {
               <code className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-mono">{'{{faqs}}'}</code>
               <code className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-mono">{'{{Tipo_tipificaciones}}'}</code>
               <code className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-mono">{'{{preguntas_perfilamiento}}'}</code>
+              <code className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-mono">{'{{argumentos_venta}}'}</code>
             </div>
           </div>
         </div>

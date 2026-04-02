@@ -117,7 +117,7 @@ function NavItem({
 
   const isExpanded = !!expandedMenus[item.name];
 
-  const paddingLeft = level === 0 ? '' : level === 1 ? 'ml-[22px] pl-4' : 'ml-[18px] pl-4';
+  const paddingLeft = level === 0 ? '' : level === 1 ? 'ml-6 pl-4' : 'ml-5 pl-4';
 
   const linkContent = (
     <div

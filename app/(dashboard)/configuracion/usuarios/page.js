@@ -45,7 +45,7 @@ export default function UsuariosPage() {
     try {
       setLoading(true);
       const [usuariosRes, rolesRes, sucursalesRes, supervisoresRes] = await Promise.all([
-        apiClient.get('/crm/usuarios'),
+        apiClient.get('/crm/usuarios/empresa'),
         apiClient.get('/crm/roles'),
         apiClient.get('/crm/sucursales'),
         apiClient.get('/crm/usuarios/rol/2')
