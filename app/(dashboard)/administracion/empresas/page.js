@@ -8,7 +8,8 @@ import Link from 'next/link';
 export default function EmpresasPage() {
   const { data: session } = useSession();
   const [empresas, setEmpresas] = useState([]);
-  const [tools, setTools] = useState([]);
+  const [toolsLlamada, setToolsLlamada] = useState([]);
+  const [toolsChatbot, setToolsChatbot] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingEmpresa, setEditingEmpresa] = useState(null);
@@ -20,6 +21,7 @@ export default function EmpresasPage() {
     email: '',
     canal: '',
     id_tool: '',
+    id_tool_chatbot: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,8 +49,12 @@ export default function EmpresasPage() {
 
   const fetchTools = async () => {
     try {
-      const response = await apiClient.get('/crm/admin/tools');
-      setTools(response?.data || []);
+      const [llamadaRes, chatbotRes] = await Promise.all([
+        apiClient.get('/crm/admin/tools/tipo/llamada'),
+        apiClient.get('/crm/admin/tools/tipo/chatbot')
+      ]);
+      setToolsLlamada(llamadaRes?.data || []);
+      setToolsChatbot(chatbotRes?.data || []);
     } catch (error) {
       console.error('Error al cargar tools:', error);
     }
@@ -69,7 +75,7 @@ export default function EmpresasPage() {
       }
       setShowModal(false);
       setEditingEmpresa(null);
-      setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '', canal: '', id_tool: '' });
+      setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '', canal: '', id_tool: '', id_tool_chatbot: '' });
       fetchEmpresas();
     } catch (error) {
       setError(error.response?.data?.msg || 'Error al guardar empresa');
@@ -86,6 +92,7 @@ export default function EmpresasPage() {
       email: empresa.email || '',
       canal: empresa.canal || '',
       id_tool: empresa.id_tool || '',
+      id_tool_chatbot: empresa.id_tool_chatbot || '',
     });
     setShowModal(true);
   };
@@ -103,7 +110,7 @@ export default function EmpresasPage() {
 
   const openNewModal = () => {
     setEditingEmpresa(null);
-    setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '', canal: '', id_tool: '' });
+    setFormData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '', canal: '', id_tool: '', id_tool_chatbot: '' });
     setShowModal(true);
   };
 
@@ -169,7 +176,8 @@ export default function EmpresasPage() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Telefono</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Canal</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Tool</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Tool Llamada</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Tool Mensaje</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Estado</th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Acciones</th>
               </tr>
@@ -184,6 +192,7 @@ export default function EmpresasPage() {
                   <td className="px-6 py-4 text-sm text-gray-600">{empresa.telefono || '-'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{empresa.canal ?? '-'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{empresa.tool_nombre || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{empresa.tool_chatbot_nombre || '-'}</td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleToggleEstado(empresa)}
@@ -285,15 +294,29 @@ export default function EmpresasPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tool *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tool Llamada</label>
                   <select
                     value={formData.id_tool}
                     onChange={(e) => setFormData({ ...formData, id_tool: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    required
                   >
-                    <option value="">Seleccionar tool</option>
-                    {tools.map((tool) => (
+                    <option value="">Seleccionar tool llamada</option>
+                    {toolsLlamada.map((tool) => (
+                      <option key={tool.id} value={tool.id}>
+                        {tool.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tool Mensaje</label>
+                  <select
+                    value={formData.id_tool_chatbot}
+                    onChange={(e) => setFormData({ ...formData, id_tool_chatbot: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar tool mensaje</option>
+                    {toolsChatbot.map((tool) => (
                       <option key={tool.id} value={tool.id}>
                         {tool.nombre}
                       </option>
