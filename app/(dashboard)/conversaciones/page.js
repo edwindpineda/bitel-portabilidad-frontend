@@ -216,7 +216,11 @@ export default function ConversacionesPage() {
       const total = response.total || 0;
 
       if (append) {
-        setContactos(prev => [...prev, ...contactosArray]);
+        setContactos(prev => {
+          const existingIds = new Set(prev.map(c => c.id));
+          const nuevos = contactosArray.filter(c => !existingIds.has(c.id));
+          return [...prev, ...nuevos];
+        });
       } else {
         setContactos(contactosArray);
       }
@@ -317,7 +321,11 @@ export default function ConversacionesPage() {
       const total = response.total || 0;
 
       if (append) {
-        setContactos(prev => [...prev, ...contactosArray]);
+        setContactos(prev => {
+          const existingIds = new Set(prev.map(c => c.id));
+          const nuevos = contactosArray.filter(c => !existingIds.has(c.id));
+          return [...prev, ...nuevos];
+        });
       } else {
         setContactos(contactosArray);
       }
