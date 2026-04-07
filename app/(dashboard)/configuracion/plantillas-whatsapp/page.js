@@ -12,13 +12,14 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  Plus, Search, Pencil, Trash2, FileText, Eye, Send, Loader2, Check,
-  Info, Clock, CheckCircle2, XCircle, Phone, Link2, MessageSquare, Upload, Image, Video, File, X, ChevronRight, 
+  Plus, Search, Pencil, Trash2, FileText, Eye, Send, Loader2, Check, RefreshCw, PauseCircle,
+  Info, Clock, CheckCircle2, XCircle, Phone, Link2, MessageSquare, Upload, Image, Video, File, X, ChevronRight,
 } from 'lucide-react';
 
 const STATUS_STYLES = {
   APPROVED: { className: 'bg-green-100 text-green-800 hover:bg-green-100', dot: 'bg-green-500', label: 'Aprobada' },
   PENDING: { className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100', dot: 'bg-yellow-500 animate-pulse', label: 'Pendiente' },
+  PAUSED: { className: 'bg-orange-100 text-orange-800 hover:bg-orange-100', dot: 'bg-orange-500', label: 'Pausada' },
   REJECTED: { className: 'bg-red-100 text-red-800 hover:bg-red-100', dot: 'bg-red-500', label: 'Rechazada' },
 };
 
@@ -34,45 +35,59 @@ const EMPTY_FORM = {
   id_formato: '',
 };
 
-const toUIFormat = (p) => {
+/**
+ * Parsea el array de components de Meta a un objeto plano { header, body, footer, buttons }
+ */
+const parseComponents = (components) => {
   let header = null;
   let body = '';
   let footer = '';
   let buttons = [];
 
-  if (Array.isArray(p.components)) {
-    for (const comp of p.components) {
-      if (comp.type === 'HEADER') {
+  // components puede ser array (Meta), string JSON (BD), o null
+  let comps = components;
+  if (typeof comps === 'string') {
+    try { comps = JSON.parse(comps); } catch { comps = null; }
+  }
+
+  if (Array.isArray(comps)) {
+    for (const comp of comps) {
+      const type = (comp.type || '').toUpperCase();
+      if (type === 'HEADER') {
         header = { type: comp.format || 'TEXT', text: comp.text || '' };
-      } else if (comp.type === 'BODY') {
+      } else if (type === 'BODY') {
         body = comp.text || '';
-      } else if (comp.type === 'FOOTER') {
+      } else if (type === 'FOOTER') {
         footer = comp.text || '';
-      } else if (comp.type === 'BUTTONS') {
+      } else if (type === 'BUTTONS') {
         buttons = Array.isArray(comp.buttons) ? comp.buttons : [];
       }
     }
-    if (p.header_type_local) {
-      if (header) {
-        header.type = p.header_type_local;
-      } else {
-        header = { type: p.header_type_local, text: '' };
-      }
+  }
+
+  return { header, body, footer, buttons };
+};
+
+const toUIFormat = (p) => {
+  // Intentar parsear desde components (fuente principal)
+  let parsed = parseComponents(p.components);
+
+  // Fallback a campos planos si components no tiene body
+  if (!parsed.body && p.body) {
+    parsed.body = p.body;
+  }
+  if (!parsed.footer && p.footer) {
+    parsed.footer = p.footer;
+  }
+  if (!parsed.header && p.header_type) {
+    parsed.header = { type: p.header_type, text: p.header_text || '' };
+  }
+  if (parsed.buttons.length === 0 && p.buttons) {
+    let btns = p.buttons;
+    if (typeof btns === 'string') {
+      try { btns = JSON.parse(btns); } catch { btns = []; }
     }
-  } else {
-    const headerType = p.header_type || 'TEXT';
-    if (p.header_text || ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerType?.toUpperCase())) {
-      header = { type: headerType, text: p.header_text || '' };
-    }
-    body = p.body || '';
-    footer = p.footer || '';
-    if (Array.isArray(p.buttons)) {
-      buttons = p.buttons;
-    } else if (typeof p.buttons === 'string') {
-      try { buttons = JSON.parse(p.buttons); } catch { buttons = []; }
-    } else {
-      buttons = [];
-    }
+    if (Array.isArray(btns)) parsed.buttons = btns;
   }
 
   return {
@@ -82,7 +97,7 @@ const toUIFormat = (p) => {
     status: p.status,
     category: p.category,
     language: p.language,
-    components: { header, body, footer, buttons },
+    components: parsed,
     quality_score: p.quality_score,
     rejected_reason: p.rejected_reason,
     createdAt: p.fecha_registro,
@@ -118,6 +133,7 @@ export default function WhatsAppPlantillasPage() {
   const [loadingCamposSistema, setLoadingCamposSistema] = useState(false);
   const [variableCampos, setVariableCampos] = useState({});
   const [originalFormData, setOriginalFormData] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => { loadPlantillas(); }, []);
 
@@ -193,6 +209,20 @@ export default function WhatsAppPlantillasPage() {
       console.error('Error al cargar plantillas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await apiClient.post('/crm/plantillas-whatsapp/sync');
+      toast.success(res?.msg || 'Plantillas sincronizadas con Meta');
+      await loadPlantillas();
+    } catch (error) {
+      console.error('Error al sincronizar:', error);
+      toast.error(error?.msg || 'Error al sincronizar con Meta');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -339,6 +369,7 @@ export default function WhatsAppPlantillasPage() {
       }
 
       // Sincronizar mapeo de variables con campos del formato y/o sistema
+      console.log('[handleSave] plantillaId para sync campos:', plantillaId, 'editingPlantilla:', editingPlantilla?.id, editingPlantilla?.meta_id);
       if (plantillaId && Object.keys(variableCampos).length > 0) {
         try {
           const variables = extractVariables(formData.body);
@@ -491,16 +522,22 @@ export default function WhatsAppPlantillasPage() {
             <h1 className="text-2xl font-bold text-foreground">Plantillas WhatsApp</h1>
             <p className="text-muted-foreground mt-1">Gestiona tus plantillas de mensajes aprobadas por Meta</p>
           </div>
-          <Button onClick={openCreateModal}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Plantilla
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleSync} disabled={syncing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Sincronizando...' : 'Sincronizar con Meta'}
+            </Button>
+            <Button onClick={openCreateModal}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Plantilla
+            </Button>
+          </div>
         </div>
 
         <Separator />
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="bg-gradient-to-br from-primary/90 to-primary text-white border-0">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -546,6 +583,22 @@ export default function WhatsAppPlantillasPage() {
               </div>
             </CardContent>
           </Card>
+          <Card className="hover:shadow-md hover:border-orange-200 transition-all">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                    <p className="text-sm text-muted-foreground">Pausadas</p>
+                  </div>
+                  <p className="text-3xl font-bold text-orange-600 mt-1">{plantillas.filter((p) => p.status === 'PAUSED').length}</p>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-xl">
+                  <PauseCircle className="w-6 h-6 text-orange-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <Card className="hover:shadow-md hover:border-red-200 transition-all">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -585,6 +638,7 @@ export default function WhatsAppPlantillasPage() {
                 <option value="">Todos los estados</option>
                 <option value="APPROVED">Aprobadas</option>
                 <option value="PENDING">Pendientes</option>
+                <option value="PAUSED">Pausadas</option>
                 <option value="REJECTED">Rechazadas</option>
               </select>
               <select
@@ -624,6 +678,7 @@ export default function WhatsAppPlantillasPage() {
                   <div className={`px-5 py-4 ${
                     plantilla.status === 'APPROVED' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100' :
                     plantilla.status === 'PENDING' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-100' :
+                    plantilla.status === 'PAUSED' ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100' :
                     'bg-gradient-to-r from-red-50 to-rose-50 border-b border-red-100'
                   }`}>
                     <div className="flex items-start justify-between">
@@ -631,11 +686,13 @@ export default function WhatsAppPlantillasPage() {
                         <div className="flex items-center space-x-2">
                           <div className={`p-1.5 rounded-lg ${
                             plantilla.status === 'APPROVED' ? 'bg-green-100' :
-                            plantilla.status === 'PENDING' ? 'bg-yellow-100' : 'bg-red-100'
+                            plantilla.status === 'PENDING' ? 'bg-yellow-100' :
+                            plantilla.status === 'PAUSED' ? 'bg-orange-100' : 'bg-red-100'
                           }`}>
                             <FileText className={`w-4 h-4 ${
                               plantilla.status === 'APPROVED' ? 'text-green-600' :
-                              plantilla.status === 'PENDING' ? 'text-yellow-600' : 'text-red-600'
+                              plantilla.status === 'PENDING' ? 'text-yellow-600' :
+                              plantilla.status === 'PAUSED' ? 'text-orange-600' : 'text-red-600'
                             }`} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1223,31 +1280,49 @@ export default function WhatsAppPlantillasPage() {
                 <div className="p-4 min-h-[320px]" style={{ backgroundColor: '#ECE5DD' }}>
                   <div className="flex justify-end mb-2">
                     <div className="relative max-w-[85%]">
-                      <div className="bg-[#DCF8C6] rounded-lg rounded-tr-none p-3 shadow-sm">
-                        {showPreview.components.header && (
-                          <p className="text-[15px] font-semibold text-gray-900 mb-1.5">{showPreview.components.header.text}</p>
+                      <div className="bg-[#DCF8C6] rounded-lg rounded-tr-none shadow-sm overflow-hidden">
+                        {/* Header media */}
+                        {showPreview.components.header && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(showPreview.components.header.type) && (
+                          <div className="bg-[#c5e8b0] p-6 flex items-center justify-center">
+                            {showPreview.components.header.type === 'IMAGE' && <Image className="w-10 h-10 text-[#075E54]/40" />}
+                            {showPreview.components.header.type === 'VIDEO' && <Video className="w-10 h-10 text-[#075E54]/40" />}
+                            {showPreview.components.header.type === 'DOCUMENT' && <File className="w-10 h-10 text-[#075E54]/40" />}
+                          </div>
                         )}
-                        <p className="text-[14px] text-gray-800 whitespace-pre-line leading-relaxed">{showPreview.components.body}</p>
-                        {showPreview.components.footer && (
-                          <p className="text-[12px] text-gray-500 mt-2">{showPreview.components.footer}</p>
-                        )}
+                        <div className="p-3">
+                          {/* Header texto */}
+                          {showPreview.components.header?.type === 'TEXT' && showPreview.components.header.text && (
+                            <p className="text-[15px] font-semibold text-gray-900 mb-1.5">{showPreview.components.header.text}</p>
+                          )}
+                          {/* Body */}
+                          {showPreview.components.body && (
+                            <p className="text-[14px] text-gray-800 whitespace-pre-line leading-relaxed">{showPreview.components.body}</p>
+                          )}
+                          {/* Footer */}
+                          {showPreview.components.footer && (
+                            <p className="text-[12px] text-gray-500 mt-2">{showPreview.components.footer}</p>
+                          )}
+                          {/* Timestamp */}
+                          <div className="flex items-center justify-end space-x-1 mt-1">
+                            <span className="text-[11px] text-gray-500">12:30</span>
+                            <svg className="w-4 h-4 text-[#53bdeb]" viewBox="0 0 16 11" fill="currentColor">
+                              <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .501.203.697.697 0 0 0 .546-.266l6.646-8.417a.497.497 0 0 0 .108-.299.441.441 0 0 0-.19-.374l-.337-.273zm2.992 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-1.066-1.009-.566.718 1.352 1.352a.724.724 0 0 0 .501.203.697.697 0 0 0 .546-.266l6.646-8.417a.497.497 0 0 0 .108-.299.441.441 0 0 0-.19-.374l-.337-.273z" />
+                            </svg>
+                          </div>
+                        </div>
+                        {/* Buttons */}
                         {showPreview.components.buttons && showPreview.components.buttons.length > 0 && (
-                          <div className="mt-3 pt-2 border-t border-[#c5e8b0] space-y-1.5">
+                          <div className="border-t border-[#c5e8b0]">
                             {showPreview.components.buttons.map((btn, idx) => (
-                              <div key={idx} className="w-full py-2 text-[14px] text-[#00a884] font-medium text-center flex items-center justify-center space-x-1">
+                              <div key={idx} className="py-2.5 text-[14px] text-[#00a884] font-medium text-center flex items-center justify-center space-x-1 border-b border-[#c5e8b0] last:border-b-0">
                                 {btn.type === 'URL' && <Link2 className="w-4 h-4" />}
                                 {btn.type === 'PHONE_NUMBER' && <Phone className="w-4 h-4" />}
+                                {btn.type === 'QUICK_REPLY' && <MessageSquare className="w-4 h-4" />}
                                 <span>{btn.text}</span>
                               </div>
                             ))}
                           </div>
                         )}
-                        <div className="flex items-center justify-end space-x-1 mt-1">
-                          <span className="text-[11px] text-gray-500">12:30</span>
-                          <svg className="w-4 h-4 text-[#53bdeb]" viewBox="0 0 16 11" fill="currentColor">
-                            <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .501.203.697.697 0 0 0 .546-.266l6.646-8.417a.497.497 0 0 0 .108-.299.441.441 0 0 0-.19-.374l-.337-.273zm2.992 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-1.066-1.009-.566.718 1.352 1.352a.724.724 0 0 0 .501.203.697.697 0 0 0 .546-.266l6.646-8.417a.497.497 0 0 0 .108-.299.441.441 0 0 0-.19-.374l-.337-.273z" />
-                          </svg>
-                        </div>
                       </div>
                     </div>
                   </div>
