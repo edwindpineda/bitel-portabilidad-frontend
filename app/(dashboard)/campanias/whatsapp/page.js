@@ -25,6 +25,7 @@ import ConfirmEnvioModal from '@/components/whatsapp/ConfirmEnvioModal';
 
 const ESTADO_STYLES = {
   pendiente: { className: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500 animate-pulse', label: 'Pendiente' },
+  en_proceso: { className: 'bg-blue-100 text-blue-800', dot: 'bg-blue-500 animate-pulse', label: 'En Proceso' },
   enviado: { className: 'bg-blue-100 text-blue-800', dot: 'bg-blue-500', label: 'Enviado' },
   entregado: { className: 'bg-green-100 text-green-800', dot: 'bg-green-500', label: 'Entregado' },
   cancelado: { className: 'bg-gray-100 text-gray-800', dot: 'bg-gray-500', label: 'Cancelado' },
@@ -66,9 +67,21 @@ export default function EnviosMasivosPage() {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  // Polling: recargar datos cada 3s si hay envíos en proceso
+  useEffect(() => {
+    const hayEnProceso = envios.some(e => e.estado_envio === 'en_proceso');
+    if (!hayEnProceso) return;
+
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [envios]);
+
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [enviosRes, plantillasRes, basesRes] = await Promise.all([
         apiClient.get('/crm/envio-masivo-whatsapp').catch(() => ({ data: [] })),
         apiClient.get('/crm/plantillas-whatsapp').catch(() => ({ data: { templates: [] } })),
@@ -267,16 +280,8 @@ export default function EnviosMasivosPage() {
 
     setEnviando(true);
     try {
-      const response = await apiClient.post(`/crm/envio-masivo-whatsapp/${envioParaEnviar.id}/enviar`);
-      const { cantidadExitosos, cantidadFallidos } = response?.data || {};
-
-      setProgresoEnvio({
-        enviados: (cantidadExitosos || 0) + (cantidadFallidos || 0),
-        total: envioParaEnviar.cantidad || 0,
-        errores: cantidadFallidos || 0,
-      });
-
-      toast.success(`Envio completado: ${cantidadExitosos || 0} exitosos, ${cantidadFallidos || 0} fallidos`);
+      await apiClient.post(`/crm/envio-masivo-whatsapp/${envioParaEnviar.id}/enviar`);
+      toast.success('Envío masivo iniciado. El progreso se actualizará automáticamente.');
       setShowConfirmEnvio(false);
       setEnvioParaEnviar(null);
       loadData();

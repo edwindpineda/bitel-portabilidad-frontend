@@ -260,6 +260,16 @@ export default function WhatsAppPlantillasPage() {
       return;
     }
 
+    // Validar que todas las variables del body tengan un campo mapeado
+    const variables = extractVariables(formData.body);
+    if (variables.length > 0) {
+      const sinMapear = variables.filter(v => !variableCampos[v]);
+      if (sinMapear.length > 0) {
+        toast.error(`Debes asignar un campo a las variables: ${sinMapear.map(v => `{{${v}}}`).join(', ')}`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       let plantillaId = editingPlantilla?.id || null;
