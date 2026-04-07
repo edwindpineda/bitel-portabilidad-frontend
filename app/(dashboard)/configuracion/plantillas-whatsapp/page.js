@@ -12,8 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  Plus, Search, Pencil, Trash2, FileText, Eye, Send, Loader2, Check,
-  Info, Clock, CheckCircle2, XCircle, Phone, Link2, MessageSquare, Upload, Image, Video, File, X, ChevronRight, 
+  Plus, Search, Pencil, Trash2, FileText, Eye, Send, Loader2, Check, RefreshCw,
+  Info, Clock, CheckCircle2, XCircle, Phone, Link2, MessageSquare, Upload, Image, Video, File, X, ChevronRight,
 } from 'lucide-react';
 
 const STATUS_STYLES = {
@@ -118,6 +118,7 @@ export default function WhatsAppPlantillasPage() {
   const [loadingCamposSistema, setLoadingCamposSistema] = useState(false);
   const [variableCampos, setVariableCampos] = useState({});
   const [originalFormData, setOriginalFormData] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => { loadPlantillas(); }, []);
 
@@ -193,6 +194,20 @@ export default function WhatsAppPlantillasPage() {
       console.error('Error al cargar plantillas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await apiClient.post('/crm/plantillas-whatsapp/sync');
+      toast.success(res?.msg || 'Plantillas sincronizadas con Meta');
+      await loadPlantillas();
+    } catch (error) {
+      console.error('Error al sincronizar:', error);
+      toast.error(error?.msg || 'Error al sincronizar con Meta');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -491,10 +506,16 @@ export default function WhatsAppPlantillasPage() {
             <h1 className="text-2xl font-bold text-foreground">Plantillas WhatsApp</h1>
             <p className="text-muted-foreground mt-1">Gestiona tus plantillas de mensajes aprobadas por Meta</p>
           </div>
-          <Button onClick={openCreateModal}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Plantilla
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleSync} disabled={syncing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Sincronizando...' : 'Sincronizar con Meta'}
+            </Button>
+            <Button onClick={openCreateModal}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Plantilla
+            </Button>
+          </div>
         </div>
 
         <Separator />
