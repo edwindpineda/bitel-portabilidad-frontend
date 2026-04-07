@@ -62,6 +62,8 @@ export default function EnviosMasivosPage() {
   const [envioParaEnviar, setEnvioParaEnviar] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [progresoEnvio, setProgresoEnvio] = useState({ enviados: 0, total: 0, errores: 0 });
+  const [validacionWarnings, setValidacionWarnings] = useState([]);
+  const [validando, setValidando] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -269,10 +271,21 @@ export default function EnviosMasivosPage() {
     );
   };
 
-  const handleAbrirConfirmEnvio = (envio) => {
+  const handleAbrirConfirmEnvio = async (envio) => {
     setEnvioParaEnviar(envio);
     setProgresoEnvio({ enviados: 0, total: envio.cantidad || 0, errores: 0 });
+    setValidacionWarnings([]);
+    setValidando(true);
     setShowConfirmEnvio(true);
+
+    try {
+      const res = await apiClient.get(`/crm/envio-masivo-whatsapp/${envio.id}/validar`);
+      setValidacionWarnings(res?.data?.warnings || []);
+    } catch (error) {
+      console.error('Error al validar envio:', error);
+    } finally {
+      setValidando(false);
+    }
   };
 
   const handleConfirmarEnvio = async () => {
@@ -598,6 +611,8 @@ export default function EnviosMasivosPage() {
         onConfirm={handleConfirmarEnvio}
         enviando={enviando}
         progreso={progresoEnvio}
+        warnings={validacionWarnings}
+        validando={validando}
       />
     </div>
   );

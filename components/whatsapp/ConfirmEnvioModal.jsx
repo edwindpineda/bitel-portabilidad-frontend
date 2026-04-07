@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Send, AlertTriangle, Loader2, Users, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { Send, AlertTriangle, Loader2, Users, FileText, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 export default function ConfirmEnvioModal({
   open,
@@ -13,10 +13,13 @@ export default function ConfirmEnvioModal({
   onConfirm,
   enviando = false,
   progreso = { enviados: 0, total: 0, errores: 0 },
+  warnings = [],
+  validando = false,
 }) {
   if (!envio) return null;
 
   const porcentaje = progreso.total > 0 ? (progreso.enviados / progreso.total) * 100 : 0;
+  const tieneErrores = warnings.some(w => w.severidad === 'error');
 
   return (
     <Dialog open={open} onOpenChange={enviando ? undefined : onOpenChange}>
@@ -55,6 +58,50 @@ export default function ConfirmEnvioModal({
             </CardContent>
           </Card>
 
+          {/* Validacion */}
+          {validando && (
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                  <span className="text-sm text-blue-700">Validando datos del envio...</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {!validando && warnings.length > 0 && (
+            <div className="space-y-2">
+              {warnings.map((w, idx) => (
+                <Card key={idx} className={w.severidad === 'error' ? 'border-red-200 bg-red-50/50' : 'border-amber-200 bg-amber-50/50'}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start space-x-2">
+                      {w.severidad === 'error' ? (
+                        <XCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      )}
+                      <p className={`text-xs ${w.severidad === 'error' ? 'text-red-700' : 'text-amber-700'}`}>
+                        {w.mensaje}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {!validando && warnings.length === 0 && !enviando && (
+            <Card className="border-green-200 bg-green-50/50">
+              <CardContent className="p-3">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  <span className="text-xs text-green-700">Validacion completada. Los datos del envio son correctos.</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {enviando && (
             <Card className="border-blue-200 bg-blue-50/50">
               <CardContent className="p-4 space-y-3">
@@ -88,7 +135,7 @@ export default function ConfirmEnvioModal({
             </Card>
           )}
 
-          {!enviando && (
+          {!enviando && !validando && (
             <Card className="border-amber-200 bg-amber-50/50">
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
@@ -109,11 +156,13 @@ export default function ConfirmEnvioModal({
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={enviando}
-            className="bg-[#25D366] hover:bg-[#128C7E] text-white"
+            disabled={enviando || validando || tieneErrores}
+            className={tieneErrores ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#25D366] hover:bg-[#128C7E] text-white'}
           >
             {enviando ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Enviando...</>
+            ) : validando ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Validando...</>
             ) : (
               <><Send className="w-4 h-4 mr-2" />Enviar Ahora</>
             )}
