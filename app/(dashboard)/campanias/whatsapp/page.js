@@ -599,7 +599,7 @@ export default function EnviosMasivosPage() {
       <EnvioDetailModal
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
-        envio={selectedEnvio}
+        envio={selectedEnvio ? (envios.find(e => e.id === selectedEnvio.id) || selectedEnvio) : null}
         bases={envioBases}
         loading={loadingDetail}
       />
