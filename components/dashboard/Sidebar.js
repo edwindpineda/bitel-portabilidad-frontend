@@ -117,19 +117,32 @@ function NavItem({
 
   const isExpanded = !!expandedMenus[item.name];
 
-  const paddingLeft = level === 0 ? '' : level === 1 ? 'ml-4 pl-3' : 'ml-3 pl-3';
+  const paddingLeft = level === 0 ? '' : level === 1 ? 'ml-6 pl-3' : 'ml-4 pl-3';
+
+  // Estilos por nivel: 0=padre, 1=hijo, 2=nieto
+  const levelStyles = {
+    text: level === 0 ? 'text-[14px] font-semibold' : level === 1 ? 'text-[12.5px] font-medium' : 'text-[11.5px] font-normal',
+    py: level === 0 ? 'py-2.5' : level === 1 ? 'py-[7px]' : 'py-[5px]',
+    iconSize: level === 0 ? 'h-[18px] w-[18px]' : level === 1 ? 'h-[15px] w-[15px]' : 'h-[13px] w-[13px]',
+    iconColor: level === 0 ? 'text-teal-400/70' : level === 1 ? 'text-teal-400/40' : 'text-slate-500/40',
+    iconColorActive: level === 0 ? 'text-cyan-400' : level === 1 ? 'text-cyan-400/70' : 'text-cyan-400/50',
+    textColor: level === 0 ? 'text-slate-200' : level === 1 ? 'text-slate-300/70' : 'text-slate-400/60',
+    textColorHover: level === 0 ? 'hover:text-white' : level === 1 ? 'hover:text-slate-200' : 'hover:text-slate-300',
+  };
 
   const linkContent = (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200 relative',
+        'flex items-center gap-2.5 rounded-xl px-3 transition-all duration-200 relative',
+        levelStyles.text,
+        levelStyles.py,
         isActive
-          ? 'bg-white/[0.12] text-white font-medium'
-          : 'text-slate-300/70 hover:bg-white/[0.06] hover:text-white',
+          ? 'bg-white/[0.12] text-white'
+          : cn(levelStyles.textColor, 'hover:bg-white/[0.06]', levelStyles.textColorHover),
         isCollapsed && level === 0 && 'justify-center px-0 py-2.5 mx-1'
       )}
     >
-      {isActive && (
+      {isActive && level === 0 && (
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
           style={{ background: 'linear-gradient(180deg, #2DD4BF, #14B8A6)' }}
@@ -137,8 +150,8 @@ function NavItem({
       )}
 
       {Icon && (
-        <span className={cn('transition-colors', isActive ? 'text-cyan-400' : 'text-teal-400/50')}>
-          <Icon className="h-[18px] w-[18px] shrink-0" />
+        <span className={cn('transition-colors', isActive ? levelStyles.iconColorActive : levelStyles.iconColor)}>
+          <Icon className={cn(levelStyles.iconSize, 'shrink-0')} />
         </span>
       )}
 
@@ -181,29 +194,31 @@ function NavItem({
         <CollapsibleTrigger asChild>
           <button
             className={cn(
-              'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200 relative',
+              'w-full flex items-center gap-2.5 rounded-xl px-3 transition-all duration-200 relative',
+              levelStyles.text,
+              levelStyles.py,
               isActive
-                ? 'bg-white/[0.12] text-white font-medium'
-                : 'text-indigo-200/70 hover:bg-white/[0.06] hover:text-white'
+                ? 'bg-white/[0.12] text-white'
+                : cn(levelStyles.textColor, 'hover:bg-white/[0.06]', levelStyles.textColorHover)
             )}
           >
-            {isActive && (
+            {isActive && level === 0 && (
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
                 style={{ background: 'linear-gradient(180deg, #2DD4BF, #14B8A6)' }}
               />
             )}
             {Icon ? (
-              <span className={cn('transition-colors', isActive ? 'text-cyan-400' : 'text-teal-400/50')}>
-                <Icon className="h-[18px] w-[18px] shrink-0" />
+              <span className={cn('transition-colors', isActive ? levelStyles.iconColorActive : levelStyles.iconColor)}>
+                <Icon className={cn(levelStyles.iconSize, 'shrink-0')} />
               </span>
             ) : (
-              <span className="w-[18px] shrink-0" />
+              <span className={cn(levelStyles.iconSize, 'shrink-0')} />
             )}
             <span className="flex-1 text-left">{item.name}</span>
             <ChevronDown
               className={cn(
-                'h-3.5 w-3.5 text-teal-400/40 transition-transform duration-200',
+                'h-3 w-3 text-teal-400/30 transition-transform duration-200',
                 isExpanded && 'rotate-180'
               )}
             />
@@ -212,8 +227,12 @@ function NavItem({
 
         <CollapsibleContent>
           <div
-            className={cn('mt-1 space-y-0.5', paddingLeft)}
-            style={{ borderLeft: '1px solid rgba(20, 184, 166, 0.2)' }}
+            className={cn(
+              'space-y-0.5',
+              paddingLeft,
+              level === 0 ? 'mt-1.5 ml-5 pl-3' : 'mt-0.5 ml-3 pl-3'
+            )}
+            style={{ borderLeft: level === 0 ? '2px solid rgba(20, 184, 166, 0.25)' : '1px solid rgba(100, 116, 139, 0.15)' }}
           >
             {item.submenu.map((subItem) => (
               <NavItem
@@ -236,16 +255,20 @@ function NavItem({
   <Link
     href={item.path}
     className={cn(
-      'flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-200',
+      'flex items-center gap-2.5 px-3 rounded-lg transition-all duration-200',
+      levelStyles.text,
+      levelStyles.py,
       isActive
-        ? 'bg-white/[0.1] text-white font-medium'
-        : 'text-slate-400/60 hover:bg-white/[0.06] hover:text-slate-200'
+        ? 'bg-white/[0.1] text-white'
+        : cn(levelStyles.textColor, 'hover:bg-white/[0.06]', levelStyles.textColorHover)
     )}
   >
     {Icon ? (
-      <Icon className="h-[16px] w-[16px] shrink-0" />
+      <span className={cn('transition-colors', isActive ? levelStyles.iconColorActive : levelStyles.iconColor)}>
+        <Icon className={cn(levelStyles.iconSize, 'shrink-0')} />
+      </span>
     ) : (
-      <span className="w-[16px] h-[16px] shrink-0" />
+      <span className={cn(levelStyles.iconSize, 'shrink-0')} />
     )}
     <span>{item.name}</span>
   </Link>
