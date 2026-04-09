@@ -34,6 +34,7 @@ import {
   ChevronDown,
   LayoutGrid,
   Headphones,
+  LifeBuoy,
 } from 'lucide-react';
 
 const WhatsAppIcon = ({ className }) => (
@@ -44,6 +45,7 @@ const WhatsAppIcon = ({ className }) => (
 
 const SUPER_ADMIN_MENU = [
   { name: 'Administración', icon: Building2, path: '/administracion', badge: null },
+  { name: 'Soporte', icon: LifeBuoy, path: '/soporte', badge: null },
 ];
 
 const ENCUESTAS_MENU = [
@@ -86,6 +88,7 @@ const BASE_MENU = [
     { name: 'Llamadas', path: '/campanias/llamadas' },
     { name: 'WhatsApp', path: '/campanias/whatsapp' },
   ]},
+  { name: 'Soporte', icon: LifeBuoy, path: '/soporte', badge: null },
   { name: 'Configuración', icon: Settings, path: '/configuracion', badge: null },
 ];
 function NavItem({
