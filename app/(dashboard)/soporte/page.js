@@ -46,7 +46,7 @@ const formatDateTime = (dateString) => {
   if (!dateString) return '';
   const date = new Date(String(dateString).replace(' ', 'T'));
   if (isNaN(date.getTime())) return '';
-  return date.toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' });
 };
 
 const PrioridadBadge = ({ nombre, color }) => (
@@ -89,6 +89,8 @@ export default function SoportePage() {
   const [filterEstado, setFilterEstado] = useState('');
   const [filterPrioridad, setFilterPrioridad] = useState('');
   const [filterCategoria, setFilterCategoria] = useState('');
+  const [filterEmpresa, setFilterEmpresa] = useState('');
+  const [filterPlataforma, setFilterPlataforma] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   // New comment
@@ -128,7 +130,7 @@ export default function SoportePage() {
   const loadCatalogos = async () => {
     try {
       const res = await ticketService.getCatalogos();
-      setCatalogos(res?.data || { estados: [], prioridades: [], categorias: [] });
+      setCatalogos(res?.data || { estados: [], prioridades: [], categorias: [], empresas: [], plataformas: [] });
     } catch (err) { console.error('Error cargando catalogos:', err); }
   };
 
@@ -151,7 +153,8 @@ export default function SoportePage() {
       setLoading(true);
       const res = await ticketService.getAll({
         page, limit: 20,
-        estado: filterEstado, prioridad: filterPrioridad, categoria: filterCategoria, search: searchQuery
+        estado: filterEstado, prioridad: filterPrioridad, categoria: filterCategoria, search: searchQuery,
+        empresa: filterEmpresa, plataforma: filterPlataforma
       });
       setTickets(res?.data || []);
       setPagination(res?.pagination || { total: 0, page: 1, totalPages: 1 });
@@ -164,7 +167,7 @@ export default function SoportePage() {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => { loadTickets(); }, 400);
     return () => clearTimeout(searchTimeoutRef.current);
-  }, [searchQuery, filterEstado, filterPrioridad, filterCategoria]);
+  }, [searchQuery, filterEstado, filterPrioridad, filterCategoria, filterEmpresa, filterPlataforma]);
 
   const selectTicket = async (ticket) => {
     setSelectedTicket(ticket);
@@ -351,6 +354,26 @@ export default function SoportePage() {
                 <option value="">Todas las categorias</option>
                 {catalogos.categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
+              {isSuperAdmin && catalogos.empresas?.length > 0 && (
+                <select
+                  value={filterEmpresa}
+                  onChange={(e) => setFilterEmpresa(e.target.value)}
+                  className="px-2 py-1 text-xs bg-secondary rounded-md border border-border text-foreground focus:outline-none"
+                >
+                  <option value="">Todas las empresas</option>
+                  {catalogos.empresas.map(e => <option key={e.id} value={e.id}>{e.razon_social}</option>)}
+                </select>
+              )}
+              {isSuperAdmin && catalogos.plataformas?.length > 0 && (
+                <select
+                  value={filterPlataforma}
+                  onChange={(e) => setFilterPlataforma(e.target.value)}
+                  className="px-2 py-1 text-xs bg-secondary rounded-md border border-border text-foreground focus:outline-none"
+                >
+                  <option value="">Todas las plataformas</option>
+                  {catalogos.plataformas.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                </select>
+              )}
             </div>
           )}
         </div>
@@ -461,8 +484,8 @@ export default function SoportePage() {
                   <h2 className="text-base font-semibold text-foreground truncate mt-0.5">{selectedTicket.asunto}</h2>
                 </div>
 
-                {/* Actions */}
-                {canManage && (
+                {/* Actions - Solo SuperAdmin */}
+                {isSuperAdmin && (
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Change Estado */}
                     <div className="relative">
@@ -488,30 +511,32 @@ export default function SoportePage() {
                       )}
                     </div>
 
-                    {/* Assign User */}
-                    <div className="relative">
-                      <button
-                        onClick={() => { setShowAsignarDropdown(!showAsignarDropdown); setShowEstadoDropdown(false); }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs border border-border rounded-lg hover:bg-secondary transition-colors"
-                      >
-                        <User className="h-3 w-3" />
-                        Asignar <ChevronDown className="h-3 w-3" />
-                      </button>
-                      {showAsignarDropdown && (
-                        <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 min-w-[200px] max-h-[240px] overflow-y-auto">
-                          {usuarios.map(u => (
-                            <button
-                              key={u.id}
-                              onClick={() => handleAssignUser(u.id)}
-                              className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary flex items-center gap-2 first:rounded-t-lg last:rounded-b-lg ${selectedTicket.id_usuario_asignado == u.id ? 'bg-primary/10 text-primary font-medium' : ''}`}
-                            >
-                              <User className="h-3.5 w-3.5" />
-                              {u.username}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    {/* Assign User - Solo SuperAdmin */}
+                    {isSuperAdmin && (
+                      <div className="relative">
+                        <button
+                          onClick={() => { setShowAsignarDropdown(!showAsignarDropdown); setShowEstadoDropdown(false); }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs border border-border rounded-lg hover:bg-secondary transition-colors"
+                        >
+                          <User className="h-3 w-3" />
+                          {selectedTicket.asignado_username || 'Sin asignar'} <ChevronDown className="h-3 w-3" />
+                        </button>
+                        {showAsignarDropdown && (
+                          <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 min-w-[200px] max-h-[240px] overflow-y-auto">
+                            {usuarios.map(u => (
+                              <button
+                                key={u.id}
+                                onClick={() => handleAssignUser(u.id)}
+                                className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary flex items-center gap-2 first:rounded-t-lg last:rounded-b-lg ${selectedTicket.id_usuario_asignado == u.id ? 'bg-primary/10 text-primary font-medium' : ''}`}
+                              >
+                                <User className="h-3.5 w-3.5" />
+                                {u.username}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -519,7 +544,7 @@ export default function SoportePage() {
               {/* Ticket Info Row */}
               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1"><Tag className="h-3 w-3" />{selectedTicket.categoria_nombre}</span>
-                <span className="flex items-center gap-1"><User className="h-3 w-3" />Reporta: {selectedTicket.reporta_username}</span>
+                <span className="flex items-center gap-1"><User className="h-3 w-3" />Reporta: {selectedTicket.reporta_username || selectedTicket.usuario_externo_nombre || 'Externo'}</span>
                 {selectedTicket.asignado_username && <span className="flex items-center gap-1"><User className="h-3 w-3" />Asignado: {selectedTicket.asignado_username}</span>}
                 {isSuperAdmin && selectedTicket.empresa_nombre && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{selectedTicket.empresa_nombre}</span>}
                 <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateTime(selectedTicket.fecha_registro)}</span>
@@ -574,7 +599,7 @@ export default function SoportePage() {
                         <div className={`flex gap-2 max-w-[65%] ${isOwn ? 'flex-row-reverse' : ''}`}>
                           {/* Avatar */}
                           <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white mt-1 ${isOwn ? 'bg-primary' : 'bg-slate-400'}`}>
-                            {(item.username || '?')[0].toUpperCase()}
+                            {(item.username || item.usuario_externo_nombre || '?')[0].toUpperCase()}
                           </div>
 
                           {/* Bubble */}
@@ -593,7 +618,7 @@ export default function SoportePage() {
                               <span className={`text-[12px] font-semibold ${
                                 isInternalNote ? 'text-amber-700' : isOwn ? 'text-primary-foreground/90' : 'text-primary'
                               }`}>
-                                {item.username}
+                                {item.username || item.usuario_externo_nombre}
                               </span>
                               {isInternalNote && <span className="text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full font-medium">Nota interna</span>}
                               {item.es_respuesta_agente && !isInternalNote && !isOwn && (
@@ -661,8 +686,8 @@ export default function SoportePage() {
                 </div>
               )}
 
-              {/* Internal note toggle */}
-              {canManage && (
+              {/* Internal note toggle - Solo SuperAdmin */}
+              {isSuperAdmin && (
                 <div className="flex items-center gap-2 mb-2">
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                     <input
