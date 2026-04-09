@@ -18,7 +18,7 @@ const ESTADO_STYLES = {
   cancelado: { className: 'bg-gray-100 text-gray-800', dot: 'bg-gray-500', label: 'Cancelado' },
 };
 
-const ESTADOS_EXITOSOS = ['entregado', 'enviado'];
+const ESTADOS_EXITOSOS = ['entregado'];
 const ESTADOS_FALLIDOS = ['cancelado'];
 const PAGE_SIZE = 50;
 
@@ -49,7 +49,7 @@ export default function EnvioDetailModal({
     return { exitosos, fallidos };
   }, [bases, envio?.cantidad_exitosos, envio?.cantidad_fallidos]);
 
-  const total = envio?.cantidad || bases?.length || 0;
+  const total = bases?.length || envio?.cantidad || 0;
   const pendientes = total - counts.exitosos - counts.fallidos;
 
   const totalPages = Math.max(1, Math.ceil((bases?.length || 0) / PAGE_SIZE));

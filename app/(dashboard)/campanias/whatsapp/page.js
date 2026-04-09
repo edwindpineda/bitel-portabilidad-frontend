@@ -59,6 +59,7 @@ export default function EnviosMasivosPage() {
   const [selectedEnvio, setSelectedEnvio] = useState(null);
   const [envioBases, setEnvioBases] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [envioCountsCache, setEnvioCountsCache] = useState({});
 
   // Confirm envio modal
   const [showConfirmEnvio, setShowConfirmEnvio] = useState(false);
@@ -92,16 +93,41 @@ export default function EnviosMasivosPage() {
         apiClient.get('/crm/plantillas-whatsapp').catch(() => ({ data: { templates: [] } })),
         apiClient.get('/crm/bases-numeros').catch(() => ({ data: [] })),
       ]);
-      setEnvios(enviosRes?.data || []);
+      const enviosList = enviosRes?.data || [];
+      setEnvios(enviosList);
       const allPlantillas = plantillasRes?.data?.templates || plantillasRes?.data || [];
       setPlantillas(allPlantillas.filter(p => p.status === 'APPROVED'));
       setBases(basesRes?.data || []);
+      // Cargar contadores reales de cada envio en background
+      loadEnvioCounts(enviosList);
     } catch (error) {
       console.error('Error al cargar datos:', error);
       toast.error('Error al cargar datos');
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadEnvioCounts = async (enviosList) => {
+    const results = {};
+    await Promise.all(
+      enviosList.map(async (envio) => {
+        try {
+          const res = await apiClient.get(`/crm/envio-base/envio-masivo/${envio.id}`);
+          const basesData = res?.data || [];
+          let exitosos = 0;
+          let fallidos = 0;
+          for (const b of basesData) {
+            if (b.estado === 'entregado') exitosos++;
+            else if (b.estado === 'cancelado') fallidos++;
+          }
+          results[envio.id] = { exitosos, fallidos, total: basesData.length };
+        } catch {
+          // Si falla, no actualizamos ese envio
+        }
+      })
+    );
+    setEnvioCountsCache(prev => ({ ...prev, ...results }));
   };
 
   const filteredEnvios = envios.filter(e =>
@@ -259,7 +285,16 @@ export default function EnviosMasivosPage() {
     setLoadingDetail(true);
     try {
       const response = await apiClient.get(`/crm/envio-base/envio-masivo/${envio.id}`);
-      setEnvioBases(response?.data || []);
+      const basesData = response?.data || [];
+      setEnvioBases(basesData);
+      // Calcular contadores desde los registros reales
+      let exitosos = 0;
+      let fallidos = 0;
+      for (const b of basesData) {
+        if (b.estado === 'entregado') exitosos++;
+        else if (b.estado === 'cancelado') fallidos++;
+      }
+      setEnvioCountsCache(prev => ({ ...prev, [envio.id]: { exitosos, fallidos, total: basesData.length } }));
     } catch (error) {
       console.error('Error al cargar detalle:', error);
       setEnvioBases([]);
@@ -594,10 +629,10 @@ export default function EnviosMasivosPage() {
                     <span className="text-sm font-medium">{envio.cantidad || 0}</span>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-sm font-medium text-green-600">{envio.cantidad_exitosos || 0}</span>
+                    <span className="text-sm font-medium text-green-600">{envioCountsCache[envio.id]?.exitosos ?? envio.cantidad_exitosos ?? 0}</span>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-sm font-medium text-red-600">{envio.cantidad_fallidos || 0}</span>
+                    <span className="text-sm font-medium text-red-600">{envioCountsCache[envio.id]?.fallidos ?? envio.cantidad_fallidos ?? 0}</span>
                   </TableCell>
                   <TableCell>
                     <Badge className={estadoStyle.className}>
