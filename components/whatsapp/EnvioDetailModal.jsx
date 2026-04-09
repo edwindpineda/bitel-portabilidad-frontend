@@ -87,6 +87,7 @@ export default function EnvioDetailModal({
                         <TableHead className="text-xs">Nombre</TableHead>
                         <TableHead className="text-xs">Base</TableHead>
                         <TableHead className="text-xs">Estado</TableHead>
+                        <TableHead className="text-xs">Tipificación</TableHead>
                         <TableHead className="text-xs">Fecha Envio</TableHead>
                         <TableHead className="text-xs">Error</TableHead>
                       </TableRow>
@@ -110,6 +111,11 @@ export default function EnvioDetailModal({
                                 <span className={`w-1.5 h-1.5 rounded-full ${estadoStyle.dot} mr-1.5`} />
                                 {estadoStyle.label}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {[eb.nombre_nivel_1, eb.nombre_nivel_2, eb.nombre_nivel_3]
+                                .filter(Boolean)
+                                .join(' > ') || '-'}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
                               {eb.fecha_envio ? new Date(eb.fecha_envio).toLocaleString() : '-'}

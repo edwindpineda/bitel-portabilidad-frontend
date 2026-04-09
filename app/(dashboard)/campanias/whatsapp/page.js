@@ -15,8 +15,11 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import {
   Plus, Search, Pencil, Trash2, Loader2, Send, Eye, Database,
-  CheckCircle2, Clock, MessageSquare, Users,
+  CheckCircle2, Clock, MessageSquare, Users, Download, FileText, FileSpreadsheet, FileDown,
 } from 'lucide-react';
 
 import CreateEditEnvioModal from '@/components/whatsapp/CreateEditEnvioModal';
@@ -314,6 +317,121 @@ export default function EnviosMasivosPage() {
     }
   };
 
+  // Export helpers
+  const ESTADO_LABELS = {
+    pendiente: 'Pendiente', en_proceso: 'En Proceso', enviado: 'Enviado',
+    entregado: 'Entregado', cancelado: 'Cancelado',
+  };
+
+  const mapRegistros = (registros) => registros.map(r => ({
+    telefono: r.detalle_telefono || '',
+    nombre: r.detalle_nombre || '',
+    base: r.base_nombre || '',
+    estado: ESTADO_LABELS[r.estado] || r.estado || '',
+    tipificacion: [r.nombre_nivel_1, r.nombre_nivel_2, r.nombre_nivel_3].filter(Boolean).join(' > ') || '',
+    fecha: r.fecha_envio ? new Date(r.fecha_envio).toLocaleString() : '',
+    error: r.error_mensaje || '',
+  }));
+
+  const EXPORT_HEADERS = ['Telefono', 'Nombre', 'Base', 'Estado', 'Tipificacion', 'Fecha Envio', 'Error'];
+  const ROW_KEYS = ['telefono', 'nombre', 'base', 'estado', 'tipificacion', 'fecha', 'error'];
+
+  const handleExport = (envio, type) => {
+    // setTimeout lets the dropdown close before the async work starts
+    setTimeout(async () => {
+      const toastId = toast.loading('Descargando registros...');
+      try {
+        const response = await apiClient.get(`/crm/envio-base/envio-masivo/${envio.id}`);
+        const registros = response?.data || [];
+        if (registros.length === 0) {
+          toast.error('No hay registros para exportar', { id: toastId });
+          return;
+        }
+        const rows = mapRegistros(registros);
+
+        if (type === 'csv') {
+          const csvContent = '\ufeff' + [EXPORT_HEADERS, ...rows.map(r => ROW_KEYS.map(k => r[k]))]
+            .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            .join('\n');
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `${envio.titulo || 'envio'}.csv`;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        } else if (type === 'excel') {
+          const xlsContent = '\ufeff' + [EXPORT_HEADERS, ...rows.map(r => ROW_KEYS.map(k => r[k]))]
+            .map(row => row.map(cell => String(cell).replace(/\t/g, ' ')).join('\t'))
+            .join('\n');
+          const blob = new Blob([xlsContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `${envio.titulo || 'envio'}.xls`;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        } else if (type === 'pdf') {
+          const pendientes = (envio.cantidad || 0) - (envio.cantidad_exitosos || 0) - (envio.cantidad_fallidos || 0);
+          const tableRows = rows.map(r => `
+            <tr><td>${r.telefono || '-'}</td><td>${r.nombre || '-'}</td><td>${r.base || '-'}</td>
+            <td>${r.estado || '-'}</td><td>${r.tipificacion || '-'}</td><td>${r.fecha || '-'}</td><td>${r.error || '-'}</td></tr>
+          `).join('');
+
+          const html = `<html><head><title>${envio.titulo}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; font-size: 11px; margin: 0; }
+              h2 { color: #1e40af; margin-bottom: 4px; }
+              .subtitle { color: #6b7280; margin-bottom: 16px; }
+              .stats { display: flex; gap: 16px; margin-bottom: 16px; }
+              .stat { padding: 8px 16px; border-radius: 8px; text-align: center; }
+              .stat-total { background: #eff6ff; color: #1e40af; }
+              .stat-ok { background: #f0fdf4; color: #16a34a; }
+              .stat-fail { background: #fef2f2; color: #dc2626; }
+              .stat-pend { background: #fefce8; color: #ca8a04; }
+              .stat strong { font-size: 18px; display: block; }
+              table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+              th { background: #1e40af; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
+              td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
+              tr:nth-child(even) { background: #f9fafb; }
+              .footer { margin-top: 16px; text-align: right; color: #9ca3af; font-size: 9px; }
+            </style></head><body>
+              <h2>${envio.titulo}</h2>
+              <p class="subtitle">Detalle del Envio Masivo WhatsApp</p>
+              <div class="stats">
+                <div class="stat stat-total"><strong>${envio.cantidad || 0}</strong>Total</div>
+                <div class="stat stat-ok"><strong>${envio.cantidad_exitosos || 0}</strong>Exitosos</div>
+                <div class="stat stat-fail"><strong>${envio.cantidad_fallidos || 0}</strong>Fallidos</div>
+                <div class="stat stat-pend"><strong>${pendientes}</strong>Pendientes</div>
+              </div>
+              <table>
+                <thead><tr><th>Telefono</th><th>Nombre</th><th>Base</th><th>Estado</th><th>Tipificacion</th><th>Fecha Envio</th><th>Error</th></tr></thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+              <div class="footer">Generado el ${new Date().toLocaleString()}</div>
+            </body></html>`;
+
+          const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+          iframe.src = url;
+          iframe.onload = () => {
+            iframe.contentWindow.print();
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              URL.revokeObjectURL(url);
+            }, 1000);
+          };
+        }
+
+        toast.success('Exportacion completada', { id: toastId });
+      } catch (error) {
+        console.error('Error al exportar:', error);
+        toast.error('Error al exportar', { id: toastId });
+      }
+    }, 0);
+  };
+
   // Stats
   const totalEnvios = envios.length;
   const totalPendientes = envios.filter(e => e.estado_envio === 'pendiente').length;
@@ -513,6 +631,32 @@ export default function EnviosMasivosPage() {
                           </TooltipTrigger>
                           <TooltipContent>Ver Detalle</TooltipContent>
                         </Tooltip>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-purple-50 text-purple-500 hover:text-purple-700"
+                              title="Exportar"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleExport(envio, 'pdf')} className="gap-2 cursor-pointer">
+                              <FileText className="h-4 w-4 text-red-500" />
+                              Exportar a PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExport(envio, 'excel')} className="gap-2 cursor-pointer">
+                              <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                              Exportar a Excel
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExport(envio, 'csv')} className="gap-2 cursor-pointer">
+                              <FileDown className="h-4 w-4 text-blue-500" />
+                              Exportar a CSV
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         {envio.estado_envio !== 'entregado' && (
                           <>
                             <Tooltip>
