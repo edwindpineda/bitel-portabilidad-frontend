@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
 import {
   Phone,
   PhoneCall,
@@ -531,10 +530,11 @@ const renderDonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent 
 export default function IndicadoresLlamadasPage() {
 
   const today = new Date().toISOString().split('T')[0];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [idEmpresa, setIdEmpresa] = useState('');
-  const [fechaInicio, setFechaInicio] = useState(today);
+  const [fechaInicio, setFechaInicio] = useState(sevenDaysAgo);
   const [fechaFin, setFechaFin] = useState(today);
   const [empresaInicializada, setEmpresaInicializada] = useState(false);
 
@@ -558,7 +558,7 @@ export default function IndicadoresLlamadasPage() {
 
       if (idEmpresa) params.empresa = idEmpresa;
       if (fechaInicio) params.fecha_inicio = fechaInicio;
-if (fechaFin) params.fecha_fin = fechaFin;
+      if (fechaFin) params.fecha_fin = fechaFin;
 
       const res = await apiClient.get('/crm/consumo-indicadores', { params });
 
@@ -591,21 +591,6 @@ if (fechaFin) params.fecha_fin = fechaFin;
     return m > 0 ? `${m}m ${s}s` : `${s}s`;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[500px]">
-        <Loader2 className="animate-spin h-10 w-10 text-emerald-500" />
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div className="flex items-center justify-center h-[500px] text-sm text-gray-500">
-        No se pudieron cargar los indicadores
-      </div>
-    );
-  }
   const kpis = [
   {
     label: 'Base Total',
@@ -707,7 +692,13 @@ if (fechaFin) params.fecha_fin = fechaFin;
   }
 ];
   return (
-    <div className="min-h-full" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
+    <div className="min-h-full relative" style={{ background: 'linear-gradient(135deg, #f8f9fe 0%, #f1f5f9 50%, #f5f3ff 100%)' }}>
+      {loading && (
+        <div className="absolute top-3 right-3 z-50 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-emerald-100">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+          <span className="text-xs text-emerald-600 font-medium">Actualizando...</span>
+        </div>
+      )}
       <div className="space-y-7">
 
         {/* Banner en construccion */}

@@ -18,8 +18,8 @@ export default function EquiposPage() {
     try {
       setLoading(true);
       const [coordinadoresRes, asesoresRes] = await Promise.all([
-        apiClient.get('/crm/usuarios/rol/2'),
-        apiClient.get('/crm/usuarios/rol/3')
+        apiClient.get('/crm/usuarios/empresa/rol/2'),
+        apiClient.get('/crm/usuarios/empresa/rol/3')
       ]);
       setCoordinadores(coordinadoresRes.data || []);
       setAsesores(asesoresRes.data || []);
