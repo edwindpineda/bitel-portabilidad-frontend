@@ -14,6 +14,7 @@ const CAMPOS_FIJOS = [
   { nombre_campo: 'numero_documento', etiqueta: 'Numero Documento' },
 ];
 
+
 // Funcion para normalizar saltos de linea (convertir \n literal a salto real)
 const normalizeNewlines = (text) => {
   if (!text) return '';
@@ -64,6 +65,8 @@ export default function EditarPlantillaPage() {
   const [saving, setSaving] = useState(false);
   const [camposFormato, setCamposFormato] = useState([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [toolsInfo, setToolsInfo] = useState({ category: '', tools: [] });
+  const [loadingTools, setLoadingTools] = useState(false);
 
   const [formData, setFormData] = useState({
     id_formato: '',
@@ -121,9 +124,11 @@ export default function EditarPlantillaPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [plantillaRes, formatosRes] = await Promise.all([
+      setLoadingTools(true);
+      const [plantillaRes, formatosRes, toolsRes] = await Promise.all([
         apiClient.get(`/crm/plantillas/${plantillaId}`),
-        apiClient.get('/crm/formatos')
+        apiClient.get('/crm/formatos'),
+        apiClient.get('/system/tools?category=generica')
       ]);
 
       const plantilla = plantillaRes?.data;
@@ -134,6 +139,12 @@ export default function EditarPlantillaPage() {
       }
 
       setFormatos(formatosRes?.data || []);
+      if (toolsRes?.success) {
+        setToolsInfo({
+          category: toolsRes.category || 'generica',
+          tools: toolsRes.tools || []
+        });
+      }
       setFormData({
         id_formato: plantilla.id_formato || '',
         nombre: plantilla.nombre || '',
@@ -151,6 +162,7 @@ export default function EditarPlantillaPage() {
       router.push('/configuracion/plantillas');
     } finally {
       setLoading(false);
+      setLoadingTools(false);
     }
   };
 
@@ -295,6 +307,29 @@ export default function EditarPlantillaPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Panel informativo de funciones disponibles */}
+              {toolsInfo.tools.length > 0 && (
+                <div className="px-4 py-2 bg-green-50 border border-green-100 border-t-0">
+                  <div className="flex items-center space-x-3">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div className="flex items-center flex-wrap gap-2 text-sm">
+                      <span className="text-green-800 font-medium">Tools ({toolsInfo.category.charAt(0).toUpperCase() + toolsInfo.category.slice(1)}):</span>
+                      {toolsInfo.tools.map((toolName, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-mono"
+                        >
+                          {toolName}()
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Editor con highlighting */}
               <div className="flex-1 relative min-h-[350px] border border-gray-200 border-t-0 rounded-b-lg overflow-hidden">

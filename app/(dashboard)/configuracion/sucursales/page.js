@@ -30,7 +30,10 @@ export default function SucursalesPage() {
     nombre: '',
     direccion: '',
     telefono: '',
-    email: ''
+    email: '',
+    estado: '',
+    provincia: '',
+    ciudad: ''
   });
 
   useEffect(() => {
@@ -73,7 +76,10 @@ export default function SucursalesPage() {
       nombre: sucursal.nombre || '',
       direccion: sucursal.direccion || '',
       telefono: sucursal.telefono || '',
-      email: sucursal.email || ''
+      email: sucursal.email || '',
+      estado: sucursal.estado || '',
+      provincia: sucursal.provincia || '',
+      ciudad: sucursal.ciudad || ''
     });
     setShowModal(true);
   };
@@ -94,7 +100,10 @@ export default function SucursalesPage() {
       nombre: '',
       direccion: '',
       telefono: '',
-      email: ''
+      email: '',
+      estado: '',
+      provincia: '',
+      ciudad: ''
     });
   };
 
@@ -106,8 +115,19 @@ export default function SucursalesPage() {
 
   const filteredSucursales = sucursales.filter((s) =>
     s.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.direccion?.toLowerCase().includes(searchTerm.toLowerCase())
+    s.direccion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.ciudad?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.estado?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Formatear ubicación completa
+  const formatUbicacion = (sucursal) => {
+    const parts = [];
+    if (sucursal.ciudad) parts.push(sucursal.ciudad);
+    if (sucursal.provincia) parts.push(sucursal.provincia);
+    if (sucursal.estado) parts.push(sucursal.estado);
+    return parts.length > 0 ? parts.join(', ') : null;
+  };
 
   if (loading) {
     return (
@@ -167,6 +187,7 @@ export default function SucursalesPage() {
                 <TableRow>
                   <TableHead className="w-[200px]">Nombre</TableHead>
                   <TableHead>Dirección</TableHead>
+                  <TableHead className="w-[200px]">Ubicación</TableHead>
                   <TableHead className="w-[140px]">Teléfono</TableHead>
                   <TableHead className="w-[180px]">Email</TableHead>
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
@@ -186,6 +207,13 @@ export default function SucursalesPage() {
                     <TableCell>
                       {sucursal.direccion ? (
                         <span className="text-muted-foreground">{sucursal.direccion}</span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {formatUbicacion(sucursal) ? (
+                        <span className="text-muted-foreground text-sm">{formatUbicacion(sucursal)}</span>
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
@@ -253,7 +281,7 @@ export default function SucursalesPage() {
 
         {/* Dialog for create/edit */}
         <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingSucursal ? 'Editar Sucursal' : 'Nueva Sucursal'}</DialogTitle>
               <DialogDescription>
@@ -263,40 +291,76 @@ export default function SucursalesPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre *</label>
-                <Input
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  placeholder="Nombre de la sucursal"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nombre *</label>
+                  <Input
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    placeholder="Nombre de la sucursal"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Teléfono</label>
+                  <Input
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    placeholder="Número de teléfono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Dirección</label>
-                <Input
-                  value={formData.direccion}
-                  onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  placeholder="Dirección de la sucursal"
-                />
+
+              {/* Ubicación con campos de texto */}
+              <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                <label className="text-sm font-medium">Ubicación</label>
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Dirección</label>
+                  <Input
+                    value={formData.direccion}
+                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
+                    placeholder="Dirección de la sucursal"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">Estado / Departamento</label>
+                    <Input
+                      value={formData.estado}
+                      onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                      placeholder="Ej: Lima"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">Provincia / Condado</label>
+                    <Input
+                      value={formData.provincia}
+                      onChange={(e) => setFormData({ ...formData, provincia: e.target.value })}
+                      placeholder="Ej: Lima"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">Ciudad / Distrito</label>
+                    <Input
+                      value={formData.ciudad}
+                      onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
+                      placeholder="Ej: Miraflores"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Teléfono</label>
-                <Input
-                  value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  placeholder="Número de teléfono"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="correo@ejemplo.com"
-                />
-              </div>
+
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancelar
