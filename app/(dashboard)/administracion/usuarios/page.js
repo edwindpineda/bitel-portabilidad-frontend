@@ -9,6 +9,7 @@ export default function UsuariosAdminPage() {
   const { data: session } = useSession();
   const [usuarios, setUsuarios] = useState([]);
   const [empresas, setEmpresas] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState(null);
@@ -16,6 +17,7 @@ export default function UsuariosAdminPage() {
     username: '',
     password: '',
     id_empresa: '',
+    id_rol: '1',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,13 +49,15 @@ export default function UsuariosAdminPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usuariosRes, empresasRes] = await Promise.all([
+      const [usuariosRes, empresasRes, rolesRes] = await Promise.all([
         apiClient.get('/crm/admin/usuarios'),
-        apiClient.get('/crm/admin/empresas')
+        apiClient.get('/crm/admin/empresas'),
+        apiClient.get('/crm/roles')
       ]);
       setUsuarios(usuariosRes?.data || []);
       // Solo empresas activas para el select
       setEmpresas((empresasRes?.data || []).filter(e => e.estado_registro == 1));
+      setRoles((rolesRes?.data || []).filter(r => r.estado_registro == 1));
     } catch (error) {
       console.error('Error al cargar datos:', error);
       setError('Error al cargar datos');
@@ -72,7 +76,8 @@ export default function UsuariosAdminPage() {
         await apiClient.put(`/crm/admin/usuarios/${editingUsuario.id}`, {
           username: formData.username,
           password: formData.password || null,
-          id_empresa: formData.id_empresa ? parseInt(formData.id_empresa) : null
+          id_empresa: formData.id_empresa ? parseInt(formData.id_empresa) : 0,
+          id_rol: formData.id_rol ? parseInt(formData.id_rol) : 1
         });
         setSuccess('Usuario actualizado correctamente');
       } else {
@@ -83,13 +88,14 @@ export default function UsuariosAdminPage() {
         await apiClient.post('/crm/admin/usuarios', {
           username: formData.username,
           password: formData.password,
-          id_empresa: formData.id_empresa ? parseInt(formData.id_empresa) : null
+          id_empresa: formData.id_empresa ? parseInt(formData.id_empresa) : 0,
+          id_rol: formData.id_rol ? parseInt(formData.id_rol) : 1
         });
         setSuccess('Usuario creado correctamente');
       }
       setShowModal(false);
       setEditingUsuario(null);
-      setFormData({ username: '', password: '', id_empresa: '' });
+      setFormData({ username: '', password: '', id_empresa: '', id_rol: '1' });
       fetchData();
     } catch (error) {
       setError(error?.message || 'Error al guardar usuario');
@@ -101,7 +107,8 @@ export default function UsuariosAdminPage() {
     setFormData({
       username: usuario.username || '',
       password: '',
-      id_empresa: usuario.id_empresa?.toString() || '',
+      id_empresa: usuario.id_empresa === 0 || usuario.id_empresa === '0' ? '' : (usuario.id_empresa?.toString() || ''),
+      id_rol: usuario.id_rol?.toString() || '1',
     });
     setShowModal(true);
   };
@@ -120,21 +127,28 @@ export default function UsuariosAdminPage() {
 
   const openNewModal = () => {
     setEditingUsuario(null);
-    setFormData({ username: '', password: '', id_empresa: '' });
+    setFormData({ username: '', password: '', id_empresa: '', id_rol: '1' });
     setShowModal(true);
   };
 
   const getEmpresaNombre = (usuario) => {
     if (usuario.empresa_nombre) return usuario.empresa_nombre;
-    if (!usuario.id_empresa) return 'Sin empresa';
+    if (!usuario.id_empresa || usuario.id_empresa === 0) return 'Administración Central';
     const empresa = empresas.find(e => e.id === usuario.id_empresa);
     return empresa?.nombre || 'Desconocida';
+  };
+
+  const getRolNombre = (usuario) => {
+    if (usuario.rol_nombre) return usuario.rol_nombre;
+    if (!usuario.id_rol) return 'Sin rol';
+    const rol = roles.find(r => r.id === usuario.id_rol);
+    return rol?.nombre || 'Desconocido';
   };
 
   // Obtener nombre de la empresa seleccionada para el filtro
   const getSelectedEmpresaName = () => {
     if (!filterEmpresa) return '';
-    if (filterEmpresa === 'sin_empresa') return 'Sin empresa';
+    if (filterEmpresa === 'sin_empresa') return 'Administración Central';
     const empresa = empresas.find(e => e.id === parseInt(filterEmpresa));
     return empresa?.nombre || '';
   };
@@ -190,8 +204,8 @@ export default function UsuariosAdminPage() {
             </svg>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Administradores</h1>
-            <p className="text-gray-600">Gestiona los administradores de empresas</p>
+            <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
+            <p className="text-gray-600">Gestiona los usuarios del sistema</p>
           </div>
         </div>
         <button
@@ -202,7 +216,7 @@ export default function UsuariosAdminPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span>Nuevo Administrador</span>
+          <span>Nuevo Usuario</span>
         </button>
       </div>
 
@@ -280,10 +294,10 @@ export default function UsuariosAdminPage() {
               </button>
               <button
                 type="button"
-                onClick={() => handleSelectEmpresa('sin_empresa', 'Sin empresa')}
+                onClick={() => handleSelectEmpresa('sin_empresa', 'Administración Central')}
                 className="w-full px-4 py-2 text-left hover:bg-gray-100 text-gray-600"
               >
-                Sin empresa
+                Administración Central
               </button>
               {filteredEmpresas.length > 0 ? (
                 filteredEmpresas.map((empresa) => (
@@ -316,7 +330,7 @@ export default function UsuariosAdminPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
             <p className="text-gray-500">
-              {searchTerm || filterEmpresa ? 'No se encontraron administradores con esos filtros' : 'No hay administradores registrados'}
+              {searchTerm || filterEmpresa ? 'No se encontraron usuarios con esos filtros' : 'No hay usuarios registrados'}
             </p>
           </div>
         ) : (
@@ -325,6 +339,7 @@ export default function UsuariosAdminPage() {
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">ID</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Usuario</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Rol</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Empresa</th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase">Acciones</th>
               </tr>
@@ -340,6 +355,11 @@ export default function UsuariosAdminPage() {
                       </div>
                       <span className="text-sm text-gray-900">{usuario.username}</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                      {getRolNombre(usuario)}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -383,7 +403,7 @@ export default function UsuariosAdminPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
             <div className="p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">
-                {editingUsuario ? 'Editar Administrador' : 'Nuevo Administrador'}
+                {editingUsuario ? 'Editar Usuario' : 'Nuevo Usuario'}
               </h2>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -410,13 +430,30 @@ export default function UsuariosAdminPage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+                <select
+                  value={formData.id_rol}
+                  onChange={(e) => setFormData({ ...formData, id_rol: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  required
+                >
+                  {roles
+                    .filter((rol) => formData.id_empresa ? true : [1, 2].includes(rol.id))
+                    .map((rol) => (
+                      <option key={rol.id} value={rol.id}>
+                        {rol.nombre}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
                 <select
                   value={formData.id_empresa}
                   onChange={(e) => setFormData({ ...formData, id_empresa: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 >
-                  <option value="">Sin empresa asignada</option>
+                  <option value="">Administración Central</option>
                   {empresas.map((empresa) => (
                     <option key={empresa.id} value={empresa.id}>
                       {empresa.nombre}

@@ -48,6 +48,10 @@ const SUPER_ADMIN_MENU = [
   { name: 'Soporte', icon: LifeBuoy, path: '/soporte', badge: null },
 ];
 
+const SOPORTE_ADMIN_MENU = [
+  { name: 'Soporte', icon: LifeBuoy, path: '/soporte', badge: null },
+];
+
 const ENCUESTAS_MENU = [
   { name: 'Encuestas', icon: BarChart3, path: '/encuestas', badge: null },
 ];
@@ -359,6 +363,7 @@ export default function Sidebar() {
   }, []);
 
   const isSuperAdmin = session?.user?.id_rol === 1 && (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0');
+  const isSoporteAdmin = session?.user?.id_rol === 2 && (session?.user?.id_empresa === 0 || session?.user?.id_empresa === '0');
   const isEncuestasEmpresa = session?.user?.id_empresa === 3 || session?.user?.id_empresa === '3';
 
   const filteredMenuItems = useMemo(() => {
@@ -366,6 +371,10 @@ export default function Sidebar() {
 
     if (isSuperAdmin) {
       return SUPER_ADMIN_MENU;
+    }
+
+    if (isSoporteAdmin) {
+      return SOPORTE_ADMIN_MENU;
     }
 
     if (isEncuestasEmpresa) {
@@ -379,7 +388,7 @@ export default function Sidebar() {
     const userModulos = session.user.modulos || [];
     const allowedRoutes = userModulos.map(m => m.ruta);
     return menuItems.filter(item => allowedRoutes.includes(item.path));
-  }, [session?.user, isSuperAdmin, isEncuestasEmpresa, menuItems]);
+  }, [session?.user, isSuperAdmin, isSoporteAdmin, isEncuestasEmpresa, menuItems]);
 
   return (
     <TooltipProvider>

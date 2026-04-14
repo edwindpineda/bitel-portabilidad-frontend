@@ -23,6 +23,7 @@ import {
   Calendar,
   Tag,
   MessageSquare,
+  Monitor,
 } from 'lucide-react';
 
 const formatRelativeTime = (dateString) => {
@@ -67,6 +68,7 @@ export default function SoportePage() {
   const userId = session?.user?.id;
   const rolId = session?.user?.id_rol;
   const idEmpresa = session?.user?.id_empresa;
+  const isAdminCentral = (rolId === 1 || rolId === 2) && (idEmpresa === 0 || idEmpresa === '0');
   const isSuperAdmin = rolId === 1 && (idEmpresa === 0 || idEmpresa === '0');
   const isAdmin = rolId === 1;
   const isCoordinador = rolId === 2;
@@ -354,7 +356,7 @@ export default function SoportePage() {
                 <option value="">Todas las categorias</option>
                 {catalogos.categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
-              {isSuperAdmin && catalogos.empresas?.length > 0 && (
+              {isAdminCentral && catalogos.empresas?.length > 0 && (
                 <select
                   value={filterEmpresa}
                   onChange={(e) => setFilterEmpresa(e.target.value)}
@@ -364,7 +366,7 @@ export default function SoportePage() {
                   {catalogos.empresas.map(e => <option key={e.id} value={e.id}>{e.razon_social}</option>)}
                 </select>
               )}
-              {isSuperAdmin && catalogos.plataformas?.length > 0 && (
+              {isAdminCentral && catalogos.plataformas?.length > 0 && (
                 <select
                   value={filterPlataforma}
                   onChange={(e) => setFilterPlataforma(e.target.value)}
@@ -431,10 +433,20 @@ export default function SoportePage() {
                       )}
                     </div>
                   </div>
-                  {isSuperAdmin && ticket.empresa_nombre && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Building2 className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">{ticket.empresa_nombre}</span>
+                  {isAdminCentral && (ticket.empresa_nombre || ticket.plataforma_nombre) && (
+                    <div className="flex items-center gap-3 mt-1">
+                      {ticket.empresa_nombre && (
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{ticket.empresa_nombre}</span>
+                        </span>
+                      )}
+                      {ticket.plataforma_nombre && (
+                        <span className="flex items-center gap-1">
+                          <Monitor className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{ticket.plataforma_nombre}</span>
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -484,8 +496,8 @@ export default function SoportePage() {
                   <h2 className="text-base font-semibold text-foreground truncate mt-0.5">{selectedTicket.asunto}</h2>
                 </div>
 
-                {/* Actions - Solo SuperAdmin */}
-                {isSuperAdmin && (
+                {/* Actions - Solo Admin Central */}
+                {isAdminCentral && (
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Change Estado */}
                     <div className="relative">
@@ -511,8 +523,8 @@ export default function SoportePage() {
                       )}
                     </div>
 
-                    {/* Assign User - Solo SuperAdmin */}
-                    {isSuperAdmin && (
+                    {/* Assign User - Solo Admin Central */}
+                    {isAdminCentral && (
                       <div className="relative">
                         <button
                           onClick={() => { setShowAsignarDropdown(!showAsignarDropdown); setShowEstadoDropdown(false); }}
@@ -546,7 +558,8 @@ export default function SoportePage() {
                 <span className="flex items-center gap-1"><Tag className="h-3 w-3" />{selectedTicket.categoria_nombre}</span>
                 <span className="flex items-center gap-1"><User className="h-3 w-3" />Reporta: {selectedTicket.reporta_username || selectedTicket.usuario_externo_nombre || 'Externo'}</span>
                 {selectedTicket.asignado_username && <span className="flex items-center gap-1"><User className="h-3 w-3" />Asignado: {selectedTicket.asignado_username}</span>}
-                {isSuperAdmin && selectedTicket.empresa_nombre && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{selectedTicket.empresa_nombre}</span>}
+                {isAdminCentral && selectedTicket.empresa_nombre && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{selectedTicket.empresa_nombre}</span>}
+                {isAdminCentral && selectedTicket.plataforma_nombre && <span className="flex items-center gap-1"><Monitor className="h-3 w-3" />{selectedTicket.plataforma_nombre}</span>}
                 <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDateTime(selectedTicket.fecha_registro)}</span>
               </div>
 
@@ -686,8 +699,8 @@ export default function SoportePage() {
                 </div>
               )}
 
-              {/* Internal note toggle - Solo SuperAdmin */}
-              {isSuperAdmin && (
+              {/* Internal note toggle - Solo Admin Central */}
+              {isAdminCentral && (
                 <div className="flex items-center gap-2 mb-2">
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                     <input
