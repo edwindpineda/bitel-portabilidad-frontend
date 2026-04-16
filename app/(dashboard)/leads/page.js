@@ -66,6 +66,7 @@ import {
   Shield,
   CloudDownload,
   UserCheck2,
+  ShieldOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -143,6 +144,7 @@ export default function LeadsPage() {
   const [perfilamientoData, setPerfilamientoData] = useState([]);
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [filterListaNegra, setFilterListaNegra] = useState(false);
 
   const canFilterByAsesor = session?.user?.id_rol === 1 || session?.user?.id_rol === 2;
 
@@ -298,6 +300,12 @@ export default function LeadsPage() {
 
   const filteredLeads = leads.filter(lead => {
     if (lead.id_tipo_persona === 2) return false;
+
+    // Filtro lista negra (excluyente con los demás)
+    if (filterListaNegra) {
+      return lead.lista_negra === true || lead.lista_negra === 1;
+    }
+
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm || (
       (lead.nombre_completo && lead.nombre_completo.toLowerCase().includes(searchLower)) ||
@@ -334,6 +342,7 @@ export default function LeadsPage() {
     setSearchTerm(''); setDateRange('all'); setDateFrom(''); setDateTo('');
     setSelectedEstado(''); setSelectedTipificacion(''); setSelectedTipificacionAsesor('');
     setNivelesTipAsesor([]); setSelectedAsesorFilter(''); setCurrentPage(1);
+    setFilterListaNegra(false);
   };
 
   const toggleSelectionMode = () => {
@@ -380,10 +389,10 @@ export default function LeadsPage() {
   };
 
   useEffect(() => { setCurrentPage(1); },
-    [searchTerm, dateRange, dateFrom, dateTo, selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter]);
+    [searchTerm, dateRange, dateFrom, dateTo, selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter, filterListaNegra]);
 
-  const hasActiveFilters = searchTerm || dateRange !== 'all' || selectedEstado || selectedTipificacion || selectedTipificacionAsesor || selectedAsesorFilter;
-  const activeFilterCount = [dateRange !== 'all', selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter].filter(Boolean).length;
+  const hasActiveFilters = searchTerm || dateRange !== 'all' || selectedEstado || selectedTipificacion || selectedTipificacionAsesor || selectedAsesorFilter || filterListaNegra;
+  const activeFilterCount = [dateRange !== 'all', selectedEstado, selectedTipificacion, selectedTipificacionAsesor, selectedAsesorFilter, filterListaNegra].filter(Boolean).length;
 
   const handleExportExcel = () => {
     const dataToExport = filteredLeads.map(lead => ({
@@ -407,6 +416,9 @@ export default function LeadsPage() {
   const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
   const goToPage = (page) => setCurrentPage(Math.max(1, Math.min(page, totalPages)));
 
+  // Calcular lista negra desde todos los leads (sin aplicar filtros)
+  const totalListaNegra = leads.filter(l => l.id_tipo_persona !== 2 && (l.lista_negra === true || l.lista_negra === 1)).length;
+
   const statsData = {
     total: filteredLeads.length,
     completos: filteredLeads.filter(l => l.nombre_completo && l.dni).length,
@@ -419,25 +431,31 @@ export default function LeadsPage() {
       key: 'total', label: 'Total Prospectos', value: statsData.total,
       icon: Users, gradient: 'from-teal-600 via-teal-500 to-blue-500',
       glow: 'rgba(99, 102, 241, 0.35)', iconBg: 'from-teal-500 to-blue-500',
-      ring: 'ring-teal-500/20', change: '+12%',
+      ring: 'ring-teal-500/20', change: '+12%', clickable: false,
     },
     {
       key: 'completos', label: 'Datos Completos', value: statsData.completos,
       icon: CheckCircle2, gradient: 'from-emerald-600 via-emerald-500 to-teal-500',
       glow: 'rgba(16, 185, 129, 0.35)', iconBg: 'from-emerald-500 to-teal-500',
-      ring: 'ring-emerald-500/20', change: `${statsData.total ? Math.round((statsData.completos / statsData.total) * 100) : 0}%`,
+      ring: 'ring-emerald-500/20', change: `${statsData.total ? Math.round((statsData.completos / statsData.total) * 100) : 0}%`, clickable: false,
     },
     {
       key: 'sinDatos', label: 'Sin Datos', value: statsData.sinDatos,
       icon: AlertCircle, gradient: 'from-amber-600 via-amber-500 to-orange-500',
       glow: 'rgba(245, 158, 11, 0.35)', iconBg: 'from-amber-500 to-orange-500',
-      ring: 'ring-amber-500/20', change: 'Pendientes',
+      ring: 'ring-amber-500/20', change: 'Pendientes', clickable: false,
     },
     {
       key: 'conPlan', label: 'Con Plan', value: statsData.conPlan,
       icon: Zap, gradient: 'from-violet-600 via-violet-500 to-purple-500',
       glow: 'rgba(139, 92, 246, 0.35)', iconBg: 'from-violet-500 to-purple-500',
-      ring: 'ring-violet-500/20', change: `${statsData.total ? Math.round((statsData.conPlan / statsData.total) * 100) : 0}%`,
+      ring: 'ring-violet-500/20', change: `${statsData.total ? Math.round((statsData.conPlan / statsData.total) * 100) : 0}%`, clickable: false,
+    },
+    {
+      key: 'listaNegra', label: 'Lista Negra', value: totalListaNegra,
+      icon: ShieldOff, gradient: 'from-red-600 via-red-500 to-rose-500',
+      glow: 'rgba(239, 68, 68, 0.35)', iconBg: 'from-red-500 to-rose-500',
+      ring: 'ring-red-500/20', change: 'No contactar', clickable: true,
     },
   ];
 
@@ -540,13 +558,16 @@ export default function LeadsPage() {
       </div>
 
       {/* ========== STATS CARDS ========== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
+          const isListaNegra = stat.key === 'listaNegra';
+          const isActive = isListaNegra && filterListaNegra;
           return (
             <Card
               key={stat.key}
-              className="relative overflow-hidden group hover:shadow-xl transition-all duration-500 animate-scale-in cursor-default"
+              onClick={stat.clickable ? () => setFilterListaNegra(v => !v) : undefined}
+              className={`relative overflow-hidden group hover:shadow-xl transition-all duration-500 animate-scale-in ${stat.clickable ? 'cursor-pointer' : 'cursor-default'} ${isActive ? 'ring-2 ring-red-400 shadow-lg shadow-red-500/20' : ''}`}
               style={{ animationDelay: `${(i + 1) * 100}ms` }}
             >
               {/* Gradient top bar */}
@@ -664,6 +685,15 @@ export default function LeadsPage() {
                 </span>
               )}
             </Button>
+
+            {/* Indicador filtro lista negra activo */}
+            {filterListaNegra && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 border border-red-200 text-red-700 text-xs font-medium">
+                <ShieldOff className="h-3.5 w-3.5" />
+                Lista negra activa
+                <button onClick={() => setFilterListaNegra(false)} className="ml-1 hover:text-red-900 font-bold">×</button>
+              </div>
+            )}
 
             {/* Results summary - inline */}
             <div className="hidden md:flex items-center gap-2 ml-auto">
@@ -841,20 +871,28 @@ export default function LeadsPage() {
                       <div
                         className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-2 ring-white"
                         style={{
-                          background: `linear-gradient(135deg, ${getColorHex(lead.estado_color)}30, ${getColorHex(lead.estado_color)}15)`,
+                          background: lead.lista_negra
+                            ? 'linear-gradient(135deg, #fecaca, #fee2e2)'
+                            : `linear-gradient(135deg, ${getColorHex(lead.estado_color)}30, ${getColorHex(lead.estado_color)}15)`,
                         }}
                       >
-                        <span className="text-xs font-bold" style={{ color: getColorHex(lead.estado_color) }}>
-                          {lead.nombre_completo ? lead.nombre_completo.charAt(0).toUpperCase() : '?'}
-                        </span>
+                        {lead.lista_negra ? (
+                          <ShieldOff className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <span className="text-xs font-bold" style={{ color: getColorHex(lead.estado_color) }}>
+                            {lead.nombre_completo ? lead.nombre_completo.charAt(0).toUpperCase() : '?'}
+                          </span>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate leading-tight">
                           {lead.nombre_completo || <span className="text-muted-foreground/40 italic font-normal text-xs">Sin nombre</span>}
                         </p>
-                        {lead.direccion && (
+                        {lead.lista_negra ? (
+                          <p className="text-[11px] text-red-500 font-medium leading-tight mt-0.5">Lista negra</p>
+                        ) : lead.direccion ? (
                           <p className="text-[11px] text-muted-foreground/50 truncate max-w-[200px] leading-tight mt-0.5">{lead.direccion}</p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </TableCell>

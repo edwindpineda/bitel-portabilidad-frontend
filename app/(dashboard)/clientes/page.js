@@ -47,6 +47,7 @@ import {
   MoreHorizontal,
   Eye,
   Tag,
+  ShieldOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -94,6 +95,7 @@ export default function ClientesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
+  const [filterListaNegra, setFilterListaNegra] = useState(false);
 
   const canFilterByAsesor = session?.user?.rolId && session.user.rolId < 3;
 
@@ -139,10 +141,14 @@ export default function ClientesPage() {
   const filtered = useMemo(() => {
     let list = clientes;
 
-    if (filterOrigen === 'prospecto') {
-      list = list.filter(c => c.fue_prospecto === 1);
-    } else if (filterOrigen === 'directo') {
-      list = list.filter(c => !c.fue_prospecto || c.fue_prospecto === 0);
+    if (filterListaNegra) {
+      list = list.filter(c => c.lista_negra === true || c.lista_negra === 1);
+    } else {
+      if (filterOrigen === 'prospecto') {
+        list = list.filter(c => c.fue_prospecto === 1);
+      } else if (filterOrigen === 'directo') {
+        list = list.filter(c => !c.fue_prospecto || c.fue_prospecto === 0);
+      }
     }
 
     if (search.trim()) {
@@ -156,20 +162,21 @@ export default function ClientesPage() {
     }
 
     return list;
-  }, [clientes, search, filterOrigen]);
+  }, [clientes, search, filterOrigen, filterListaNegra]);
 
   // Paginación
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [search, filterOrigen]);
+  useEffect(() => { setCurrentPage(1); }, [search, filterOrigen, filterListaNegra]);
 
   // Estadísticas
   const stats = useMemo(() => {
     const total = clientes.length;
     const convertidos = clientes.filter(c => c.fue_prospecto === 1).length;
     const directos = total - convertidos;
-    return { total, convertidos, directos };
+    const listaNegra = clientes.filter(c => c.lista_negra === true || c.lista_negra === 1).length;
+    return { total, convertidos, directos, listaNegra };
   }, [clientes]);
 
   const resetNewCliente = () => setNewCliente({ nombre_completo: '', celular: '', dni: '', direccion: '', id_estado: '', id_tipificacion_asesor: '', id_plan: '', id_asesor: '' });
@@ -363,7 +370,7 @@ export default function ClientesPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-white">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -399,6 +406,21 @@ export default function ClientesPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card
+          className={`border-0 shadow-sm bg-gradient-to-br from-red-50 to-white cursor-pointer transition-all ${filterListaNegra ? 'ring-2 ring-red-400' : 'hover:shadow-md'}`}
+          onClick={() => { setFilterListaNegra(v => !v); setFilterOrigen('todos'); }}
+        >
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${filterListaNegra ? 'bg-red-500' : 'bg-red-100'}`}>
+              <ShieldOff className={`h-5 w-5 ${filterListaNegra ? 'text-white' : 'text-red-600'}`} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-red-700">{stats.listaNegra}</p>
+              <p className="text-xs text-muted-foreground">Lista negra</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filtros y tabla */}
@@ -417,7 +439,7 @@ export default function ClientesPage() {
             </div>
 
             {/* Filtro por origen */}
-            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50 border">
+            <div className={`flex items-center gap-1 p-1 rounded-lg bg-muted/50 border transition-opacity ${filterListaNegra ? 'opacity-40 pointer-events-none' : ''}`}>
               {[
                 { key: 'todos', label: 'Todos' },
                 { key: 'prospecto', label: 'Convertidos' },
@@ -436,6 +458,17 @@ export default function ClientesPage() {
                 </button>
               ))}
             </div>
+
+            {/* Indicador filtro lista negra activo */}
+            {filterListaNegra && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 border border-red-200 text-red-700 text-xs font-medium">
+                <ShieldOff className="h-3.5 w-3.5" />
+                Lista negra activa
+                <button onClick={() => setFilterListaNegra(false)} className="ml-1 hover:text-red-900">
+                  ×
+                </button>
+              </div>
+            )}
 
             <span className="text-xs text-muted-foreground ml-auto">
               {filtered.length} cliente{filtered.length !== 1 ? 's' : ''}
@@ -475,10 +508,18 @@ export default function ClientesPage() {
                     <TableRow key={cliente.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="h-7 w-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                            <User className="h-3.5 w-3.5 text-emerald-600" />
+                          <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${cliente.lista_negra ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                            {cliente.lista_negra
+                              ? <ShieldOff className="h-3.5 w-3.5 text-red-600" />
+                              : <User className="h-3.5 w-3.5 text-emerald-600" />
+                            }
                           </div>
-                          <span className="text-sm font-medium">{cliente.nombre_completo || <span className="text-muted-foreground italic">Sin nombre</span>}</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{cliente.nombre_completo || <span className="text-muted-foreground italic">Sin nombre</span>}</span>
+                            {cliente.lista_negra && (
+                              <span className="text-[10px] text-red-500 font-medium">Lista negra</span>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
