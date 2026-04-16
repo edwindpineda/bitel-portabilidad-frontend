@@ -33,7 +33,8 @@
       "Bash(grep:*)",
       "Bash(PGPASSWORD=2dcadb647e771cc6228d psql -h 167.172.254.139 -U postgres -d viva -c \"SELECT * FROM estado_prospecto WHERE estado_registro = 1 ORDER BY id_empresa, orden;\")",
       "Bash(docker run:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cmd /c \"npm run dev\")"
     ]
   }
 }
