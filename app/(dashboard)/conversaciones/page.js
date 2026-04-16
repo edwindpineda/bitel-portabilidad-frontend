@@ -128,15 +128,29 @@ export default function ConversacionesPage() {
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
 
+  // Cola de tempIds para mensajes salientes optimistas (FIFO, evita duplicados con WebSocket)
+  const pendingOutgoingRef = useRef([]);
+
   // Callback para manejar nuevos mensajes entrantes por WebSocket
   const handleNuevoMensaje = useCallback((mensaje) => {
     const currentSelectedChat = selectedChatRef.current;
 
     // Solo agregar si es del chat seleccionado
     if (currentSelectedChat && mensaje.id_contacto === currentSelectedChat.id) {
+      const esEntrante = mensaje.direccion === 'in' || mensaje.direccion === 'incoming';
+
+      // Si es un mensaje saliente con un optimista pendiente, reemplazar en vez de duplicar
+      if (!esEntrante && pendingOutgoingRef.current.length > 0) {
+        const tempId = pendingOutgoingRef.current.shift();
+        setChatMessages(prev => prev.map(m =>
+          m.id === tempId ? { ...m, id: mensaje.id || m.id } : m
+        ));
+        return;
+      }
+
       const newMsg = {
         id: mensaje.id || Date.now(),
-        type: (mensaje.direccion === 'in' || mensaje.direccion === 'incoming') ? 'client' : 'ai',
+        type: esEntrante ? 'client' : 'ai',
         text: mensaje.contenido || '',
         file: mensaje.contenido_archivo || null,
         tipoMensaje: mensaje.tipo || mensaje.tipo_mensaje || 'texto',
@@ -577,21 +591,25 @@ export default function ConversacionesPage() {
     const messageContent = newMessage.trim();
     setNewMessage('');
 
+    // Agregar mensaje optimista con tempId antes de la llamada API
+    const tempId = `temp_${Date.now()}`;
+    pendingOutgoingRef.current.push(tempId);
+    setChatMessages(prev => [...prev, {
+      id: tempId,
+      type: 'ai',
+      text: messageContent,
+      timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
+    }]);
+
     try {
       // Enviar via API (backend envía por WhatsApp Graph, guarda en BD y notifica al websocket)
       await apiClient.post(`/crm/contacto/${selectedChat.id}/mensajes`, {
         contenido: messageContent
       });
-
-      // Agregar mensaje localmente para feedback inmediato
-      const newMsg = {
-        id: Date.now(),
-        type: 'ai',
-        text: messageContent,
-        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: "America/Lima" })
-      };
-      setChatMessages(prev => [...prev, newMsg]);
     } catch (err) {
+      // Revertir el mensaje optimista si falló
+      setChatMessages(prev => prev.filter(m => m.id !== tempId));
+      pendingOutgoingRef.current = pendingOutgoingRef.current.filter(id => id !== tempId);
       console.error('Error al enviar mensaje:', err);
       setNewMessage(messageContent);
       alert('Error al enviar el mensaje');
