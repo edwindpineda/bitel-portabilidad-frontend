@@ -226,6 +226,17 @@ export default function ClientesPage() {
     setEditingCliente(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleToggleListaNegra = async (cliente) => {
+    try {
+      const newValue = !(cliente.lista_negra === true || cliente.lista_negra === 1);
+      await apiClient.put(`/crm/persona/${cliente.id}`, { lista_negra: newValue });
+      loadData();
+    } catch (error) {
+      console.error('Error al cambiar lista negra:', error);
+      alert('Error al cambiar lista negra');
+    }
+  };
+
   const handleEditCliente = async () => {
     if (!editingCliente) return;
     try {
@@ -605,10 +616,14 @@ export default function ClientesPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem onClick={() => handleOpenEdit(cliente)} className="gap-2 text-xs">
                               <Pencil className="h-3.5 w-3.5" />
                               Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleListaNegra(cliente)} className="gap-2 text-xs">
+                              <ShieldOff className={`h-3.5 w-3.5 ${cliente.lista_negra ? 'text-emerald-600' : 'text-red-600'}`} />
+                              {cliente.lista_negra ? 'Quitar de lista negra' : 'Agregar a lista negra'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
