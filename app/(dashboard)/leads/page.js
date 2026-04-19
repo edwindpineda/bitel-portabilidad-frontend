@@ -145,6 +145,10 @@ export default function LeadsPage() {
   const [loadingPerfilamiento, setLoadingPerfilamiento] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filterListaNegra, setFilterListaNegra] = useState(false);
+  const [showAddListaNegraModal, setShowAddListaNegraModal] = useState(false);
+  const [addListaNegraForm, setAddListaNegraForm] = useState({ nombre_completo: '', celular: '' });
+  const [addListaNegraError, setAddListaNegraError] = useState('');
+  const [addingListaNegra, setAddingListaNegra] = useState(false);
 
   const canFilterByAsesor = session?.user?.id_rol === 1 || session?.user?.id_rol === 2;
 
@@ -256,6 +260,33 @@ export default function LeadsPage() {
       alert('Error al actualizar prospecto');
     } finally {
       setSavingLead(false);
+    }
+  };
+
+  const openAddListaNegraModal = () => {
+    setAddListaNegraForm({ nombre_completo: '', celular: '' });
+    setAddListaNegraError('');
+    setShowAddListaNegraModal(true);
+  };
+
+  const handleAddToListaNegra = async () => {
+    const nombre = addListaNegraForm.nombre_completo.trim();
+    const celular = addListaNegraForm.celular.trim();
+    if (!nombre || !celular) {
+      setAddListaNegraError('Nombre completo y celular son requeridos');
+      return;
+    }
+    try {
+      setAddingListaNegra(true);
+      setAddListaNegraError('');
+      await apiClient.post('/crm/persona/lista-negra', { nombre_completo: nombre, celular });
+      setShowAddListaNegraModal(false);
+      loadData();
+    } catch (error) {
+      const msg = error?.response?.data?.msg || 'Error al agregar a lista negra';
+      setAddListaNegraError(msg);
+    } finally {
+      setAddingListaNegra(false);
     }
   };
 
@@ -563,6 +594,14 @@ export default function LeadsPage() {
             >
               <Download className="h-3.5 w-3.5" />
               Excel
+            </Button>
+            <Button
+              size="sm"
+              onClick={openAddListaNegraModal}
+              className="gap-2 h-9 bg-red-500/90 hover:bg-red-500 text-white shadow-lg shadow-red-500/20"
+            >
+              <ShieldOff className="h-3.5 w-3.5" />
+              Lista negra
             </Button>
           </div>
         </div>
@@ -1500,6 +1539,60 @@ export default function LeadsPage() {
               className="gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg shadow-teal-500/25"
             >
               <Pencil className="h-3.5 w-3.5" /> Editar Prospecto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddListaNegraModal} onOpenChange={(open) => { if (!open) { setShowAddListaNegraModal(false); setAddListaNegraError(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldOff className="h-5 w-5 text-red-600" />
+              Agregar a lista negra
+            </DialogTitle>
+            <DialogDescription>
+              Registra directamente un celular en la lista negra.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Nombre completo *</label>
+              <input
+                type="text"
+                value={addListaNegraForm.nombre_completo}
+                onChange={(e) => setAddListaNegraForm(f => ({ ...f, nombre_completo: e.target.value }))}
+                className="w-full mt-1 h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                placeholder="Nombre y apellido"
+                disabled={addingListaNegra}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Celular *</label>
+              <input
+                type="text"
+                value={addListaNegraForm.celular}
+                onChange={(e) => setAddListaNegraForm(f => ({ ...f, celular: e.target.value.replace(/\D/g, '') }))}
+                className="w-full mt-1 h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                placeholder="9XXXXXXXX"
+                maxLength={15}
+                disabled={addingListaNegra}
+              />
+            </div>
+            {addListaNegraError && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50 text-red-700 text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {addListaNegraError}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddListaNegraModal(false)} disabled={addingListaNegra}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddToListaNegra} disabled={addingListaNegra} className="bg-red-600 hover:bg-red-700">
+              {addingListaNegra ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldOff className="h-4 w-4 mr-2" />}
+              Agregar
             </Button>
           </DialogFooter>
         </DialogContent>
