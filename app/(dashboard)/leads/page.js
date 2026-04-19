@@ -259,6 +259,17 @@ export default function LeadsPage() {
     }
   };
 
+  const handleToggleListaNegra = async (lead) => {
+    try {
+      const newValue = !(lead.lista_negra === true || lead.lista_negra === 1);
+      await apiClient.put(`/crm/persona/${lead.id}`, { lista_negra: newValue });
+      loadData();
+    } catch (error) {
+      console.error('Error al cambiar lista negra:', error);
+      alert('Error al cambiar lista negra');
+    }
+  };
+
   const handleConvertirCliente = async () => {
     if (!convertingLead) return;
     try {
@@ -301,9 +312,9 @@ export default function LeadsPage() {
   const filteredLeads = leads.filter(lead => {
     if (lead.id_tipo_persona === 2) return false;
 
-    // Filtro lista negra (excluyente con los demás)
+    // Filtro lista negra combinado con los demás
     if (filterListaNegra) {
-      return lead.lista_negra === true || lead.lista_negra === 1;
+      if (!(lead.lista_negra === true || lead.lista_negra === 1)) return false;
     }
 
     const searchLower = searchTerm.toLowerCase();
@@ -967,6 +978,12 @@ export default function LeadsPage() {
                             <Pencil className="h-3.5 w-3.5 text-amber-600" />
                           </div>
                           Editar prospecto
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleListaNegra(lead)} className="gap-2.5 text-xs rounded-lg py-2.5">
+                          <div className={`h-6 w-6 rounded-md flex items-center justify-center ${lead.lista_negra ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                            <ShieldOff className={`h-3.5 w-3.5 ${lead.lista_negra ? 'text-emerald-600' : 'text-red-600'}`} />
+                          </div>
+                          {lead.lista_negra ? 'Quitar de lista negra' : 'Agregar a lista negra'}
                         </DropdownMenuItem>
                         {lead.id_tipo_persona !== 2 && (
                           <>
